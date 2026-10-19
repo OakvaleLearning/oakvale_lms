@@ -1,0 +1,352 @@
+// Oakvale LMS - Prisma schema
+//
+// Catalogue:  Program → Course → Module → Lesson (SCORM | HTML | VIDEO | AUDIO | QUIZ)
+// Commerce:   Program → Tier (priced) → TierCourse (which courses a tier unlocks)
+//             User buys a Tier → Enrollment (+ Payment via Paystack)
+// Learning:   LessonProgress / ScormState / QuizAttempt per user
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/* ------------------------------------------------------------------ *
+ * Accounts
+ * ------------------------------------------------------------------ */
+
+enum Role {
+  LEARNER
+  ADMIN
+}
+
+model User {
+  id           String               @id @default(cuid())
+  name         String
+  email        String               @unique
+  // WhatsApp / phone number, stored normalised (e.g. "+2348108189514").
+  phone        String?
+  passwordHash String
+  role         Role                 @default(LEARNER)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  resetTokens  PasswordResetToken[]
+  enrollments  Enrollment[]
+  payments     Payment[]
+  progress     LessonProgress[]
+  scormStates  ScormState[]
+  quizAttempts QuizAttempt[]
+}
+
+/// Single-use, time-limited password reset tokens. Only the SHA-256 hash of the
+/// token is stored — the raw token exists solely in the emailed link.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/* ------------------------------------------------------------------ *
+ * Catalogue
+ * ------------------------------------------------------------------ */
+
+model Program {
+  id          String   @id @default(cuid())
+  // Matches the marketing site's slugs ("adult-care", "child-care") so its
+  // tier CTAs (/enroll?track=<slug>&tier=<tier>) resolve here.
+  slug        String   @unique
+  title       String
+  description String   @default("")
+  coverImage  String?
+  published   Boolean  @default(false)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tiers       Tier[]
+  courses     Course[]
+
+  @@index([published, order])
+}
+
+/// A purchasable level of a program (e.g. Foundation / Professional / Full).
+model Tier {
+  id          String       @id @default(cuid())
+  program     Program      @relation(fields: [programId], references: [id], onDelete: Cascade)
+  programId   String
+  slug        String
+  name        String
+  description String       @default("")
+  price       Int // kobo (NGN * 100), to match Paystack
+  order       Int          @default(0)
+  published   Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  courses     TierCourse[]
+  enrollments Enrollment[]
+
+  @@unique([programId, slug])
+  @@index([programId, order])
+}
+
+/// Which courses a tier unlocks.
+model TierCourse {
+  tier     Tier   @relation(fields: [tierId], references: [id], onDelete: Cascade)
+  tierId   String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId String
+
+  @@id([tierId, courseId])
+  @@index([courseId])
+}
+
+model Course {
+  id             String       @id @default(cuid())
+  program        Program      @relation(fields: [programId], references: [id], onDelete: Cascade)
+  programId      String
+  slug           String
+  title          String
+  description    String       @default("")
+  coverImage     String?
+  order          Int          @default(0)
+  published      Boolean      @default(false)
+  // When true, each lesson unlocks only after the previous one is completed.
+  sequential     Boolean      @default(false)
+  // Course that must be completed first (e.g. Professional requires Foundation).
+  prerequisite   Course?      @relation("CoursePrerequisite", fields: [prerequisiteId], references: [id], onDelete: SetNull)
+  prerequisiteId String?
+  dependents     Course[]     @relation("CoursePrerequisite")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  modules        Module[]
+  tiers          TierCourse[]
+
+  @@unique([programId, slug])
+  @@index([programId, order])
+}
+
+model Module {
+  id        String   @id @default(cuid())
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId  String
+  title     String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lessons   Lesson[]
+
+  @@index([courseId, order])
+}
+
+enum LessonType {
+  SCORM
+  HTML
+  VIDEO
+  AUDIO
+  QUIZ
+}
+
+model Lesson {
+  id          String           @id @default(cuid())
+  module      Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  moduleId    String
+  title       String
+  type        LessonType
+  // Optional notes shown under the player.
+  description String           @default("")
+  order       Int              @default(0)
+  published   Boolean          @default(true)
+  durationSec Int?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  asset       ContentAsset?
+  quiz        Quiz?
+  progress    LessonProgress[]
+  scormStates ScormState[]
+
+  @@index([moduleId, order])
+}
+
+enum AssetStatus {
+  UPLOADING // presigned URL issued, browser uploading to R2
+  PROCESSING // SCORM/HTML zip being unpacked
+  READY
+  FAILED
+}
+
+/// The uploaded file behind a SCORM / HTML / VIDEO / AUDIO lesson, stored in R2.
+model ContentAsset {
+  id           String      @id @default(cuid())
+  lesson       Lesson      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId     String      @unique
+  // R2 key of the uploaded file. Unpacked SCORM/HTML packages live under
+  // "content/<assetId>/" and are served by the same-origin content route.
+  storageKey   String
+  fileName     String
+  mimeType     String
+  sizeBytes    Int?
+  // Entry file inside an unpacked package, e.g. "index_lms.html".
+  launchPath   String?
+  scormVersion String? // "1.2" | "2004"
+  status       AssetStatus @default(UPLOADING)
+  error        String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model Quiz {
+  id          String        @id @default(cuid())
+  lesson      Lesson        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId    String        @unique
+  passMark    Int           @default(70) // percent
+  maxAttempts Int? // null = unlimited
+  shuffle     Boolean       @default(false)
+  questions   Question[]
+  attempts    QuizAttempt[]
+}
+
+enum QuestionType {
+  SINGLE
+  MULTIPLE
+  TRUE_FALSE
+}
+
+model Question {
+  id          String       @id @default(cuid())
+  quiz        Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quizId      String
+  order       Int          @default(0)
+  type        QuestionType
+  prompt      String
+  options     Json // [{ id, text }]
+  correct     Json // [optionId] — never sent to learners
+  explanation String?
+  points      Int          @default(1)
+
+  @@index([quizId, order])
+}
+
+model QuizAttempt {
+  id        String   @id @default(cuid())
+  quiz      Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quizId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  answers   Json // { [questionId]: optionId[] }
+  score     Int // percent
+  passed    Boolean
+  createdAt DateTime @default(now())
+
+  @@index([quizId, userId])
+}
+
+/* ------------------------------------------------------------------ *
+ * Commerce
+ * ------------------------------------------------------------------ */
+
+enum EnrollmentStatus {
+  PENDING // created, awaiting payment
+  ACTIVE // paid (or granted by an admin)
+  CANCELLED
+}
+
+enum EnrollmentSource {
+  PAYSTACK
+  ADMIN // granted manually
+  LEGACY // imported from the learners_portal cohort checkout
+}
+
+model Enrollment {
+  id                  String           @id @default(cuid())
+  user                User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId              String
+  tier                Tier             @relation(fields: [tierId], references: [id], onDelete: Restrict)
+  tierId              String
+  status              EnrollmentStatus @default(PENDING)
+  source              EnrollmentSource @default(PAYSTACK)
+  amount              Int // kobo — tier price at the time of purchase
+  activatedAt         DateTime?
+  enrolledEmailSentAt DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  payments            Payment[]
+
+  // One enrolment per learner per tier. Retrying checkout reuses the row.
+  @@unique([userId, tierId])
+  @@index([status])
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  ABANDONED
+}
+
+model Payment {
+  id           String        @id @default(cuid())
+  enrollment   Enrollment    @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  enrollmentId String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  reference    String        @unique // Paystack transaction reference
+  amount       Int // kobo
+  status       PaymentStatus @default(PENDING)
+  channel      String?
+  paidAt       DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([enrollmentId])
+  @@index([userId])
+  @@index([status])
+}
+
+/* ------------------------------------------------------------------ *
+ * Learning progress
+ * ------------------------------------------------------------------ */
+
+enum ProgressStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+model LessonProgress {
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  lesson      Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId    String
+  status      ProgressStatus @default(IN_PROGRESS)
+  // Resume point for video/audio, in seconds.
+  positionSec Int?
+  // Best quiz / SCORM score, percent.
+  score       Int?
+  completedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@id([userId, lessonId])
+  @@index([lessonId])
+  @@index([userId, updatedAt])
+}
+
+/// The SCORM runtime data model (cmi.*) for a learner's attempt, so a package
+/// resumes where it left off (suspend_data, location, status, score).
+model ScormState {
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId  String
+  cmi       Json
+  updatedAt DateTime @updatedAt
+
+  @@id([userId, lessonId])
+}

@@ -1,26 +1,142 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ------------------------------------------------------------------ */
+/*  Oakvale Learning — Design Tokens                                   */
+/*  Primary: #3229a2 (deep indigo)   Accent: #d929dd (magenta)        */
+/* ------------------------------------------------------------------ */
+
+@theme {
+  --font-sans: var(--font-roboto), Roboto, Arial, Helvetica, sans-serif;
+
+  /* Brand — Primary (indigo) */
+  --color-primary-50: #eeecfb;
+  --color-primary-100: #d9d5f6;
+  --color-primary-200: #b3abed;
+  --color-primary-300: #8d80e4;
+  --color-primary-400: #6656d3;
+  --color-primary-500: #4a3cbb;
+  --color-primary-600: #3229a2;
+  --color-primary-700: #2a2287;
+  --color-primary-800: #211a6b;
+  --color-primary-900: #171149;
+  --color-primary-950: #0d0a2b;
+
+  /* Brand — Accent (magenta) */
+  --color-accent-50: #fdeafd;
+  --color-accent-100: #fbd0fb;
+  --color-accent-200: #f6a4f6;
+  --color-accent-300: #f072f1;
+  --color-accent-400: #e84be9;
+  --color-accent-500: #d929dd;
+  --color-accent-600: #b31eb8;
+  --color-accent-700: #8d1892;
+  --color-accent-800: #66125f;
+  --color-accent-900: #430c40;
+
+  /* Neutrals (warm ink) */
+  --color-ink-50: #f7f7fa;
+  --color-ink-100: #eeeef3;
+  --color-ink-200: #d9d9e3;
+  --color-ink-300: #b8b8c9;
+  --color-ink-400: #8f8fa6;
+  --color-ink-500: #6c6c85;
+  --color-ink-600: #55556b;
+  --color-ink-700: #434356;
+  --color-ink-800: #2c2c3a;
+  --color-ink-900: #1a1a24;
+  --color-ink-950: #0e0e15;
+
+  --color-background: #ffffff;
+  --color-foreground: #1a1a24;
+
+  --radius-4xl: 2rem;
+
+  /* Motion */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --animate-marquee: marquee 30s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-shimmer: shimmer 2.5s linear infinite;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Base                                                              */
+/* ------------------------------------------------------------------ */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+
+  ::selection {
+    background-color: var(--color-accent-500);
+    color: white;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 11px; height: 11px; }
+  ::-webkit-scrollbar-track { background: var(--color-ink-100); }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-primary-300);
+    border-radius: 999px;
+    border: 3px solid var(--color-ink-100);
+  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-primary-500); }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ------------------------------------------------------------------ */
+/*  Utilities                                                         */
+/* ------------------------------------------------------------------ */
+@utility text-gradient {
+  color: var(--color-accent-500);
+}
+
+@utility bg-brand-gradient {
+  background-color: var(--color-primary-600);
+}
+
+@utility bg-mesh {
+  background-color: var(--color-primary-950);
+}
+
+@utility glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+@utility glass-light {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+/* Grid overlay removed — solid colors only, no gradients */
+@utility bg-grid {
+  background-image: none;
 }
