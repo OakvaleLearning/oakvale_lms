@@ -1,19 +1,25 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ChevronRight, Eye } from "lucide-react";
+import { ChevronRight, Eye, FolderPlus, Layers, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { StatusBadge, PageHeader } from "@/components/dashboard/ui";
+import { Breadcrumbs, PageHeader, StatusBadge } from "@/components/dashboard/ui";
 import { LESSON_TYPE_LABEL, LessonIcon } from "@/components/learn/LessonIcon";
+import { formatDuration } from "@/components/learn/CourseOutline";
+import { CoverImageField } from "@/components/admin/CoverImageField";
+import { LessonTypePicker } from "@/components/admin/LessonTypePicker";
+import { buttonClass } from "@/components/ui/Button";
 import {
   ActionForm,
-  Checkbox,
   DeleteButton,
+  Dialog,
   Field,
+  InlineRename,
   Input,
   MoveButtons,
   Panel,
   Select,
+  Switch,
   Textarea,
   TitleSlugFields,
 } from "@/components/admin/forms";
@@ -53,119 +59,183 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
     select: { id: true, title: true },
   });
 
+  const lessons = course.modules.flatMap((m) => m.lessons);
+  const published = lessons.filter((l) => l.published).length;
+
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <Link
-          href={`/admin/programs/${course.program.id}`}
-          className="inline-flex items-center gap-1.5 text-sm text-ink-500 transition-colors hover:text-ink-900"
-        >
-          <ArrowLeft className="size-4" /> {course.program.title}
-        </Link>
-        <Link
-          href={`/learn/${course.program.slug}/${course.slug}`}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600"
-        >
-          <Eye className="size-4" /> Preview as learner
-        </Link>
-      </div>
+    <div className="mx-auto max-w-6xl space-y-6">
+      <Breadcrumbs
+        items={[
+          { label: "Programmes", href: "/admin/programs" },
+          { label: course.program.title, href: `/admin/programs/${course.program.id}` },
+          { label: course.title },
+        ]}
+      />
 
-      <PageHeader eyebrow={course.program.title} title={course.title} />
+      <PageHeader
+        eyebrow="Course"
+        title={
+          <span className="flex flex-wrap items-center gap-3">
+            {course.title}
+            <StatusBadge status={course.published ? "PUBLISHED" : "DRAFT"} />
+          </span>
+        }
+        description={`${course.modules.length} ${course.modules.length === 1 ? "module" : "modules"} · ${lessons.length} ${
+          lessons.length === 1 ? "lesson" : "lessons"
+        } · ${published} visible to learners`}
+        actions={
+          <>
+            <Link href={`/learn/${course.program.slug}/${course.slug}`} className={buttonClass({ variant: "outline", size: "sm" })}>
+              <Eye className="size-4" /> Preview as learner
+            </Link>
+            <DeleteButton
+              onDelete={deleteCourse.bind(null, course.id)}
+              confirmText={`Delete “${course.title}” and all of its content? This cannot be undone.`}
+              label="Delete"
+            />
+          </>
+        }
+      />
 
-      <Panel title="Modules & lessons">
-        <div className="space-y-4">
-          {course.modules.map((m) => (
-            <div key={m.id} className="rounded-2xl border border-line">
-              <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
-                <MoveButtons onMove={moveItem.bind(null, "module", m.id)} />
-                <details className="min-w-0 flex-1">
-                  <summary className="cursor-pointer list-none font-semibold text-ink-900">{m.title}</summary>
-                  <ActionForm action={renameModule.bind(null, m.id)} submitLabel="Rename" className="mt-3 mb-2">
-                    <Input name="title" defaultValue={m.title} required />
-                  </ActionForm>
-                </details>
-                <DeleteButton
-                  onDelete={deleteModule.bind(null, m.id)}
-                  confirmText={`Delete “${m.title}” and all of its lessons?`}
-                />
-              </div>
-              <ul className="divide-y divide-line/70">
-                {m.lessons.map((l) => (
-                  <li key={l.id} className="flex items-center gap-2 px-3 py-1.5">
-                    <MoveButtons onMove={moveItem.bind(null, "lesson", l.id)} />
-                    <Link
-                      href={`/admin/lessons/${l.id}`}
-                      className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-2 py-2 hover:bg-ink-50"
-                    >
-                      <LessonIcon type={l.type} className="shrink-0 text-ink-400" />
-                      <span className="min-w-0 flex-1 truncate text-sm text-ink-800">{l.title}</span>
-                      <span className="hidden text-xs text-ink-400 sm:inline">{LESSON_TYPE_LABEL[l.type]}</span>
-                      <LessonState lesson={l} />
-                      <ChevronRight className="size-4 shrink-0 text-ink-300" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-              <details className="border-t border-line px-4 py-3">
-                <summary className="cursor-pointer text-sm font-medium text-primary-600">Add lesson</summary>
-                <ActionForm action={createLesson.bind(null, m.id)} submitLabel="Add lesson" className="mt-3">
-                  <div className="grid gap-3 sm:grid-cols-[1fr_200px]">
-                    <Input name="title" placeholder="Lesson title" required />
-                    <Select name="type" defaultValue="VIDEO">
-                      {Object.entries(LESSON_TYPE_LABEL).map(([value, label]) => (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-                </ActionForm>
-              </details>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="min-w-0 space-y-4" aria-label="Curriculum">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <h2 className="text-[15px] font-semibold text-ink-950">Curriculum</h2>
+              <p className="mt-0.5 text-xs text-ink-500">Modules group lessons. Use the arrows to reorder.</p>
             </div>
+          </div>
+
+          {course.modules.length === 0 && (
+            <div className="card px-6 py-12 text-center">
+              <Layers className="mx-auto size-6 text-ink-300" />
+              <p className="mt-3 text-sm font-medium text-ink-900">Start with a module</p>
+              <p className="mt-1 text-sm text-ink-500">e.g. “Module 1: Getting started”, then add lessons to it.</p>
+            </div>
+          )}
+
+          {course.modules.map((m, mi) => (
+            <article key={m.id} className="card overflow-hidden">
+              <header className="flex items-center gap-2 border-b border-line bg-canvas/50 py-2 pl-2 pr-3">
+                <MoveButtons onMove={moveItem.bind(null, "module", m.id)} />
+                <span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary-600 text-xs font-semibold text-white">
+                  {mi + 1}
+                </span>
+                <InlineRename
+                  action={renameModule.bind(null, m.id)}
+                  defaultValue={m.title}
+                  className="flex-1 text-sm font-semibold text-ink-950"
+                />
+                <span className="hidden shrink-0 text-xs text-ink-500 sm:inline">
+                  {m.lessons.length} {m.lessons.length === 1 ? "lesson" : "lessons"}
+                </span>
+                <DeleteButton onDelete={deleteModule.bind(null, m.id)} confirmText={`Delete “${m.title}” and all of its lessons?`} />
+              </header>
+
+              {m.lessons.length > 0 ? (
+                <ul className="divide-y divide-line/70">
+                  {m.lessons.map((l) => {
+                    const duration = formatDuration(l.durationSec);
+                    return (
+                      <li key={l.id} className="flex items-center gap-2 py-1 pl-2 pr-3">
+                        <MoveButtons onMove={moveItem.bind(null, "lesson", l.id)} />
+                        <Link
+                          href={`/admin/lessons/${l.id}`}
+                          className="group flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-canvas"
+                        >
+                          <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-ink-50 text-ink-500 group-hover:bg-white">
+                            <LessonIcon type={l.type} />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-medium text-ink-900">{l.title}</span>
+                            <span className="block text-xs text-ink-500">
+                              {LESSON_TYPE_LABEL[l.type]}
+                              {duration && ` · ${duration}`}
+                            </span>
+                          </span>
+                          <LessonState lesson={l} />
+                          <ChevronRight className="size-4 shrink-0 text-ink-300 transition-transform group-hover:translate-x-0.5" />
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="px-5 py-5 text-sm text-ink-500">No lessons in this module yet.</p>
+              )}
+
+              <footer className="border-t border-line px-3 py-2">
+                <Dialog
+                  title="Add a lesson"
+                  description={`To “${m.title}”. You'll upload its content next.`}
+                  triggerVariant="ghost"
+                  trigger={
+                    <>
+                      <Plus className="size-4" /> Add lesson
+                    </>
+                  }
+                >
+                  <ActionForm action={createLesson.bind(null, m.id)} submitLabel="Create lesson" footerClassName="justify-end">
+                    <Field label="Lesson title">
+                      <Input name="title" required placeholder="e.g. Washing hands properly" />
+                    </Field>
+                    <LessonTypePicker />
+                  </ActionForm>
+                </Dialog>
+              </footer>
+            </article>
           ))}
 
-          <ActionForm action={createModule.bind(null, course.id)} submitLabel="Add module" resetOnSuccess>
-            <Input name="title" placeholder="New module title, e.g. Module 2: Personal care" required />
-          </ActionForm>
-        </div>
-      </Panel>
+          <div className="rounded-2xl border border-dashed border-ink-200 bg-white/60 p-4">
+            <div className="mb-3 flex items-center gap-2 text-sm font-medium text-ink-800">
+              <FolderPlus className="size-4 text-ink-400" /> Add a module
+            </div>
+            <ActionForm
+              action={createModule.bind(null, course.id)}
+              submitLabel="Add module"
+              resetOnSuccess
+              className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-start"
+            >
+              <div className="flex-1">
+                <Input name="title" placeholder={`e.g. Module ${course.modules.length + 1}: Personal care`} required />
+              </div>
+            </ActionForm>
+          </div>
+        </section>
 
-      <Panel
-        title="Course settings"
-        actions={
-          <DeleteButton
-            onDelete={deleteCourse.bind(null, course.id)}
-            confirmText={`Delete “${course.title}” and all of its content? This cannot be undone.`}
-            label="Delete"
-          />
-        }
-      >
-        <ActionForm action={updateCourse.bind(null, course.id)}>
-          <TitleSlugFields defaultTitle={course.title} defaultSlug={course.slug} />
-          <Field label="Description">
-            <Textarea name="description" rows={3} defaultValue={course.description} />
-          </Field>
-          <Field label="Cover image URL" hint="Optional">
-            <Input name="coverImage" type="url" defaultValue={course.coverImage ?? ""} />
-          </Field>
-          <Field label="Prerequisite" hint="Learners must complete this course first">
-            <Select name="prerequisiteId" defaultValue={course.prerequisiteId ?? ""}>
-              <option value="">None</option>
-              {siblings.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.title}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Checkbox name="published" label="Published" defaultChecked={course.published} />
-          <Checkbox
-            name="sequential"
-            label="Lessons unlock in order (each one after the previous is completed)"
-            defaultChecked={course.sequential}
-          />
-        </ActionForm>
-      </Panel>
+        <aside className="space-y-6 lg:sticky lg:top-8">
+          <Panel title="Course settings">
+            <ActionForm action={updateCourse.bind(null, course.id)}>
+              <TitleSlugFields defaultTitle={course.title} defaultSlug={course.slug} stacked />
+              <Field label="Description" optional>
+                <Textarea name="description" rows={4} defaultValue={course.description} />
+              </Field>
+              <Field label="Prerequisite" hint="Learners must complete this course first">
+                <Select name="prerequisiteId" defaultValue={course.prerequisiteId ?? ""}>
+                  <option value="">None</option>
+                  {siblings.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.title}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <div className="space-y-2">
+                <Switch name="published" label="Published" description="Visible to enrolled learners" defaultChecked={course.published} />
+                <Switch
+                  name="sequential"
+                  label="Unlock lessons in order"
+                  description="Each lesson opens after the previous one is completed"
+                  defaultChecked={course.sequential}
+                />
+              </div>
+            </ActionForm>
+          </Panel>
+          <Panel title="Cover image">
+            <CoverImageField target={{ kind: "course", id: course.id }} current={course.coverImage} />
+          </Panel>
+        </aside>
+      </div>
     </div>
   );
 }
@@ -178,7 +248,13 @@ function LessonState({
   if (!lesson.published) return <StatusBadge status="DRAFT" />;
   if (lesson.type === "QUIZ") {
     const n = lesson.quiz?._count.questions ?? 0;
-    return n ? <span className="text-xs text-ink-400">{n} questions</span> : <StatusBadge status="EMPTY" />;
+    return n ? (
+      <span className="hidden text-xs text-ink-500 sm:inline">
+        {n} {n === 1 ? "question" : "questions"}
+      </span>
+    ) : (
+      <StatusBadge status="EMPTY" />
+    );
   }
   return <StatusBadge status={lesson.asset?.status ?? "EMPTY"} />;
 }

@@ -223,3 +223,25 @@ const MIME: Record<string, string> = {
   swf: "application/x-shockwave-flash",
   vtt: "text/vtt",
 };
+
+/* ------------------------------------------------------------------ *
+ * Cover images (programmes and courses)
+ * ------------------------------------------------------------------ */
+
+/** Bucket prefix for cover images; these are served publicly via /media/. */
+export const COVER_PREFIX = "covers/";
+
+/** What we store in coverImage for an uploaded file: a path served by /media/[...key]. */
+export const coverPath = (key: string) => `/media/${key}`;
+
+/** The bucket key behind a stored coverImage, or null for external URLs / none. */
+export function coverKey(coverImage: string | null | undefined): string | null {
+  const key = coverImage?.startsWith("/media/") ? coverImage.slice("/media/".length) : null;
+  return key?.startsWith(COVER_PREFIX) ? key : null;
+}
+
+/** Absolute URL for a stored coverImage, e.g. for the mobile app. */
+export function absoluteCoverUrl(coverImage: string | null): string | null {
+  if (!coverImage || !coverImage.startsWith("/")) return coverImage;
+  return `${(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3001").replace(/\/$/, "")}${coverImage}`;
+}

@@ -45,7 +45,6 @@ function parseProgram(fd: FormData) {
     title: text(fd, "title"),
     slug: text(fd, "slug"),
     description: text(fd, "description"),
-    coverImage: text(fd, "coverImage"),
     published: bool(fd, "published"),
   });
 }
@@ -58,7 +57,7 @@ export async function createProgram(_prev: ActionState, fd: FormData): Promise<A
   try {
     const order = await nextOrder(prisma.program.aggregate({ _max: { order: true } }));
     const program = await prisma.program.create({
-      data: { ...parsed.data, coverImage: parsed.data.coverImage || null, order },
+      data: { ...parsed.data, order },
     });
     id = program.id;
   } catch (err) {
@@ -76,7 +75,7 @@ export async function updateProgram(id: string, _prev: ActionState, fd: FormData
   try {
     await prisma.program.update({
       where: { id },
-      data: { ...parsed.data, coverImage: parsed.data.coverImage || null },
+      data: parsed.data,
     });
   } catch (err) {
     if (isUniqueError(err)) return { error: "A programme with that slug already exists." };
@@ -190,7 +189,6 @@ function parseCourse(fd: FormData) {
     title: text(fd, "title"),
     slug: text(fd, "slug"),
     description: text(fd, "description"),
-    coverImage: text(fd, "coverImage"),
     published: bool(fd, "published"),
     sequential: bool(fd, "sequential"),
     prerequisiteId: text(fd, "prerequisiteId"),
@@ -204,12 +202,12 @@ export async function createCourse(programId: string, _prev: ActionState, fd: Fo
   let id: string;
   try {
     const order = await nextOrder(prisma.course.aggregate({ where: { programId }, _max: { order: true } }));
-    const { prerequisiteId, coverImage, ...data } = parsed.data;
+    const { prerequisiteId, ...data } = parsed.data;
     const prereq = prerequisiteId
       ? await prisma.course.findFirst({ where: { id: prerequisiteId, programId }, select: { id: true } })
       : null;
     const course = await prisma.course.create({
-      data: { ...data, programId, order, coverImage: coverImage || null, prerequisiteId: prereq?.id ?? null },
+      data: { ...data, programId, order, prerequisiteId: prereq?.id ?? null },
     });
     id = course.id;
   } catch (err) {
@@ -224,7 +222,7 @@ export async function updateCourse(id: string, _prev: ActionState, fd: FormData)
   await requireAdmin();
   const parsed = parseCourse(fd);
   if (!parsed.success) return { error: firstIssue(parsed.error) };
-  const { prerequisiteId, coverImage, ...data } = parsed.data;
+  const { prerequisiteId, ...data } = parsed.data;
   const course = await prisma.course.findUniqueOrThrow({ where: { id }, select: { programId: true } });
 
   let prereq: string | null = null;
@@ -246,7 +244,7 @@ export async function updateCourse(id: string, _prev: ActionState, fd: FormData)
   try {
     await prisma.course.update({
       where: { id },
-      data: { ...data, coverImage: coverImage || null, prerequisiteId: prereq },
+      data: { ...data, prerequisiteId: prereq },
     });
   } catch (err) {
     if (isUniqueError(err)) return { error: "This programme already has a course with that slug." };

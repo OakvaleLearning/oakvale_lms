@@ -1,18 +1,22 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronRight, ExternalLink, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { formatNaira } from "@/lib/utils";
-import { StatusBadge, PageHeader } from "@/components/dashboard/ui";
+import { Breadcrumbs, PageHeader, StatusBadge } from "@/components/dashboard/ui";
+import { CoverImageField } from "@/components/admin/CoverImageField";
+import { buttonClass } from "@/components/ui/Button";
 import {
   ActionForm,
-  Checkbox,
+  CheckCard,
   DeleteButton,
+  Dialog,
   Field,
   Input,
   MoveButtons,
   Panel,
+  Switch,
   Textarea,
   TitleSlugFields,
 } from "@/components/admin/forms";
@@ -32,123 +36,202 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
   const program = await prisma.program.findUnique({
     where: { id },
     include: {
-      courses: { orderBy: [{ order: "asc" }, { createdAt: "asc" }], include: { _count: { select: { modules: true } } } },
+      courses: {
+        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
+        include: { modules: { select: { _count: { select: { lessons: true } } } } },
+      },
       tiers: {
         orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-        include: { courses: { select: { courseId: true } }, _count: { select: { enrollments: true } } },
+        include: {
+          courses: { select: { courseId: true } },
+          _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
+        },
       },
     },
   });
   if (!program) notFound();
 
+  const courseOptions = program.courses.map((c) => ({ id: c.id, title: c.title }));
+
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <Link href="/admin/programs" className="inline-flex items-center gap-1.5 text-sm text-ink-500 transition-colors hover:text-ink-900">
-        <ArrowLeft className="size-4" /> Programmes
-      </Link>
+    <div className="mx-auto max-w-6xl space-y-6">
+      <Breadcrumbs items={[{ label: "Programmes", href: "/admin/programs" }, { label: program.title }]} />
 
-      <PageHeader eyebrow="Programme" title={program.title} description={`/${program.slug}`} />
-
-      <Panel
-        title="Details"
-        actions={
-          <DeleteButton
-            onDelete={deleteProgram.bind(null, program.id)}
-            confirmText={`Delete “${program.title}” and all of its courses and content? This cannot be undone.`}
-            label="Delete"
-          />
+      <PageHeader
+        eyebrow="Programme"
+        title={
+          <span className="flex flex-wrap items-center gap-3">
+            {program.title}
+            <StatusBadge status={program.published ? "PUBLISHED" : "DRAFT"} />
+          </span>
         }
-      >
-        <ActionForm action={updateProgram.bind(null, program.id)}>
-          <TitleSlugFields defaultTitle={program.title} defaultSlug={program.slug} />
-          <Field label="Description">
-            <Textarea name="description" rows={3} defaultValue={program.description} />
-          </Field>
-          <Field label="Cover image URL" hint="Optional">
-            <Input name="coverImage" type="url" defaultValue={program.coverImage ?? ""} />
-          </Field>
-          <Checkbox name="published" label="Published (visible for enrolment)" defaultChecked={program.published} />
-        </ActionForm>
-      </Panel>
-
-      <Panel title="Courses">
-        {program.courses.length === 0 ? (
-          <p className="text-sm text-ink-400">No courses yet.</p>
-        ) : (
-          <ul className="-my-2 divide-y divide-line/70">
-            {program.courses.map((c) => (
-              <li key={c.id} className="flex items-center gap-3 py-2">
-                <MoveButtons onMove={moveItem.bind(null, "course", c.id)} />
-                <Link href={`/admin/courses/${c.id}`} className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-2 py-2 hover:bg-ink-50">
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium text-ink-900">{c.title}</div>
-                    <div className="text-xs text-ink-400">
-                      /{c.slug} · {c._count.modules} modules
-                    </div>
-                  </div>
-                  <StatusBadge status={c.published ? "PUBLISHED" : "DRAFT"} />
-                  <ChevronRight className="size-4 text-ink-300" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-        <details className="mt-6 rounded-2xl border border-line p-4">
-          <summary className="cursor-pointer text-sm font-semibold text-primary-600">Add a course</summary>
-          <ActionForm action={createCourse.bind(null, program.id)} submitLabel="Create course" className="mt-4">
-            <TitleSlugFields />
-            <Field label="Description">
-              <Textarea name="description" rows={2} />
-            </Field>
-          </ActionForm>
-        </details>
-      </Panel>
-
-      <Panel
-        title="Tiers & pricing"
+        description={`/${program.slug} · ${program.courses.length} ${program.courses.length === 1 ? "course" : "courses"} · ${
+          program.tiers.length
+        } ${program.tiers.length === 1 ? "tier" : "tiers"}`}
         actions={
-          <a
-            href={`/enroll?track=${program.slug}`}
-            target="_blank"
-            className="inline-flex items-center gap-1 text-sm font-medium text-primary-600"
+          <>
+            <a href={`/enroll?track=${program.slug}`} target="_blank" className={buttonClass({ variant: "outline", size: "sm" })}>
+              Enrolment page <ExternalLink className="size-3.5" />
+            </a>
+            <DeleteButton
+              onDelete={deleteProgram.bind(null, program.id)}
+              confirmText={`Delete “${program.title}” and all of its courses and content? This cannot be undone.`}
+              label="Delete"
+            />
+          </>
+        }
+      />
+
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="min-w-0 space-y-6">
+          <Panel
+            title="Courses"
+            description="Learners see courses in this order."
+            flush
+            actions={
+              <Dialog
+                title="Add a course"
+                description="You'll build its modules and lessons next."
+                trigger={
+                  <>
+                    <Plus className="size-4" /> Add course
+                  </>
+                }
+              >
+                <ActionForm action={createCourse.bind(null, program.id)} submitLabel="Create course" footerClassName="justify-end">
+                  <TitleSlugFields />
+                  <Field label="Description" optional>
+                    <Textarea name="description" rows={3} />
+                  </Field>
+                </ActionForm>
+              </Dialog>
+            }
           >
-            Enrolment page <ExternalLink className="size-3.5" />
-          </a>
-        }
-      >
-        <p className="mb-4 text-sm text-ink-500">
-          A tier is what learners buy. Tick the courses each tier unlocks. The marketing site links to{" "}
-          <code className="rounded bg-ink-50 px-1">/enroll?track={program.slug}&amp;tier=&lt;tier-slug&gt;</code>.
-        </p>
-        <div className="space-y-4">
-          {program.tiers.map((t) => {
-            const included = new Set(t.courses.map((c) => c.courseId));
-            return (
-              <div key={t.id} className="rounded-2xl border border-line p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <MoveButtons onMove={moveItem.bind(null, "tier", t.id)} />
-                    <span className="font-semibold text-ink-900">{t.name}</span>
-                    <span className="text-sm text-ink-500">{formatNaira(t.price)}</span>
-                    <span className="text-xs text-ink-400">· {t._count.enrollments} enrolments</span>
-                  </div>
-                  <DeleteButton
-                    onDelete={deleteTier.bind(null, t.id)}
-                    confirmText={`Delete the “${t.name}” tier?`}
-                  />
-                </div>
-                <TierFields action={updateTier.bind(null, t.id)} courses={program.courses} tier={{ ...t, included }} />
+            {program.courses.length === 0 ? (
+              <div className="px-6 py-12 text-center">
+                <BookOpen className="mx-auto size-6 text-ink-300" />
+                <p className="mt-3 text-sm text-ink-500">No courses yet. Add the first one to start building.</p>
               </div>
-            );
-          })}
-          <details className="rounded-2xl border border-dashed border-ink-200 p-4">
-            <summary className="cursor-pointer text-sm font-semibold text-primary-600">Add a tier</summary>
-            <div className="mt-4">
-              <TierFields action={createTier.bind(null, program.id)} courses={program.courses} submitLabel="Create tier" />
-            </div>
-          </details>
+            ) : (
+              <ul className="divide-y divide-line/70">
+                {program.courses.map((c) => {
+                  const lessons = c.modules.reduce((n, m) => n + m._count.lessons, 0);
+                  return (
+                    <li key={c.id} className="flex items-center gap-2 py-1 pl-2 pr-3">
+                      <MoveButtons onMove={moveItem.bind(null, "course", c.id)} />
+                      <Link
+                        href={`/admin/courses/${c.id}`}
+                        className="group flex min-w-0 flex-1 items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-canvas"
+                      >
+                        <span className="relative grid size-11 shrink-0 place-items-center overflow-hidden rounded-lg bg-primary-50 text-primary-400">
+                          {c.coverImage ? (
+                            // eslint-disable-next-line @next/next/no-img-element -- covers come from /media redirects or external URLs
+                            <img src={c.coverImage} alt="" className="absolute inset-0 size-full object-cover" />
+                          ) : (
+                            <BookOpen className="size-4" />
+                          )}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium text-ink-950">{c.title}</span>
+                          <span className="block text-xs text-ink-500">
+                            {c.modules.length} {c.modules.length === 1 ? "module" : "modules"} · {lessons}{" "}
+                            {lessons === 1 ? "lesson" : "lessons"}
+                          </span>
+                        </span>
+                        <StatusBadge status={c.published ? "PUBLISHED" : "DRAFT"} />
+                        <ChevronRight className="size-4 shrink-0 text-ink-300 transition-transform group-hover:translate-x-0.5" />
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Panel>
+
+          <Panel
+            title="Tiers & pricing"
+            description="A tier is what learners buy. Each one unlocks a set of courses."
+            actions={
+              <Dialog
+                title="Add a tier"
+                trigger={
+                  <>
+                    <Plus className="size-4" /> Add tier
+                  </>
+                }
+                triggerVariant="outline"
+              >
+                <TierFields action={createTier.bind(null, program.id)} courses={courseOptions} submitLabel="Create tier" />
+              </Dialog>
+            }
+          >
+            {program.tiers.length === 0 ? (
+              <p className="py-6 text-center text-sm text-ink-500">No tiers yet. Add one so learners can enrol.</p>
+            ) : (
+              <div className="space-y-3">
+                {program.tiers.map((t) => {
+                  const included = new Set(t.courses.map((c) => c.courseId));
+                  return (
+                    <details key={t.id} className="group rounded-xl border border-line bg-white open:shadow-card">
+                      <summary className="flex cursor-pointer list-none items-center gap-3 px-3 py-3 [&::-webkit-details-marker]:hidden">
+                        <MoveButtons onMove={moveItem.bind(null, "tier", t.id)} />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex flex-wrap items-baseline gap-x-2">
+                            <span className="font-semibold text-ink-950">{t.name}</span>
+                            <span className="text-sm font-medium tabular-nums text-ink-700">{formatNaira(t.price)}</span>
+                          </span>
+                          <span className="block text-xs text-ink-500">
+                            {included.size} {included.size === 1 ? "course" : "courses"} · {t._count.enrollments} active{" "}
+                            {t._count.enrollments === 1 ? "learner" : "learners"}
+                          </span>
+                        </span>
+                        <StatusBadge status={t.published ? "PUBLISHED" : "DRAFT"} />
+                        <ChevronDown className="size-4 shrink-0 text-ink-400 transition-transform group-open:rotate-180" />
+                      </summary>
+                      <div className="border-t border-line p-4 sm:p-5">
+                        <TierFields action={updateTier.bind(null, t.id)} courses={courseOptions} tier={{ ...t, included }} />
+                        <div className="mt-4 flex justify-end border-t border-line pt-3">
+                          <DeleteButton
+                            onDelete={deleteTier.bind(null, t.id)}
+                            confirmText={`Delete the “${t.name}” tier?`}
+                            label="Delete tier"
+                          />
+                        </div>
+                      </div>
+                    </details>
+                  );
+                })}
+              </div>
+            )}
+            <p className="mt-4 text-xs leading-relaxed text-ink-500">
+              The marketing site links to{" "}
+              <code className="rounded bg-ink-50 px-1 py-0.5 text-ink-700">
+                /enroll?track={program.slug}&amp;tier=&lt;tier link name&gt;
+              </code>
+            </p>
+          </Panel>
         </div>
-      </Panel>
+
+        <aside className="space-y-6 lg:sticky lg:top-8">
+          <Panel title="Programme details">
+            <ActionForm action={updateProgram.bind(null, program.id)}>
+              <TitleSlugFields defaultTitle={program.title} defaultSlug={program.slug} stacked />
+              <Field label="Description" optional>
+                <Textarea name="description" rows={4} defaultValue={program.description} />
+              </Field>
+              <Switch
+                name="published"
+                label="Published"
+                description="Visible on the enrolment page"
+                defaultChecked={program.published}
+              />
+            </ActionForm>
+          </Panel>
+          <Panel title="Cover image">
+            <CoverImageField target={{ kind: "program", id: program.id }} current={program.coverImage} />
+          </Panel>
+        </aside>
+      </div>
     </div>
   );
 }
@@ -165,34 +248,45 @@ function TierFields({
   submitLabel?: string;
 }) {
   return (
-    <ActionForm action={action} submitLabel={submitLabel} resetOnSuccess={!tier}>
-      <div className="grid gap-4 sm:grid-cols-3">
+    <ActionForm action={action} submitLabel={submitLabel} resetOnSuccess={!tier} footerClassName={tier ? undefined : "justify-end"}>
+      <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Name">
-          <Input name="name" required defaultValue={tier?.name} />
+          <Input name="name" required defaultValue={tier?.name} placeholder="e.g. Foundation" />
         </Field>
-        <Field label="Slug" hint="e.g. foundation">
+        <Field label="Link name" hint="e.g. foundation">
           <Input name="slug" required defaultValue={tier?.slug} />
         </Field>
-        <Field label="Price (₦)">
-          <Input name="priceNaira" type="number" min={0} step={1} required defaultValue={tier ? tier.price / 100 : ""} />
-        </Field>
       </div>
-      <Field label="Description">
-        <Input name="description" defaultValue={tier?.description} />
+      <Field label="Price">
+        <span className="flex rounded-lg shadow-card focus-within:ring-3 focus-within:ring-primary-100">
+          <span className="grid place-items-center rounded-l-lg border border-r-0 border-line bg-ink-50 px-3 text-sm text-ink-500">₦</span>
+          <Input
+            name="priceNaira"
+            type="number"
+            min={0}
+            step={1}
+            required
+            defaultValue={tier ? tier.price / 100 : ""}
+            className="rounded-l-none shadow-none focus:ring-0"
+          />
+        </span>
+      </Field>
+      <Field label="Description" optional>
+        <Input name="description" defaultValue={tier?.description} placeholder="One line shown on the enrolment page" />
       </Field>
       <fieldset>
-        <legend className="mb-2 text-sm font-medium text-ink-700">Unlocks these courses</legend>
+        <legend className="mb-1.5 text-sm font-medium text-ink-800">Unlocks these courses</legend>
         {courses.length === 0 ? (
-          <p className="text-xs text-ink-400">Add courses first.</p>
+          <p className="rounded-xl bg-ink-50 px-3 py-2.5 text-xs text-ink-500">Add courses to this programme first.</p>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2">
             {courses.map((c) => (
-              <Checkbox key={c.id} name="courseIds" value={c.id} label={c.title} defaultChecked={tier?.included.has(c.id)} />
+              <CheckCard key={c.id} name="courseIds" value={c.id} label={c.title} defaultChecked={tier?.included.has(c.id)} />
             ))}
           </div>
         )}
       </fieldset>
-      <Checkbox name="published" label="Available to buy" defaultChecked={tier?.published ?? true} />
+      <Switch name="published" label="Available to buy" defaultChecked={tier?.published ?? true} />
     </ActionForm>
   );
 }

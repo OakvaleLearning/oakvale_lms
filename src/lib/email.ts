@@ -56,3 +56,31 @@ export async function sendEmail(args: SendArgs): Promise<boolean> {
     return false;
   }
 }
+
+/** Resend accepts up to 100 emails per batch request. */
+export const EMAIL_BATCH_SIZE = 100;
+
+/**
+ * Send up to 100 emails in one request. Resend accepts or rejects the whole
+ * batch, so this returns a single success flag. Never throws.
+ */
+export async function sendEmailBatch(emails: SendArgs[]): Promise<boolean> {
+  if (emails.length === 0) return true;
+  if (!isEmailConfigured()) {
+    console.info(`[email] skipped batch of ${emails.length} (RESEND_API_KEY not set) → "${emails[0].subject}"`);
+    return false;
+  }
+  try {
+    const { error } = await resend().batch.send(
+      emails.map((e) => ({ from: FROM, to: e.to, replyTo: REPLY_TO, subject: e.subject, html: e.html, text: e.text }))
+    );
+    if (error) {
+      console.error("[email] batch send failed:", error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[email] batch send threw:", err);
+    return false;
+  }
+}

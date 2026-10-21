@@ -53,6 +53,7 @@ async function notifyEnrolled(enrollmentId: string) {
   });
   if (!e) return;
   const sent = await sendEnrolledEmail(e.user, {
+    programSlug: e.tier.program.slug,
     programTitle: e.tier.program.title,
     tierName: e.tier.name,
     amountKobo: e.amount,

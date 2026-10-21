@@ -63,7 +63,6 @@ export const programSchema = z.object({
   title: z.string().trim().min(2, "Title is too short").max(160),
   slug: slugSchema,
   description: z.string().trim().max(2000).default(""),
-  coverImage: z.string().trim().url("Enter a valid URL").max(500).optional().or(z.literal("")),
   published: z.boolean().default(false),
 });
 
@@ -80,7 +79,6 @@ export const courseSchema = z.object({
   title: z.string().trim().min(2, "Title is too short").max(160),
   slug: slugSchema,
   description: z.string().trim().max(4000).default(""),
-  coverImage: z.string().trim().url("Enter a valid URL").max(500).optional().or(z.literal("")),
   published: z.boolean().default(false),
   sequential: z.boolean().default(false),
   prerequisiteId: z.string().max(40).optional().or(z.literal("")),

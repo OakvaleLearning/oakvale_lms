@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/auth";
 import { getCompletedCourseIds, getCourseLock, getUnlockedCourseIds, type CourseLock } from "./access";
 import { getCourseProgress } from "./progress";
+import { absoluteCoverUrl } from "@/lib/storage";
 
 /** Learner home: enrolled programs → their unlocked courses with progress, plus "continue". */
 export async function getLearnerHome(userId: string) {
@@ -48,7 +49,7 @@ export async function getLearnerHome(userId: string) {
       slug: c.slug,
       title: c.title,
       description: c.description,
-      coverImage: c.coverImage,
+      coverImage: absoluteCoverUrl(c.coverImage),
       progress: progress.get(c.id)!,
       lock: c.prerequisiteId && !completedPrereqs.has(c.prerequisiteId) ? "PREREQUISITE" : "OPEN",
       prerequisiteTitle: c.prerequisite?.title ?? null,

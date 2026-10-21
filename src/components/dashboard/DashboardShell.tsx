@@ -16,6 +16,7 @@ import {
   ArrowUpRight,
   LifeBuoy,
   MessagesSquare,
+  Mail,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,7 @@ const NAV: Record<"learner" | "admin", { section: string; items: NavItem[] }> = 
       { label: "Learners", href: "/admin/learners", icon: Users },
       { label: "Payments", href: "/admin/payments", icon: Receipt },
       { label: "Support", href: "/admin/support", icon: MessagesSquare, badge: true },
+      { label: "Emails", href: "/admin/emails", icon: Mail },
     ],
   },
 };

@@ -45,6 +45,7 @@ model User {
   tutorThreads      TutorThread[]
   supportChat       SupportConversation?
   supportMessages   SupportMessage[]
+  emailDeliveries   EmailDelivery[]
 }
 
 /// Single-use, time-limited password reset tokens. Only the SHA-256 hash of the
@@ -446,4 +447,23 @@ model SupportMessage {
   createdAt      DateTime            @default(now())
 
   @@index([conversationId, createdAt])
+}
+
+/**
+ * ------------------------------------------------------------------ *
+ * Automated emails
+ * ------------------------------------------------------------------
+ */
+
+/// One row per scheduled email a learner has been sent (e.g. "prelaunch-care").
+/// The unique key is claimed before sending, so nobody gets an email twice.
+model EmailDelivery {
+  id     String   @id @default(cuid())
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  key    String
+  sentAt DateTime @default(now())
+
+  @@unique([userId, key])
+  @@index([key, sentAt])
 }
