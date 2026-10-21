@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Award, Check, CheckCircle2, Info, Laptop, ShieldCheck, Sparkles } from "lucide-react";
+import { Award, Check, CheckCircle2, Info, Laptop, MailWarning, ShieldCheck, Sparkles } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { getSession, isEmailVerified } from "@/lib/auth";
 import { getUnlockedCourseIds } from "@/lib/lms/access";
 import { cn, formatNaira } from "@/lib/utils";
 import { ButtonLink } from "@/components/ui/Button";
@@ -25,6 +25,7 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
   const selectedTier = typeof params.tier === "string" ? params.tier : undefined;
 
   const session = await getSession();
+  const verified = session ? await isEmailVerified(session.userId) : false;
   const programs = await prisma.program.findMany({
     where: { published: true },
     orderBy: { order: "asc" },
@@ -134,6 +135,18 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
         </div>
       )}
 
+      {session && !verified && (
+        <div className="mb-8 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <MailWarning className="size-4 shrink-0 text-amber-600" />
+          <p className="min-w-0 flex-1">
+            <span className="font-semibold">Confirm your email to enrol.</span> We sent a link to {session.email}.
+          </p>
+          <Link href={`/verify-email?next=${encodeURIComponent(here)}`} className="font-medium text-amber-900 underline underline-offset-2">
+            Resend or change
+          </Link>
+        </div>
+      )}
+
       {programs.length > 1 && (
         <nav aria-label="Programmes" className="mb-10 flex justify-center">
           <div className="inline-flex max-w-full overflow-x-auto rounded-xl [scrollbar-width:none] border border-line bg-white p-1 shadow-card">
@@ -218,6 +231,15 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
                 {enrolled ? (
                   <ButtonLink href="/learn" variant="outline" size="lg" className="w-full">
                     {isPrelaunch() ? "You're enrolled" : "Go to my courses"}
+                  </ButtonLink>
+                ) : session && !verified ? (
+                  <ButtonLink
+                    href={`/verify-email?next=${encodeURIComponent(here)}`}
+                    variant={isFeatured ? "primary" : "outline"}
+                    size="lg"
+                    className="w-full"
+                  >
+                    Confirm your email to enrol
                   </ButtonLink>
                 ) : session ? (
                   <EnrollButton

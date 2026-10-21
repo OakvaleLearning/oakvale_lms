@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button, ButtonLink } from "@/components/ui/Button";
+import { Honeypot } from "@/components/sections/AuthForm";
+import { HONEYPOT_FIELD } from "@/lib/auth-form";
 import { AuthHeading, FormError, PasswordField } from "@/components/ui/TextField";
 
 export function ResetPasswordForm() {
@@ -31,7 +33,7 @@ export function ResetPasswordForm() {
       const res = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, password }),
+        body: JSON.stringify({ token, password, [HONEYPOT_FIELD]: data.get(HONEYPOT_FIELD) }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Something went wrong");
@@ -72,6 +74,7 @@ export function ResetPasswordForm() {
       )}
 
       <form onSubmit={onSubmit} className="mt-8 space-y-5">
+        <Honeypot />
         <PasswordField
           label="New password"
           name="password"

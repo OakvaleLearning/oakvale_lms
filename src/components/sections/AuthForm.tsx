@@ -6,13 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { AuthHeading, FormError, PasswordField, TextField } from "@/components/ui/TextField";
+import { HONEYPOT_FIELD } from "@/lib/auth-form";
+import { safeNextPath } from "@/lib/utils";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
   const params = useSearchParams();
-  // Only same-site paths — never an absolute URL (open-redirect).
-  const rawNext = params.get("next");
-  const next = rawNext && /^\/(?![/\\])/.test(rawNext) ? rawNext : null;
+  const next = safeNextPath(params.get("next"));
 
   const [status, setStatus] = useState<"idle" | "loading">("idle");
   const [error, setError] = useState("");
@@ -30,8 +30,10 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           email: data.get("email"),
           phone: data.get("phone"),
           password: data.get("password"),
+          next,
+          [HONEYPOT_FIELD]: data.get(HONEYPOT_FIELD),
         }
-      : { email: data.get("email"), password: data.get("password") };
+      : { email: data.get("email"), password: data.get("password"), [HONEYPOT_FIELD]: data.get(HONEYPOT_FIELD) };
 
     try {
       const res = await fetch(`/api/auth/${mode}`, {
@@ -42,8 +44,9 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Something went wrong");
 
-      const destination =
-        next || (json.role === "ADMIN" ? "/admin" : "/learn");
+      const destination = json.verify
+        ? `/verify-email${next ? `?next=${encodeURIComponent(next)}` : ""}`
+        : next || (json.role === "ADMIN" ? "/admin" : "/learn");
       router.push(destination);
       router.refresh();
     } catch (err) {
@@ -67,6 +70,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       )}
 
       <form onSubmit={onSubmit} className="mt-8 space-y-5">
+        <Honeypot />
         {isSignup && (
           <TextField label="Full name" name="name" required autoComplete="name" placeholder="Ada Okafor" />
         )}
@@ -134,6 +138,18 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           {isSignup ? "Log in" : "Create an account"}
         </Link>
       </p>
+    </div>
+  );
+}
+
+/** Hidden from people (off-screen, skipped by keyboard and screen readers); bots that fill every field reveal themselves. */
+export function Honeypot() {
+  return (
+    <div aria-hidden className="absolute -left-[9999px] h-px w-px overflow-hidden">
+      <label>
+        Website
+        <input type="text" name={HONEYPOT_FIELD} tabIndex={-1} autoComplete="off" defaultValue="" />
+      </label>
     </div>
   );
 }

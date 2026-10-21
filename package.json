@@ -19,6 +19,7 @@
     "@vercel/oidc-aws-credentials-provider": "3.3.11",
     "ai": "^7.0.148",
     "bcryptjs": "^3.0.3",
+    "botid": "^1.5.11",
     "bwip-js": "^4.11.4",
     "clsx": "^2.1.1",
     "fast-xml-parser": "^5.11.2",

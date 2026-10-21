@@ -28,6 +28,7 @@ export default async function LessonPage({ params }: PageProps<"/learn/[program]
   const access = await checkLessonAccess(session, lessonId);
   if (!access.ok) {
     if (access.reason === "NOT_FOUND") notFound();
+    if (access.reason === "UNVERIFIED") redirect(`/verify-email?next=${encodeURIComponent(`${base}/${lessonId}`)}`);
     redirect(access.reason === "SEQUENTIAL" ? `${base}?locked=1` : access.reason === "EXAM_LOCKED" ? `${base}?locked=exam` : base);
   }
   const { lesson } = access;

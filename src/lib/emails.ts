@@ -2,7 +2,7 @@ import "server-only";
 import { SITE } from "@/content/site";
 import { formatNaira } from "@/lib/utils";
 import { sendEmail } from "@/lib/email";
-import { RESET_TOKEN_TTL_MINUTES } from "@/lib/auth";
+import { RESET_TOKEN_TTL_MINUTES, VERIFY_TOKEN_TTL_HOURS } from "@/lib/auth";
 import { isPrelaunch } from "@/lib/launch";
 import { TEAM, appUrl, button, enrolmentConfirmedEmail, escape, layout, p } from "@/lib/email-templates";
 
@@ -73,6 +73,46 @@ ${TEAM}`;
     to: user.email,
     subject: `Your ${SITE.name} courses are open`,
     html: layout("Your courses are open", bodyHtml),
+    text,
+  });
+}
+
+/** Welcome email sent at sign-up, with the link that confirms the learner's address. */
+export async function sendVerificationEmail(
+  user: { name: string; email: string },
+  token: string,
+  next?: string | null
+): Promise<boolean> {
+  const link = `${appUrl()}/verify-email/confirm?token=${encodeURIComponent(token)}${next ? `&next=${encodeURIComponent(next)}` : ""}`;
+  if (process.env.NODE_ENV !== "production") {
+    console.info(`[email] verification link for ${user.email}: ${link}`);
+  }
+
+  const bodyHtml =
+    p(`Dear ${escape(user.name)},`) +
+    p(`Welcome to ${SITE.name}! We're glad you're here. Please confirm your email address so we can send you your course updates and certificates.`) +
+    button(link, "Confirm my email") +
+    p(`This link expires in <strong>${VERIFY_TOKEN_TTL_HOURS} hours</strong>. Once you've confirmed, you can enrol and start learning.`) +
+    p(`If you didn't create an account, you can ignore this email.`) +
+    p(`Warm regards,<br/>${TEAM}`);
+
+  const text = `Dear ${user.name},
+
+Welcome to ${SITE.name}! Please confirm your email address so we can send you your course updates and certificates.
+
+Confirm your email here: ${link}
+
+This link expires in ${VERIFY_TOKEN_TTL_HOURS} hours. Once you've confirmed, you can enrol and start learning.
+
+If you didn't create an account, you can ignore this email.
+
+Warm regards,
+${TEAM}`;
+
+  return sendEmail({
+    to: user.email,
+    subject: `Welcome to ${SITE.name} – confirm your email`,
+    html: layout("Confirm your email", bodyHtml),
     text,
   });
 }

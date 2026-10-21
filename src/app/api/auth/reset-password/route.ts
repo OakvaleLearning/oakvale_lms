@@ -6,11 +6,16 @@ import {
   createSession,
   hashPassword,
 } from "@/lib/auth";
+import { HOUR, clientIp, rateLimit, tooMany } from "@/lib/rate-limit";
+import { guardAuthRequest } from "@/lib/request-guard";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const parsed = resetPasswordSchema.safeParse(body);
+    const guard = await guardAuthRequest(req);
+    if (!guard.ok) return guard.response;
+    const limit = await rateLimit(`reset:ip:${await clientIp()}`, 10, HOUR);
+    if (!limit.ok) return tooMany(limit.retryAfterSec);
+    const parsed = resetPasswordSchema.safeParse(guard.body);
     if (!parsed.success) {
       return NextResponse.json(
         { error: parsed.error.issues[0]?.message ?? "Invalid input" },
@@ -31,7 +36,8 @@ export async function POST(req: Request) {
     await prisma.$transaction([
       prisma.user.update({
         where: { id: record.userId },
-        data: { passwordHash },
+        // The link arrived by email, so the address is confirmed too.
+        data: { passwordHash, emailVerifiedAt: record.user.emailVerifiedAt ?? new Date() },
       }),
       // Burn this token and any other outstanding ones for the account.
       prisma.passwordResetToken.updateMany({

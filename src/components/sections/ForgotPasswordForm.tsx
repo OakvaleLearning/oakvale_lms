@@ -4,6 +4,8 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { ArrowLeft, Loader2, MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Honeypot } from "@/components/sections/AuthForm";
+import { HONEYPOT_FIELD } from "@/lib/auth-form";
 import { AuthHeading, FormError, TextField } from "@/components/ui/TextField";
 
 export function ForgotPasswordForm() {
@@ -20,7 +22,7 @@ export function ForgotPasswordForm() {
       const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: data.get("email") }),
+        body: JSON.stringify({ email: data.get("email"), [HONEYPOT_FIELD]: data.get(HONEYPOT_FIELD) }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Something went wrong");
@@ -77,6 +79,7 @@ export function ForgotPasswordForm() {
       )}
 
       <form onSubmit={onSubmit} className="mt-8 space-y-5">
+        <Honeypot />
         <TextField
           label="Email address"
           name="email"

@@ -72,3 +72,8 @@ export function readingTime(text: string): number {
   const words = text.trim().split(/\s+/).filter(Boolean).length;
   return Math.max(1, Math.round(words / 200));
 }
+
+/** A same-site path to continue to, or null. Never an absolute URL (open-redirect). */
+export function safeNextPath(raw: unknown): string | null {
+  return typeof raw === "string" && /^\/(?![/\\])/.test(raw) && raw.length <= 500 ? raw : null;
+}

@@ -3,12 +3,20 @@ import { prisma } from "@/lib/prisma";
 import { loginSchema } from "@/lib/validation";
 import { createMobileToken, verifyPassword } from "@/lib/auth";
 import { jsonError, publicUser } from "@/lib/api/mobile";
+import { MINUTE, clientIp, rateLimitAll, tooMany } from "@/lib/rate-limit";
 
 /** Mobile sign-in: returns a bearer token instead of setting a cookie. */
 export async function POST(req: Request) {
   const parsed = loginSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return jsonError(parsed.error.issues[0]?.message ?? "Invalid input", 400);
   const { email, password } = parsed.data;
+  // No BotID here: the app has no browser to run its check, so rate limits only.
+  const ip = await clientIp();
+  const limit = await rateLimitAll([
+    [`login:${ip}:${email.toLowerCase()}`, 10, 15 * MINUTE],
+    [`login:ip:${ip}`, 30, 15 * MINUTE],
+  ]);
+  if (!limit.ok) return tooMany(limit.retryAfterSec);
 
   const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
   if (!user) {

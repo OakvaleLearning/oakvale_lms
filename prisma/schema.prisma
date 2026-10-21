@@ -32,11 +32,15 @@ model User {
   phone             String?
   passwordHash      String
   role              Role                 @default(LEARNER)
+  // Set when the learner clicks the link in their sign-up email (or resets
+  // their password by email). Required before paying or opening lessons.
+  emailVerifiedAt   DateTime?
   // When the "courses are open" email went out (sent once, after pre-launch).
   launchEmailSentAt DateTime?
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
   resetTokens       PasswordResetToken[]
+  verifyTokens      EmailVerificationToken[]
   enrollments       Enrollment[]
   payments          Payment[]
   progress          LessonProgress[]
@@ -51,6 +55,27 @@ model User {
 
 /// Single-use, time-limited password reset tokens. Only the SHA-256 hash of the
 /// token is stored — the raw token exists solely in the emailed link.
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// One row per attempt at a rate-limited action (see src/lib/rate-limit.ts).
+model RateLimitHit {
+  id        String   @id @default(cuid())
+  key       String
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+}
+
 model PasswordResetToken {
   id        String    @id @default(cuid())
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)

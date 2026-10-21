@@ -1,6 +1,7 @@
 import "server-only";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { createHash, randomBytes } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
@@ -14,6 +15,8 @@ const MOBILE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 const TICKET_MAX_AGE = 120;
 /** How long a password reset link stays valid. */
 export const RESET_TOKEN_TTL_MINUTES = 60;
+/** How long the link in the sign-up email stays valid. */
+export const VERIFY_TOKEN_TTL_HOURS = 24;
 
 function getSecret() {
   const secret = process.env.AUTH_SECRET;
@@ -185,3 +188,40 @@ export async function consumeablePasswordResetToken(token: string) {
   if (!record || record.usedAt || record.expiresAt <= new Date()) return null;
   return record;
 }
+
+/* ------------------------------------------------------------------ *
+ * Email verification
+ * ------------------------------------------------------------------ */
+
+/** Issue the link token for the sign-up email; earlier unused links stop working. */
+export async function createEmailVerificationToken(userId: string): Promise<string> {
+  const token = randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + VERIFY_TOKEN_TTL_HOURS * 60 * 60 * 1000);
+  await prisma.$transaction([
+    prisma.emailVerificationToken.updateMany({ where: { userId, usedAt: null }, data: { usedAt: new Date() } }),
+    prisma.emailVerificationToken.create({ data: { userId, tokenHash: hashResetToken(token), expiresAt } }),
+  ]);
+  return token;
+}
+
+/** Mark the token's user as verified. Returns the user, or null when the link is unknown/used/expired. */
+export async function consumeEmailVerificationToken(token: string) {
+  if (!token) return null;
+  const record = await prisma.emailVerificationToken.findUnique({
+    where: { tokenHash: hashResetToken(token) },
+    include: { user: { select: { id: true, email: true, emailVerifiedAt: true } } },
+  });
+  if (!record || record.usedAt || record.expiresAt <= new Date()) return null;
+  const now = new Date();
+  await prisma.$transaction([
+    prisma.emailVerificationToken.update({ where: { id: record.id }, data: { usedAt: now } }),
+    prisma.user.update({ where: { id: record.userId }, data: { emailVerifiedAt: record.user.emailVerifiedAt ?? now } }),
+  ]);
+  return record.user;
+}
+
+/** Whether the user has confirmed their email. Admins always count as verified. Cached per request. */
+export const isEmailVerified = cache(async (userId: string): Promise<boolean> => {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, emailVerifiedAt: true } });
+  return !!user && (user.role === "ADMIN" || user.emailVerifiedAt !== null);
+});

@@ -2,11 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { loginSchema } from "@/lib/validation";
 import { verifyPassword, createSession } from "@/lib/auth";
+import { MINUTE, clientIp, rateLimitAll, tooMany } from "@/lib/rate-limit";
+import { guardAuthRequest } from "@/lib/request-guard";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const parsed = loginSchema.safeParse(body);
+    const guard = await guardAuthRequest(req);
+    if (!guard.ok) return guard.response;
+    const parsed = loginSchema.safeParse(guard.body);
     if (!parsed.success) {
       return NextResponse.json(
         { error: parsed.error.issues[0]?.message ?? "Invalid input" },
@@ -14,6 +17,12 @@ export async function POST(req: Request) {
       );
     }
     const { email, password } = parsed.data;
+    const ip = await clientIp();
+    const limit = await rateLimitAll([
+      [`login:${ip}:${email.toLowerCase()}`, 10, 15 * MINUTE],
+      [`login:ip:${ip}`, 30, 15 * MINUTE],
+    ]);
+    if (!limit.ok) return tooMany(limit.retryAfterSec);
 
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },

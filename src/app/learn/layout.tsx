@@ -1,10 +1,12 @@
-import { requireSession } from "@/lib/auth";
+import { isEmailVerified, requireSession } from "@/lib/auth";
 import { isPrelaunch } from "@/lib/launch";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { PrelaunchNotice } from "@/components/learn/PrelaunchNotice";
+import { VerifyEmailBanner } from "@/components/auth/VerifyEmail";
 
 export default async function LearnLayout({ children }: LayoutProps<"/learn">) {
   const session = await requireSession("/learn");
+  const verified = await isEmailVerified(session.userId);
 
   return (
     <DashboardShell
@@ -13,6 +15,7 @@ export default async function LearnLayout({ children }: LayoutProps<"/learn">) {
       user={{ name: session.name, email: session.email, role: session.role }}
       title="My learning"
     >
+      {!verified && <VerifyEmailBanner email={session.email} />}
       {isPrelaunch() && session.role !== "ADMIN" ? <PrelaunchNotice userId={session.userId} /> : children}
     </DashboardShell>
   );

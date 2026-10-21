@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { getSession, isEmailVerified } from "@/lib/auth";
 import { generateReference, initializeTransaction } from "@/lib/paystack";
 
 const enrollSchema = z.object({ tierId: z.string().min(1).max(40) });
@@ -12,6 +12,12 @@ export async function POST(req: Request) {
     const session = await getSession();
     if (!session) {
       return NextResponse.json({ error: "Please log in to enrol." }, { status: 401 });
+    }
+    if (!(await isEmailVerified(session.userId))) {
+      return NextResponse.json(
+        { error: "Please confirm your email address before enrolling.", needsVerification: true },
+        { status: 403 }
+      );
     }
     const parsed = enrollSchema.safeParse(await req.json());
     if (!parsed.success) {

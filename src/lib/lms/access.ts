@@ -1,7 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import { isPrelaunch } from "@/lib/launch";
-import type { SessionPayload } from "@/lib/auth";
+import { isEmailVerified, type SessionPayload } from "@/lib/auth";
 
 /**
  * Access rules — the single place that decides who may open what.
@@ -10,6 +10,7 @@ import type { SessionPayload } from "@/lib/auth";
  *     that includes it, and the course and its program are published.
  *  2. If the course has a prerequisite, that course must be completed first.
  *  3. In a `sequential` course, each lesson opens only after the one before it.
+ *  0. Learners must have confirmed their email before opening any lesson.
  *  4. A final assessment (an EXAM quiz) comes after every other lesson and
  *     opens once they are all completed.
  *
@@ -100,7 +101,7 @@ export type LessonAccess =
       ok: true;
       lesson: NonNullable<Awaited<ReturnType<typeof loadLesson>>>;
     }
-  | { ok: false; reason: "NOT_FOUND" | CourseLock | "SEQUENTIAL" | "EXAM_LOCKED" | "PRELAUNCH" };
+  | { ok: false; reason: "NOT_FOUND" | CourseLock | "SEQUENTIAL" | "EXAM_LOCKED" | "PRELAUNCH" | "UNVERIFIED" };
 
 function loadLesson(lessonId: string) {
   return prisma.lesson.findUnique({
@@ -129,6 +130,7 @@ export async function checkLessonAccess(
   if (session.role === "ADMIN") return { ok: true, lesson };
   if (!lesson.published) return { ok: false, reason: "NOT_FOUND" };
   if (isPrelaunch()) return { ok: false, reason: "PRELAUNCH" };
+  if (!(await isEmailVerified(session.userId))) return { ok: false, reason: "UNVERIFIED" };
 
   const course = lesson.module.course;
   const lock = await getCourseLock(session, course);
