@@ -59,6 +59,9 @@ export async function getLearnerHome(userId: string) {
       last && course
         ? {
             href: `/learn/${course.program.slug}/${course.slug}/${last.lesson.id}`,
+            lessonId: last.lesson.id,
+            programSlug: course.program.slug,
+            courseSlug: course.slug,
             lessonTitle: last.lesson.title,
             courseTitle: course.title,
           }

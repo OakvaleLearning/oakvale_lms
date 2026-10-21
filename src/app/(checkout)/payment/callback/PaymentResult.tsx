@@ -8,7 +8,7 @@ import { SITE } from "@/content/site";
 
 type State = "verifying" | "success" | "failed" | "error";
 
-export function PaymentResult() {
+export function PaymentResult({ prelaunch }: { prelaunch: boolean }) {
   const reference = useSearchParams().get("reference");
   const [state, setState] = useState<State>(reference ? "verifying" : "error");
 
@@ -40,10 +40,12 @@ export function PaymentResult() {
         <CheckCircle2 className="size-16 text-emerald-500" />
         <h1 className="mt-6 text-2xl font-bold text-ink-900">You&apos;re enrolled!</h1>
         <p className="mt-2 max-w-sm text-ink-500">
-          Your payment is confirmed and your courses are ready. Learn at your own pace.
+          {prelaunch
+            ? "Your payment is confirmed and your place is secured. Our learning platform opens soon — we'll email you the moment your courses are ready."
+            : "Your payment is confirmed and your courses are ready. Learn at your own pace."}
         </p>
         <ButtonLink href="/learn" className="mt-8">
-          Start learning
+          {prelaunch ? "View my enrolment" : "Start learning"}
           <ArrowRight className="size-4" />
         </ButtonLink>
       </Card>

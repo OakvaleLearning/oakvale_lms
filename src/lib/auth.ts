@@ -1,5 +1,5 @@
 import "server-only";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createHash, randomBytes } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
@@ -8,6 +8,10 @@ import { prisma } from "./prisma";
 
 const COOKIE_NAME = "oakvale_session";
 const MAX_AGE = 60 * 60 * 24 * 7; // 7 days
+/** Mobile app tokens last longer; the app signs in again when one expires. */
+const MOBILE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
+/** WebView tickets only need to survive the redirect that turns them into a cookie. */
+const TICKET_MAX_AGE = 120;
 /** How long a password reset link stays valid. */
 export const RESET_TOKEN_TTL_MINUTES = 60;
 
@@ -38,12 +42,7 @@ export async function verifyPassword(
 }
 
 export async function createSession(payload: SessionPayload): Promise<void> {
-  const token = await new SignJWT({ ...payload })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime(`${MAX_AGE}s`)
-    .sign(getSecret());
-
+  const token = await signToken(payload, MAX_AGE);
   const store = await cookies();
   store.set(COOKIE_NAME, token, {
     httpOnly: true,
@@ -59,19 +58,59 @@ export async function destroySession(): Promise<void> {
   store.delete(COOKIE_NAME);
 }
 
-/** Reads and verifies the session from the cookie. Returns null if absent/invalid. */
-export async function getSession(): Promise<SessionPayload | null> {
-  const store = await cookies();
-  const token = store.get(COOKIE_NAME)?.value;
-  if (!token) return null;
+function signToken(payload: SessionPayload | Record<string, unknown>, maxAge: number, typ?: string) {
+  return new SignJWT({ ...payload, ...(typ ? { typ } : {}) })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${maxAge}s`)
+    .sign(getSecret());
+}
+
+async function verifySessionToken(token: string): Promise<SessionPayload | null> {
   try {
     const { payload } = await jwtVerify(token, getSecret());
+    // Tickets are single-purpose and must never work as a session.
+    if (payload.typ === "ticket") return null;
     return {
       userId: payload.userId as string,
       email: payload.email as string,
       name: payload.name as string,
       role: payload.role as "LEARNER" | "ADMIN",
     };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Reads and verifies the session: an `Authorization: Bearer` token (mobile
+ * app) or the session cookie (web). Returns null if absent/invalid.
+ */
+export async function getSession(): Promise<SessionPayload | null> {
+  const auth = (await headers()).get("authorization");
+  if (auth?.startsWith("Bearer ")) return verifySessionToken(auth.slice(7).trim());
+  const token = (await cookies()).get(COOKIE_NAME)?.value;
+  return token ? verifySessionToken(token) : null;
+}
+
+/** A bearer token for the mobile app. */
+export function createMobileToken(payload: SessionPayload): Promise<string> {
+  return signToken(payload, MOBILE_MAX_AGE, "mobile");
+}
+
+/**
+ * A short-lived ticket that lets the app's WebView sign in for one lesson
+ * (SCORM/HTML content needs a cookie session on this domain).
+ */
+export function createLessonTicket(userId: string, lessonId: string): Promise<string> {
+  return signToken({ userId, lessonId }, TICKET_MAX_AGE, "ticket");
+}
+
+export async function verifyLessonTicket(ticket: string): Promise<{ userId: string; lessonId: string } | null> {
+  try {
+    const { payload } = await jwtVerify(ticket, getSecret());
+    if (payload.typ !== "ticket") return null;
+    return { userId: payload.userId as string, lessonId: payload.lessonId as string };
   } catch {
     return null;
   }

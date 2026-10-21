@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { getUnlockedCourseIds } from "@/lib/lms/access";
 import { cn, formatNaira } from "@/lib/utils";
 import { ButtonLink } from "@/components/ui/Button";
+import { isPrelaunch } from "@/lib/launch";
 import { EnrollButton } from "./EnrollButton";
 
 export const metadata: Metadata = { title: "Enrol" };
@@ -41,6 +42,12 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-10 sm:px-8 sm:py-14">
+      {isPrelaunch() && (
+        <div className="mb-10 rounded-3xl bg-primary-50 px-6 py-5 text-center text-sm text-primary-900">
+          <span className="font-bold">Early enrolment is open.</span> Secure your place now — our learning platform
+          opens soon, and we&apos;ll email you the moment your courses are ready.
+        </div>
+      )}
       {programs.length === 0 && (
         <p className="rounded-3xl border border-ink-100 bg-white p-10 text-center text-ink-500">
           This programme isn&apos;t open for enrolment right now.
@@ -82,7 +89,7 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
                   <div className="mt-6">
                     {enrolled ? (
                       <ButtonLink href="/learn" variant="outline" className="w-full">
-                        Included — go to courses
+                        {isPrelaunch() ? "You're enrolled" : "Included — go to courses"}
                       </ButtonLink>
                     ) : session ? (
                       <EnrollButton tierId={tier.id} label={`Pay ${formatNaira(tier.price)}`} />

@@ -63,6 +63,7 @@ Without Paystack keys, checkout is simulated. Without a Resend key, emails are l
 | `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO` | Transactional email |
 | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` | Cloudflare R2 |
 | `R2_ENDPOINT` | Local development only — leave empty in production |
+| `PRELAUNCH` | `true` = early enrolment only: learners can enrol and pay but can't open courses yet |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Optional, used by `npm run seed` |
 
 ## Cloudflare R2 setup
@@ -96,6 +97,33 @@ Add your Vercel preview domain(s) to `AllowedOrigins` if you upload from preview
 6. In Paystack → Settings → API Keys & Webhooks, set the webhook URL to `https://YOUR-LMS-DOMAIN/api/payments/webhook`.
 7. On the marketing site, set `NEXT_PUBLIC_LMS_URL=https://YOUR-LMS-DOMAIN/enroll` and redeploy it.
 
-## Later: native mobile app
+## Early enrolment (pre-launch mode)
 
-The learner side is an installable web app today. A native app (Expo) can reuse the same backend: the logic lives in `src/lib/lms/*`, and progress, quizzes and SCORM already go through JSON API routes under `src/app/api/lms`. SCORM/HTML lessons can run inside a WebView pointed at the lesson page. Keep purchasing on the web; Apple restricts in-app sales of digital content.
+To take enrolments and payments before learning opens, deploy with `PRELAUNCH=true`:
+
+- `/enroll` shows an "Early enrolment is open" banner. Sign-up and Paystack checkout work as normal.
+- After paying, learners see **"Your place is secured"**, on the web, in the welcome email and in the app. Lessons, content files and the progress/quiz/SCORM APIs are closed to learners.
+- Admins aren't affected. Build programmes, upload lessons and preview everything; the admin overview shows a pre-launch banner.
+
+**Launch day:**
+
+1. Remove `PRELAUNCH` in Vercel, then redeploy.
+2. Remove `NEXT_PUBLIC_PRELAUNCH` from the marketing site and redeploy it.
+3. In the admin overview, click **"Email N learners: courses are open"**. It sends up to 100 per click and never emails anyone twice.
+
+## Mobile app API
+
+The native app (`../oakvale-mobile`, Expo) uses the same logic through bearer-token JSON routes:
+
+| Route | Purpose |
+|---|---|
+| `POST /api/v1/auth/login` | Email + password → `{ token, user }` (30-day token) |
+| `GET /api/v1/me` | Current user (token check on app start) |
+| `GET /api/v1/home` | Enrolled programmes → courses with progress, "continue" lesson |
+| `GET /api/v1/courses/<program>/<course>` | Outline with lesson status and locks |
+| `GET /api/v1/lessons/<id>` | Lesson + how to play it (media URL, quiz questions, or web) |
+| `POST /api/v1/lessons/<id>/launch` | SCORM/HTML: a 2-minute ticket URL for the WebView |
+
+`getSession()` accepts `Authorization: Bearer <token>` as well as the cookie, so `/api/lms/progress`, `/api/lms/quiz/<id>` and the rest work unchanged for the app. The WebView opens `/m/launch?ticket=…`, which swaps the ticket for a cookie session and redirects to `/m/lesson/<id>`, a full-screen player with no site chrome. Tickets can't be used as sessions, and session tokens can't be used as tickets.
+
+The app doesn't sell anything. Enrolment and payment stay on the website, as Apple requires for digital content.

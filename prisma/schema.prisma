@@ -30,6 +30,8 @@ model User {
   phone        String?
   passwordHash String
   role         Role                 @default(LEARNER)
+  // When the "courses are open" email went out (sent once, after pre-launch).
+  launchEmailSentAt DateTime?
   createdAt    DateTime             @default(now())
   updatedAt    DateTime             @updatedAt
   resetTokens  PasswordResetToken[]

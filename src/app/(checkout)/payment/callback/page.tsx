@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
+import { isPrelaunch } from "@/lib/launch";
 import { PaymentResult } from "./PaymentResult";
 
 export const metadata = { title: "Payment" };
@@ -14,7 +15,7 @@ export default function PaymentCallbackPage() {
           </div>
         }
       >
-        <PaymentResult />
+        <PaymentResult prelaunch={isPrelaunch()} />
       </Suspense>
     </div>
   );

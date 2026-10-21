@@ -3,6 +3,7 @@ import { SITE } from "@/content/site";
 import { formatNaira } from "@/lib/utils";
 import { sendEmail } from "@/lib/email";
 import { RESET_TOKEN_TTL_MINUTES } from "@/lib/auth";
+import { isPrelaunch } from "@/lib/launch";
 
 const TEAM = "The Oakvale Learning Team";
 
@@ -55,19 +56,25 @@ export async function sendEnrolledEmail(
 ): Promise<boolean> {
   const link = `${appUrl()}/learn`;
   const what = `${info.programTitle} — ${info.tierName}`;
+  const prelaunch = isPrelaunch();
+  const next = prelaunch
+    ? "Your place is secured. Our learning platform opens soon, and we'll email you the moment your courses are ready."
+    : "Your courses are open now — learn at your own pace, on your phone or computer.";
 
   const bodyHtml =
     p(`Dear ${escape(user.name)},`) +
     p(`Your payment of <strong>${formatNaira(info.amountKobo)}</strong> was successful and you are now enrolled in <strong>${escape(what)}</strong>.`) +
-    p(`Your courses are open now — learn at your own pace, on your phone or computer.`) +
-    button(link, "Start learning") +
+    p(next) +
+    button(link, prelaunch ? "View my enrolment" : "Start learning") +
     p(`Warm regards,<br/>${TEAM}`);
 
   const text = `Dear ${user.name},
 
 Your payment of ${formatNaira(info.amountKobo)} was successful and you are now enrolled in ${what}.
 
-Start learning: ${link}
+${next}
+
+${prelaunch ? "View my enrolment" : "Start learning"}: ${link}
 
 Warm regards,
 ${TEAM}`;
@@ -75,7 +82,35 @@ ${TEAM}`;
   return sendEmail({
     to: user.email,
     subject: `You're enrolled: ${what}`,
-    html: layout("Welcome — your courses are ready", bodyHtml),
+    html: layout(prelaunch ? "Welcome — your place is secured" : "Welcome — your courses are ready", bodyHtml),
+    text,
+  });
+}
+
+/** Launch day: tells an early enrolee their courses are open. */
+export async function sendCoursesOpenEmail(user: { name: string; email: string }): Promise<boolean> {
+  const link = `${appUrl()}/learn`;
+
+  const bodyHtml =
+    p(`Dear ${escape(user.name)},`) +
+    p(`The wait is over — your ${SITE.name} courses are now open.`) +
+    p(`Sign in with the email and password you enrolled with and start learning at your own pace, on your phone or computer.`) +
+    button(link, "Start learning") +
+    p(`Warm regards,<br/>${TEAM}`);
+
+  const text = `Dear ${user.name},
+
+The wait is over — your ${SITE.name} courses are now open.
+
+Sign in with the email and password you enrolled with and start learning at your own pace: ${link}
+
+Warm regards,
+${TEAM}`;
+
+  return sendEmail({
+    to: user.email,
+    subject: `Your ${SITE.name} courses are open`,
+    html: layout("Your courses are open", bodyHtml),
     text,
   });
 }

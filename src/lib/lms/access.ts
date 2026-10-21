@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { isPrelaunch } from "@/lib/launch";
 import type { SessionPayload } from "@/lib/auth";
 
 /**
@@ -96,7 +97,7 @@ export type LessonAccess =
       ok: true;
       lesson: NonNullable<Awaited<ReturnType<typeof loadLesson>>>;
     }
-  | { ok: false; reason: "NOT_FOUND" | CourseLock | "SEQUENTIAL" };
+  | { ok: false; reason: "NOT_FOUND" | CourseLock | "SEQUENTIAL" | "PRELAUNCH" };
 
 function loadLesson(lessonId: string) {
   return prisma.lesson.findUnique({
@@ -123,6 +124,7 @@ export async function checkLessonAccess(
   if (!lesson) return { ok: false, reason: "NOT_FOUND" };
   if (session.role === "ADMIN") return { ok: true, lesson };
   if (!lesson.published) return { ok: false, reason: "NOT_FOUND" };
+  if (isPrelaunch()) return { ok: false, reason: "PRELAUNCH" };
 
   const course = lesson.module.course;
   const lock = await getCourseLock(session, course);

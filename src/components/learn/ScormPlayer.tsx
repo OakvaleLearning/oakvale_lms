@@ -27,11 +27,14 @@ export function ScormPlayer({
   version,
   src,
   initialCmi,
+  fullScreen = false,
 }: {
   lessonId: string;
   version: "1.2" | "2004";
   src: string;
   initialCmi: Record<string, unknown>;
+  /** Fill the viewport (mobile app WebView) instead of a rounded card. */
+  fullScreen?: boolean;
 }) {
   const [ready, setReady] = useState(false);
   // Loaded once per lesson; a later re-render must not restart the package.
@@ -40,6 +43,15 @@ export function ScormPlayer({
   useEffect(() => {
     let api: ScormApi | null = null;
     let cancelled = false;
+    const flush = () => {
+      try {
+        if (api?.isInitialized()) api.lmsCommit();
+      } catch {
+        /* package may already have terminated */
+      }
+    };
+    // Tab closed / app backgrounded / WebView closed: the unmount below may never run.
+    window.addEventListener("pagehide", flush);
 
     (async () => {
       const settings = {
@@ -66,19 +78,22 @@ export function ScormPlayer({
 
     return () => {
       cancelled = true;
+      window.removeEventListener("pagehide", flush);
       // Flush whatever the package hasn't committed yet when leaving the lesson.
-      try {
-        if (api?.isInitialized()) api.lmsCommit();
-      } catch {
-        /* package may already have terminated */
-      }
+      flush();
       delete window.API;
       delete window.API_1484_11;
     };
   }, [lessonId, version]);
 
   return (
-    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-3xl border border-ink-100 bg-white sm:aspect-video">
+    <div
+      className={
+        fullScreen
+          ? "fixed inset-0 bg-white"
+          : "relative aspect-[4/3] w-full overflow-hidden rounded-3xl border border-ink-100 bg-white sm:aspect-video"
+      }
+    >
       {ready ? (
         <iframe
           src={src}
