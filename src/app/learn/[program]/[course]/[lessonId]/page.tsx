@@ -10,6 +10,7 @@ import { isStorageConfigured, presignDownload } from "@/lib/storage";
 import { LESSON_TYPE_LABEL, LessonIcon } from "@/components/learn/LessonIcon";
 import { MediaPlayer } from "@/components/learn/MediaPlayer";
 import { ScormPlayer } from "@/components/learn/ScormPlayer";
+import { LessonFrame } from "@/components/learn/LessonFrame";
 import { QuizPlayer } from "@/components/learn/QuizPlayer";
 import { MarkCompleteButton } from "@/components/learn/MarkCompleteButton";
 import { TutorPanel } from "@/components/learn/TutorPanel";
@@ -185,15 +186,24 @@ async function LessonBody({
       id: session.userId,
       name: session.name,
     });
-    return <ScormPlayer key={lesson.id} lessonId={lesson.id} version={version} src={src} initialCmi={initialCmi} />;
+    return (
+      <ScormPlayer
+        key={lesson.id}
+        lessonId={lesson.id}
+        version={version}
+        src={src}
+        initialCmi={initialCmi}
+        title={lesson.title}
+      />
+    );
   }
 
   // HTML
   return (
     <div>
-      <div className="card relative aspect-[4/3] w-full overflow-hidden sm:aspect-video">
+      <LessonFrame key={lesson.id} title={lesson.title}>
         <iframe src={src} title={lesson.title} className="absolute inset-0 size-full" allowFullScreen />
-      </div>
+      </LessonFrame>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-white px-4 py-3">
         <span className="text-sm text-ink-600">
           {completed ? "You've finished this lesson." : "Finished working through this lesson?"}

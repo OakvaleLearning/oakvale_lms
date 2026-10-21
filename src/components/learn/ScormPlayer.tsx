@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { LessonFrame } from "./LessonFrame";
 
 type ScormApi = {
   loadFromJSON(json: Record<string, unknown>): void;
@@ -27,12 +28,14 @@ export function ScormPlayer({
   version,
   src,
   initialCmi,
+  title = "Lesson content",
   fullScreen = false,
 }: {
   lessonId: string;
   version: "1.2" | "2004";
   src: string;
   initialCmi: Record<string, unknown>;
+  title?: string;
   /** Fill the viewport (mobile app WebView) instead of a rounded card. */
   fullScreen?: boolean;
 }) {
@@ -86,27 +89,14 @@ export function ScormPlayer({
     };
   }, [lessonId, version]);
 
-  return (
-    <div
-      className={
-        fullScreen
-          ? "fixed inset-0 bg-white"
-          : "relative aspect-[4/3] w-full overflow-hidden card sm:aspect-video"
-      }
-    >
-      {ready ? (
-        <iframe
-          src={src}
-          title="Lesson content"
-          className="absolute inset-0 size-full"
-          allow="fullscreen; autoplay"
-          allowFullScreen
-        />
-      ) : (
-        <div className="grid size-full place-items-center">
-          <Loader2 className="size-8 animate-spin text-primary-600" />
-        </div>
-      )}
+  const body = ready ? (
+    <iframe src={src} title={title} className="absolute inset-0 size-full" allow="fullscreen; autoplay" allowFullScreen />
+  ) : (
+    <div className="absolute inset-0 grid place-items-center">
+      <Loader2 className="size-8 animate-spin text-primary-600" />
     </div>
   );
+
+  if (fullScreen) return <div className="fixed inset-0 bg-white">{body}</div>;
+  return <LessonFrame title={title}>{body}</LessonFrame>;
 }
