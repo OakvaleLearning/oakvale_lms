@@ -77,6 +77,14 @@ export default async function LessonPage({ params }: PageProps<"/learn/[program]
           <span className="tabular-nums text-ink-500">
             Lesson {index + 1} of {ordered.length}
           </span>
+          <Link
+            href={next ? `${base}/${next.id}` : base}
+            title={next ? next.title : "Back to course overview"}
+            className="group inline-flex h-10 items-center gap-1.5 rounded-xl bg-primary-600 pl-4 pr-3 font-medium text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.12)] transition-colors hover:bg-primary-700"
+          >
+            {next ? "Next lesson" : "Finish course"}
+            <ChevronRight className="size-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
+          </Link>
         </div>
       </header>
 
@@ -91,8 +99,8 @@ export default async function LessonPage({ params }: PageProps<"/learn/[program]
             </section>
           )}
 
-          <nav aria-label="Lesson navigation" className="mt-8 grid gap-3 sm:grid-cols-2">
-            {prev ? (
+          {prev && (
+            <nav aria-label="Lesson navigation" className="mt-8 grid gap-3 sm:grid-cols-2">
               <Link
                 href={`${base}/${prev.id}`}
                 className="card group flex items-center gap-3 p-4 transition-colors hover:border-ink-300"
@@ -103,20 +111,8 @@ export default async function LessonPage({ params }: PageProps<"/learn/[program]
                   <span className="block truncate text-sm font-medium text-ink-900">{prev.title}</span>
                 </span>
               </Link>
-            ) : (
-              <span className="hidden sm:block" />
-            )}
-            <Link
-              href={next ? `${base}/${next.id}` : base}
-              className="group flex items-center justify-end gap-3 rounded-2xl bg-primary-600 p-4 text-right text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.12)] transition-colors hover:bg-primary-700"
-            >
-              <span className="min-w-0">
-                <span className="block text-xs text-primary-100">{next ? "Next lesson" : "You've reached the end"}</span>
-                <span className="block truncate text-sm font-medium">{next ? next.title : "Back to course overview"}</span>
-              </span>
-              <ChevronRight className="size-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
-            </Link>
-          </nav>
+            </nav>
+          )}
         </div>
 
         <div className="lg:sticky lg:top-8">
