@@ -23,6 +23,7 @@ import {
   Textarea,
   TitleSlugFields,
 } from "@/components/admin/forms";
+import { cardControlsClass, cardListClass, cardRowClass } from "@/components/admin/cardList";
 import {
   createLesson,
   createModule,
@@ -133,27 +134,34 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
               </header>
 
               {m.lessons.length > 0 ? (
-                <ul className="divide-y divide-line/70">
+                <ul className={cardListClass}>
                   {m.lessons.map((l) => {
                     const duration = formatDuration(l.durationSec);
                     return (
-                      <li key={l.id} className="flex items-center gap-2 py-1 pl-2 pr-3">
-                        <MoveButtons onMove={moveItem.bind(null, "lesson", l.id)} />
+                      <li key={l.id} className={cardRowClass}>
+                        <div className={cardControlsClass}>
+                          <MoveButtons onMove={moveItem.bind(null, "lesson", l.id)} />
+                          <span className="pr-1.5 sm:hidden">
+                            <LessonState lesson={l} />
+                          </span>
+                        </div>
                         <Link
                           href={`/admin/lessons/${l.id}`}
-                          className="group flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-canvas"
+                          className="group flex min-w-0 flex-1 items-center gap-3 rounded-lg p-3 transition-colors hover:bg-canvas sm:px-2 sm:py-2"
                         >
                           <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-ink-50 text-ink-500 group-hover:bg-white">
                             <LessonIcon type={l.type} />
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-medium text-ink-900">{l.title}</span>
+                            <span className="block text-sm font-medium text-ink-900 sm:truncate">{l.title}</span>
                             <span className="block text-xs text-ink-500">
                               {LESSON_TYPE_LABEL[l.type]}
                               {duration && ` · ${duration}`}
                             </span>
                           </span>
-                          <LessonState lesson={l} />
+                          <span className="hidden sm:block">
+                            <LessonState lesson={l} />
+                          </span>
                           <ChevronRight className="size-4 shrink-0 text-ink-300 transition-transform group-hover:translate-x-0.5" />
                         </Link>
                       </li>
@@ -249,7 +257,7 @@ function LessonState({
   if (lesson.type === "QUIZ") {
     const n = lesson.quiz?._count.questions ?? 0;
     return n ? (
-      <span className="hidden text-xs text-ink-500 sm:inline">
+      <span className="text-xs text-ink-500">
         {n} {n === 1 ? "question" : "questions"}
       </span>
     ) : (

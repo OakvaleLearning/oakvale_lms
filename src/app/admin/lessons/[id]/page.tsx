@@ -4,10 +4,12 @@ import { ChevronDown, Eye, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { isStorageConfigured } from "@/lib/storage";
+import { listQuizSources } from "@/lib/lms/quiz-generator";
 import { LESSON_TYPE_LABEL, LessonIcon } from "@/components/learn/LessonIcon";
 import { ActionForm, DeleteButton, Field, Input, MoveButtons, Panel, Switch, Textarea } from "@/components/admin/forms";
 import { UploadField } from "@/components/admin/UploadField";
 import { QuestionEditor, type EditableQuestion } from "@/components/admin/QuestionEditor";
+import { QuizGenerator } from "@/components/admin/QuizGenerator";
 import { Breadcrumbs, PageHeader, StatusBadge } from "@/components/dashboard/ui";
 import { formatDuration } from "@/components/learn/CourseOutline";
 import { buttonClass } from "@/components/ui/Button";
@@ -35,6 +37,7 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
   const contentStatus =
     lesson.type === "QUIZ" ? (questions.length ? "READY" : "EMPTY") : (lesson.asset?.status ?? "EMPTY");
   const duration = formatDuration(lesson.durationSec);
+  const quizSources = lesson.type === "QUIZ" ? await listQuizSources(lesson.id) : [];
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -78,6 +81,14 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0 space-y-6">
+          {lesson.type === "QUIZ" && (
+            <Panel
+              title="Generate with AI"
+              description="Draft questions, answers and explanations from this course's lessons. You can edit every question afterwards."
+            >
+              <QuizGenerator lessonId={lesson.id} sources={quizSources} existingCount={questions.length} />
+            </Panel>
+          )}
           {lesson.type === "QUIZ" ? (
             <Panel
               title={`Questions (${questions.length})`}

@@ -20,6 +20,7 @@ import {
   Textarea,
   TitleSlugFields,
 } from "@/components/admin/forms";
+import { cardControlsClass, cardListClass, cardRowClass } from "@/components/admin/cardList";
 import {
   createCourse,
   createTier,
@@ -113,15 +114,20 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
                 <p className="mt-3 text-sm text-ink-500">No courses yet. Add the first one to start building.</p>
               </div>
             ) : (
-              <ul className="divide-y divide-line/70">
+              <ul className={cardListClass}>
                 {program.courses.map((c) => {
                   const lessons = c.modules.reduce((n, m) => n + m._count.lessons, 0);
                   return (
-                    <li key={c.id} className="flex items-center gap-2 py-1 pl-2 pr-3">
-                      <MoveButtons onMove={moveItem.bind(null, "course", c.id)} />
+                    <li key={c.id} className={cardRowClass}>
+                      <div className={cardControlsClass}>
+                        <MoveButtons onMove={moveItem.bind(null, "course", c.id)} />
+                        <span className="pr-1.5 sm:hidden">
+                          <StatusBadge status={c.published ? "PUBLISHED" : "DRAFT"} />
+                        </span>
+                      </div>
                       <Link
                         href={`/admin/courses/${c.id}`}
-                        className="group flex min-w-0 flex-1 items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-canvas"
+                        className="group flex min-w-0 flex-1 items-center gap-3 rounded-xl p-3 transition-colors hover:bg-canvas sm:px-2 sm:py-2.5"
                       >
                         <span className="relative grid size-11 shrink-0 place-items-center overflow-hidden rounded-lg bg-primary-50 text-primary-400">
                           {c.coverImage ? (
@@ -132,13 +138,15 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
                           )}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium text-ink-950">{c.title}</span>
+                          <span className="block text-sm font-medium text-ink-950 sm:truncate">{c.title}</span>
                           <span className="block text-xs text-ink-500">
                             {c.modules.length} {c.modules.length === 1 ? "module" : "modules"} · {lessons}{" "}
                             {lessons === 1 ? "lesson" : "lessons"}
                           </span>
                         </span>
-                        <StatusBadge status={c.published ? "PUBLISHED" : "DRAFT"} />
+                        <span className="hidden sm:block">
+                          <StatusBadge status={c.published ? "PUBLISHED" : "DRAFT"} />
+                        </span>
                         <ChevronRight className="size-4 shrink-0 text-ink-300 transition-transform group-hover:translate-x-0.5" />
                       </Link>
                     </li>
@@ -173,20 +181,29 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
                   const included = new Set(t.courses.map((c) => c.courseId));
                   return (
                     <details key={t.id} className="group rounded-xl border border-line bg-white open:shadow-card">
-                      <summary className="flex cursor-pointer list-none items-center gap-3 px-3 py-3 [&::-webkit-details-marker]:hidden">
-                        <MoveButtons onMove={moveItem.bind(null, "tier", t.id)} />
-                        <span className="min-w-0 flex-1">
-                          <span className="flex flex-wrap items-baseline gap-x-2">
-                            <span className="font-semibold text-ink-950">{t.name}</span>
-                            <span className="text-sm font-medium tabular-nums text-ink-700">{formatNaira(t.price)}</span>
+                      <summary className="flex cursor-pointer list-none flex-col sm:flex-row sm:items-center sm:gap-1 sm:px-3 sm:py-3 [&::-webkit-details-marker]:hidden">
+                        <div className={cardControlsClass}>
+                          <MoveButtons onMove={moveItem.bind(null, "tier", t.id)} />
+                          <span className="pr-1.5 sm:hidden">
+                            <StatusBadge status={t.published ? "PUBLISHED" : "DRAFT"} />
                           </span>
-                          <span className="block text-xs text-ink-500">
-                            {included.size} {included.size === 1 ? "course" : "courses"} · {t._count.enrollments} active{" "}
-                            {t._count.enrollments === 1 ? "learner" : "learners"}
+                        </div>
+                        <span className="flex min-w-0 flex-1 items-center gap-3 p-3 sm:p-0 sm:pl-2">
+                          <span className="min-w-0 flex-1">
+                            <span className="flex flex-wrap items-baseline gap-x-2">
+                              <span className="font-semibold text-ink-950">{t.name}</span>
+                              <span className="text-sm font-medium tabular-nums text-ink-700">{formatNaira(t.price)}</span>
+                            </span>
+                            <span className="block text-xs text-ink-500">
+                              {included.size} {included.size === 1 ? "course" : "courses"} · {t._count.enrollments} active{" "}
+                              {t._count.enrollments === 1 ? "learner" : "learners"}
+                            </span>
                           </span>
+                          <span className="hidden sm:block">
+                            <StatusBadge status={t.published ? "PUBLISHED" : "DRAFT"} />
+                          </span>
+                          <ChevronDown className="size-4 shrink-0 text-ink-400 transition-transform group-open:rotate-180" />
                         </span>
-                        <StatusBadge status={t.published ? "PUBLISHED" : "DRAFT"} />
-                        <ChevronDown className="size-4 shrink-0 text-ink-400 transition-transform group-open:rotate-180" />
                       </summary>
                       <div className="border-t border-line p-4 sm:p-5">
                         <TierFields action={updateTier.bind(null, t.id)} courses={courseOptions} tier={{ ...t, included }} />

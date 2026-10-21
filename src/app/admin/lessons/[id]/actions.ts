@@ -3,10 +3,12 @@
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { ensureUploadCors, isStorageConfigured, presignUpload } from "@/lib/storage";
 import { ingestPackage, removeAssetFiles } from "@/lib/lms/packages";
+import { DIFFICULTIES, GENERATE_COUNTS, generateQuizDraft } from "@/lib/lms/quiz-generator";
 import { questionSchema, quizSettingsSchema } from "@/lib/validation";
 
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
@@ -167,4 +169,58 @@ export async function deleteQuestion(lessonId: string, questionId: string): Prom
   await requireAdmin();
   await prisma.question.deleteMany({ where: { id: questionId, quiz: { lessonId } } });
   refresh(lessonId);
+}
+
+const generateSchema = z.object({
+  sourceLessonIds: z.array(z.string().max(40)).min(1, "Pick at least one lesson to base the questions on").max(100),
+  count: z.coerce.number().refine((n) => (GENERATE_COUNTS as readonly number[]).includes(n), "Pick how many questions"),
+  types: z.array(z.enum(["SINGLE", "MULTIPLE", "TRUE_FALSE"])).min(1, "Pick at least one question type"),
+  difficulty: z.enum(DIFFICULTIES),
+  focus: z.string().trim().max(500).default(""),
+  replace: z.boolean().default(false),
+});
+
+/** Draft questions with AI from the chosen lessons, then save them to this quiz. */
+export async function generateQuestions(lessonId: string, input: unknown): Promise<Result<{ created: number }>> {
+  await requireAdmin();
+  const parsed = generateSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid request" };
+  const { replace, ...options } = parsed.data;
+
+  const lesson = await prisma.lesson.findUnique({ where: { id: lessonId }, select: { type: true } });
+  if (lesson?.type !== "QUIZ") return { ok: false, error: "Lesson not found." };
+  const quiz = await prisma.quiz.upsert({
+    where: { lessonId },
+    update: {},
+    create: { lessonId },
+    include: { questions: { select: { prompt: true, order: true } } },
+  });
+
+  const draft = await generateQuizDraft({
+    quizLessonId: lessonId,
+    ...options,
+    existing: replace ? [] : quiz.questions.map((q) => q.prompt),
+  });
+  if (!draft.ok) return draft;
+
+  const valid = draft.questions.filter((q) => questionSchema.safeParse(q).success);
+  if (valid.length === 0) return { ok: false, error: "The AI's questions didn't come out usable. Please try again." };
+  const start = replace ? 0 : Math.max(-1, ...quiz.questions.map((q) => q.order)) + 1;
+
+  await prisma.$transaction([
+    ...(replace ? [prisma.question.deleteMany({ where: { quizId: quiz.id } })] : []),
+    prisma.question.createMany({
+      data: valid.map((q, i) => ({
+        quizId: quiz.id,
+        order: start + i,
+        type: q.type,
+        prompt: q.prompt,
+        options: q.options as Prisma.InputJsonValue,
+        correct: q.correct as Prisma.InputJsonValue,
+        explanation: q.explanation || null,
+      })),
+    }),
+  ]);
+  refresh(lessonId);
+  return { ok: true, created: valid.length };
 }
