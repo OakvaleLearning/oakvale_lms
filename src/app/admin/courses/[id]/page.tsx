@@ -24,6 +24,8 @@ import {
   TitleSlugFields,
 } from "@/components/admin/forms";
 import { cardControlsClass, cardListClass, cardRowClass } from "@/components/admin/cardList";
+import { IssueEligibleButton } from "@/components/admin/IssueEligibleButton";
+import { updateCourseCertificate } from "../../certificates/actions";
 import {
   createLesson,
   createModule,
@@ -54,11 +56,18 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
   });
   if (!course) notFound();
 
-  const siblings = await prisma.course.findMany({
-    where: { programId: course.programId, id: { not: course.id } },
-    orderBy: { order: "asc" },
-    select: { id: true, title: true },
-  });
+  const [siblings, templates, issuedCount] = await Promise.all([
+    prisma.course.findMany({
+      where: { programId: course.programId, id: { not: course.id } },
+      orderBy: { order: "asc" },
+      select: { id: true, title: true },
+    }),
+    prisma.certificateTemplate.findMany({
+      orderBy: [{ isDefault: "desc" }, { name: "asc" }],
+      select: { id: true, name: true, isDefault: true },
+    }),
+    prisma.certificate.count({ where: { courseId: course.id } }),
+  ]);
 
   const lessons = course.modules.flatMap((m) => m.lessons);
   const published = lessons.filter((l) => l.published).length;
@@ -238,6 +247,66 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
                 />
               </div>
             </ActionForm>
+          </Panel>
+          <Panel
+            title="Certificate"
+            description={`${issuedCount} issued`}
+            actions={
+              <Link href="/admin/certificates?tab=templates" className="text-xs font-medium text-primary-600 hover:text-primary-700">
+                Templates
+              </Link>
+            }
+          >
+            <ActionForm action={updateCourseCertificate.bind(null, course.id)}>
+              <Switch
+                name="certificateEnabled"
+                label="Issue a certificate"
+                description="When every lesson is complete and the quiz average reaches the pass mark"
+                defaultChecked={course.certificateEnabled}
+              />
+              <Field label="Pass mark" hint="Average of the learner's best score on each quiz in this course">
+                <span className="flex items-center gap-2">
+                  <Input
+                    name="certificatePassMark"
+                    type="number"
+                    min={0}
+                    max={100}
+                    required
+                    defaultValue={course.certificatePassMark}
+                    className="w-24"
+                  />
+                  <span className="text-sm text-ink-500">%</span>
+                </span>
+              </Field>
+              <Field label="Template">
+                <Select name="certificateTemplateId" defaultValue={course.certificateTemplateId ?? ""}>
+                  <option value="">Default template</option>
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                      {t.isDefault ? " (default)" : ""}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <div className="space-y-4 border-t border-line pt-5">
+                <Switch
+                  name="cpdEnabled"
+                  label="Includes a CPD certificate"
+                  description="Sent to the learner directly by the issuing body"
+                  defaultChecked={course.cpdEnabled}
+                />
+                <Field label="CPD issuing body" hint="Shown to learners, e.g. The CPD Certification Service">
+                  <Input name="cpdProvider" defaultValue={course.cpdProvider} maxLength={120} />
+                </Field>
+                <Field label="CPD hours" optional>
+                  <Input name="cpdHours" type="number" min={1} max={1000} defaultValue={course.cpdHours ?? ""} className="w-24" />
+                </Field>
+              </div>
+            </ActionForm>
+            <div className="mt-5 border-t border-line pt-5">
+              <IssueEligibleButton courseId={course.id} />
+            </div>
           </Panel>
           <Panel title="Cover image">
             <CoverImageField target={{ kind: "course", id: course.id }} current={course.coverImage} />

@@ -162,3 +162,9 @@
 .tutor-md blockquote { border-left: 2px solid var(--color-line); padding-left: 0.75rem; color: var(--color-ink-600); }
 .tutor-md table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
 .tutor-md :is(th, td) { border: 1px solid var(--color-line); padding: 0.375rem 0.5rem; text-align: left; }
+
+/* Certificates print with their colours (backgrounds, bands, borders). */
+.certificate {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}

@@ -115,3 +115,40 @@ ${TEAM}`;
     text,
   });
 }
+
+/** Sent when a learner earns a course certificate; mentions the CPD certificate when the course has one. */
+export async function sendCertificateEmail(
+  user: { name: string; email: string },
+  cert: { serial: string; courseTitle: string; cpdStatus: string; cpdProvider: string | null; link: string }
+): Promise<boolean> {
+  const cpd =
+    cert.cpdStatus === "NONE"
+      ? ""
+      : `This course also carries a CPD certificate. We will pass your details to ${cert.cpdProvider || "the CPD issuing body"}, who will email it to you directly.`;
+
+  const bodyHtml =
+    p(`Dear ${escape(user.name)},`) +
+    p(`Congratulations! You have completed <strong>${escape(cert.courseTitle)}</strong> and earned your ${SITE.name} certificate.`) +
+    button(cert.link, "View and download") +
+    p(`Your certificate ID is <strong>${cert.serial}</strong>. Anyone can check it is genuine by scanning its QR code or visiting ${appUrl()}/verify.`) +
+    (cpd ? p(escape(cpd)) : "") +
+    p(`Warm regards,<br/>${TEAM}`);
+
+  const text = `Dear ${user.name},
+
+Congratulations! You have completed ${cert.courseTitle} and earned your ${SITE.name} certificate.
+
+View and download it: ${cert.link}
+
+Your certificate ID is ${cert.serial}. Anyone can check it is genuine by scanning its QR code or visiting ${appUrl()}/verify.
+${cpd ? `\n${cpd}\n` : ""}
+Warm regards,
+${TEAM}`;
+
+  return sendEmail({
+    to: user.email,
+    subject: `Your certificate: ${cert.courseTitle}`,
+    html: layout("You've earned a certificate", bodyHtml),
+    text,
+  });
+}

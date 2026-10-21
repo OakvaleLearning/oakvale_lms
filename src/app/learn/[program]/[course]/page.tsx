@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, Info, Lock } from "lucide-react";
+import { ArrowRight, Award, Info, Lock } from "lucide-react";
+import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
 import { getCourseBySlugs, getCourseOutline } from "@/lib/lms/catalog";
 import { getCourseProgress } from "@/lib/lms/progress";
@@ -40,9 +41,13 @@ export default async function CoursePage({ params, searchParams }: PageProps<"/l
   }
 
   const isAdmin = session.role === "ADMIN";
-  const [modules, progressMap] = await Promise.all([
+  const [modules, progressMap, certificate] = await Promise.all([
     getCourseOutline(session.userId, course.id, { sequential: course.sequential, isAdmin }),
     getCourseProgress(session.userId, [course.id]),
+    prisma.certificate.findUnique({
+      where: { userId_courseId: { userId: session.userId, courseId: course.id } },
+      select: { serial: true, revokedAt: true },
+    }),
   ]);
   const progress = progressMap.get(course.id)!;
   const next = modules.flatMap((m) => m.lessons).find((l) => l.status !== "COMPLETED" && !l.locked);
@@ -177,6 +182,30 @@ export default async function CoursePage({ params, searchParams }: PageProps<"/l
             )}
             {course.sequential && (
               <p className="mt-4 text-xs leading-relaxed text-ink-500">Lessons in this course unlock in order.</p>
+            )}
+            {certificate && !certificate.revokedAt ? (
+              <Link
+                href={`/certificates/${certificate.serial}`}
+                className="mt-5 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 transition-colors hover:bg-emerald-100/70"
+              >
+                <Award className="size-5 shrink-0" />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium">Certificate earned</span>
+                  <span className="block text-xs text-emerald-800/80">View and download</span>
+                </span>
+                <ArrowRight className="size-4 shrink-0" />
+              </Link>
+            ) : (
+              course.certificateEnabled && (
+                <p className="mt-5 flex items-start gap-2.5 border-t border-line pt-5 text-xs leading-relaxed text-ink-500">
+                  <Award className="mt-px size-4 shrink-0 text-ink-400" />
+                  <span>
+                    Earn a certificate by completing every lesson
+                    {` with a quiz average of ${course.certificatePassMark}% or more`}.
+                    {course.cpdEnabled && ` Includes a CPD certificate from ${course.cpdProvider || "an accredited CPD body"}.`}
+                  </span>
+                </p>
+              )
             )}
           </aside>
         </Reveal>

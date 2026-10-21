@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { checkCertificateAfterLesson } from "./certificates";
 
 export interface ProgressUpdate {
   /** Resume point for video/audio, in seconds. */
@@ -37,11 +38,16 @@ export async function recordProgress(userId: string, lessonId: string, update: P
     completedAt: existing?.completedAt ?? (completed ? new Date() : null),
   };
 
-  return prisma.lessonProgress.upsert({
+  const saved = await prisma.lessonProgress.upsert({
     where: { userId_lessonId: { userId, lessonId } },
     update: data,
     create: { userId, lessonId, ...data },
   });
+  // Finishing a lesson, or raising a quiz score, may complete the course certificate.
+  if (completed && (existing?.status !== "COMPLETED" || (score ?? 0) > (existing?.score ?? 0))) {
+    await checkCertificateAfterLesson(userId, lessonId);
+  }
+  return saved;
 }
 
 /** Completed / total published lessons for each course, for progress bars. */

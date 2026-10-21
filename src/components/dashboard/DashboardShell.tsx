@@ -17,6 +17,7 @@ import {
   LifeBuoy,
   MessagesSquare,
   Mail,
+  Award,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,7 @@ const NAV: Record<"learner" | "admin", { section: string; items: NavItem[] }> = 
     section: "Learning",
     items: [
       { label: "My learning", href: "/learn", icon: BookOpen },
+      { label: "Certificates", href: "/learn/certificates", icon: Award },
       { label: "Programmes", href: "/enroll", icon: ShoppingBag },
       { label: "Support", href: "/support", icon: LifeBuoy, badge: true },
     ],
@@ -49,6 +51,7 @@ const NAV: Record<"learner" | "admin", { section: string; items: NavItem[] }> = 
       { label: "Programmes", href: "/admin/programs", icon: Layers },
       { label: "Learners", href: "/admin/learners", icon: Users },
       { label: "Payments", href: "/admin/payments", icon: Receipt },
+      { label: "Certificates", href: "/admin/certificates", icon: Award },
       { label: "Support", href: "/admin/support", icon: MessagesSquare, badge: true },
       { label: "Emails", href: "/admin/emails", icon: Mail },
     ],
@@ -96,10 +99,11 @@ export function DashboardShell({
         <div className="eyebrow px-3 pb-2 text-ink-400!">{nav.section}</div>
         <ul className="space-y-0.5">
           {nav.items.map((item) => {
+            // The longest matching link wins, so /learn/certificates doesn't also light up "My learning".
+            const matches = (href: string) =>
+              href === "/admin" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
             const active =
-              item.href === "/learn" || item.href === "/admin"
-                ? pathname === item.href || (item.href === "/learn" && pathname.startsWith("/learn/"))
-                : pathname.startsWith(item.href);
+              matches(item.href) && !nav.items.some((o) => o.href.length > item.href.length && matches(o.href));
             const Icon = item.icon;
             return (
               <li key={item.href}>

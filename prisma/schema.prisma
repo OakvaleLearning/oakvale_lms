@@ -46,6 +46,7 @@ model User {
   supportChat       SupportConversation?
   supportMessages   SupportMessage[]
   emailDeliveries   EmailDelivery[]
+  certificates      Certificate[]
 }
 
 /// Single-use, time-limited password reset tokens. Only the SHA-256 hash of the
@@ -119,25 +120,35 @@ model TierCourse {
 }
 
 model Course {
-  id             String       @id @default(cuid())
-  program        Program      @relation(fields: [programId], references: [id], onDelete: Cascade)
-  programId      String
-  slug           String
-  title          String
-  description    String       @default("")
-  coverImage     String?
-  order          Int          @default(0)
-  published      Boolean      @default(false)
+  id                    String               @id @default(cuid())
+  program               Program              @relation(fields: [programId], references: [id], onDelete: Cascade)
+  programId             String
+  slug                  String
+  title                 String
+  description           String               @default("")
+  coverImage            String?
+  order                 Int                  @default(0)
+  published             Boolean              @default(false)
   // When true, each lesson unlocks only after the previous one is completed.
-  sequential     Boolean      @default(false)
+  sequential            Boolean              @default(false)
   // Course that must be completed first (e.g. Professional requires Foundation).
-  prerequisite   Course?      @relation("CoursePrerequisite", fields: [prerequisiteId], references: [id], onDelete: SetNull)
-  prerequisiteId String?
-  dependents     Course[]     @relation("CoursePrerequisite")
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  modules        Module[]
-  tiers          TierCourse[]
+  prerequisite          Course?              @relation("CoursePrerequisite", fields: [prerequisiteId], references: [id], onDelete: SetNull)
+  prerequisiteId        String?
+  dependents            Course[]             @relation("CoursePrerequisite")
+  // Certificate issued once every lesson is done and the quiz average reaches the pass mark.
+  certificateEnabled    Boolean              @default(true)
+  certificateTemplate   CertificateTemplate? @relation(fields: [certificateTemplateId], references: [id], onDelete: SetNull)
+  certificateTemplateId String?
+  certificatePassMark   Int                  @default(70) // percent, average of the course's quizzes
+  // CPD certificate, sent to the learner directly by an outside issuing body.
+  cpdEnabled            Boolean              @default(false)
+  cpdProvider           String               @default("")
+  cpdHours              Int?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  modules               Module[]
+  tiers                 TierCourse[]
+  certificates          Certificate[]
 
   @@unique([programId, slug])
   @@index([programId, order])
@@ -466,4 +477,86 @@ model EmailDelivery {
 
   @@unique([userId, key])
   @@index([key, sentAt])
+}
+
+/**
+ * ------------------------------------------------------------------ *
+ * Certificates
+ * ------------------------------------------------------------------
+ */
+
+enum CertificateLayout {
+  CLASSIC // centred, framed border
+  MODERN // coloured side band
+  MINIMAL // clean, thin top rule
+}
+
+enum CertificateFont {
+  SERIF
+  SANS
+}
+
+/// How an issued certificate looks. Courses pick one; the default is used otherwise.
+model CertificateTemplate {
+  id              String            @id @default(cuid())
+  name            String
+  isDefault       Boolean           @default(false)
+  layout          CertificateLayout @default(CLASSIC)
+  font            CertificateFont   @default(SERIF)
+  primaryColor    String            @default("#3229a2")
+  accentColor     String            @default("#b08d3c")
+  backgroundColor String            @default("#ffffff")
+  heading         String            @default("Certificate of Completion")
+  intro           String            @default("This is to certify that")
+  // Placeholders: {name} {course} {programme} {score} {date} {hours}
+  body            String            @default("has successfully completed {course}, part of the {programme} programme.")
+  footer          String            @default("")
+  signatoryName   String            @default("")
+  signatoryTitle  String            @default("")
+  signatory2Name  String            @default("")
+  signatory2Title String            @default("")
+  showScore       Boolean           @default(true)
+  showQr          Boolean           @default(true)
+  showBarcode     Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  courses         Course[]
+  certificates    Certificate[]
+}
+
+enum CpdStatus {
+  NONE // course has no CPD certificate
+  PENDING // learner qualified; details not yet sent to the issuing body
+  SUBMITTED // details sent; the body emails the learner directly
+  ISSUED // the body has issued it
+}
+
+/// A certificate earned by a learner. Names and titles are copied at issue so
+/// the certificate still verifies if the course is renamed or deleted.
+model Certificate {
+  id            String               @id @default(cuid())
+  // Public ID printed on the certificate and encoded in its QR code and barcode.
+  serial        String               @unique
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  course        Course?              @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  courseId      String?
+  template      CertificateTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  templateId    String?
+  recipientName String
+  courseTitle   String
+  programTitle  String
+  score         Int? // quiz average in percent; null when the course has no quizzes
+  cpdStatus     CpdStatus            @default(NONE)
+  cpdProvider   String?
+  cpdHours      Int?
+  cpdUpdatedAt  DateTime?
+  issuedAt      DateTime             @default(now())
+  revokedAt     DateTime?
+  revokedReason String?
+  emailSentAt   DateTime?
+
+  @@unique([userId, courseId])
+  @@index([cpdStatus, issuedAt])
+  @@index([issuedAt])
 }
