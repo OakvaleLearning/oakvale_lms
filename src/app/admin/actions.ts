@@ -311,12 +311,14 @@ export async function createLesson(moduleId: string, _prev: ActionState, fd: For
   const parsed = lessonCreateSchema.safeParse({ title: text(fd, "title"), type: text(fd, "type") });
   if (!parsed.success) return { error: firstIssue(parsed.error) };
   const order = await nextOrder(prisma.lesson.aggregate({ where: { moduleId }, _max: { order: true } }));
+  const { title, type } = parsed.data;
   const lesson = await prisma.lesson.create({
     data: {
       moduleId,
       order,
-      ...parsed.data,
-      ...(parsed.data.type === "QUIZ" ? { quiz: { create: {} } } : {}),
+      title,
+      type: type === "EXAM" ? "QUIZ" : type,
+      ...(type === "QUIZ" || type === "EXAM" ? { quiz: { create: { kind: type === "EXAM" ? "EXAM" : "QUIZ" } } } : {}),
     },
   });
   refresh();

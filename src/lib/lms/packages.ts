@@ -3,7 +3,7 @@ import { unzipSync } from "fflate";
 import { XMLParser } from "fast-xml-parser";
 import { prisma } from "@/lib/prisma";
 import { deletePrefix, getObjectBytes, isStorageConfigured, mimeFromPath, putObject } from "@/lib/storage";
-import { extractPackageText, htmlToText, MAX_LESSON_TEXT } from "@/lib/lms/lesson-text";
+import { extractPackageText, TEXT_VERSION } from "@/lib/lms/lesson-text";
 
 /**
  * Unpacking uploaded SCORM / HTML packages.
@@ -37,7 +37,7 @@ export async function ingestPackage(assetId: string): Promise<void> {
     // A single HTML file needs no unpacking.
     if (/\.html?$/i.test(asset.fileName)) {
       await putObject(prefix + "index.html", bytes, "text/html; charset=utf-8");
-      const textContent = htmlToText(new TextDecoder().decode(bytes)).slice(0, MAX_LESSON_TEXT);
+      const textContent = extractPackageText({ "index.html": bytes }, "index.html");
       await markReady(assetId, { launchPath: "index.html", scormVersion: null, textContent });
       return;
     }
@@ -82,12 +82,14 @@ function markReady(
       launchPath: info.launchPath,
       scormVersion: info.scormVersion,
       textContent: info.textContent,
+      textVersion: TEXT_VERSION,
     },
   });
 }
 
 /**
- * Text of an asset processed before text extraction existed. Reads the
+ * Text of an asset processed before text extraction existed, or by an older
+ * extractor (see TEXT_VERSION). Reads the
  * original upload once and stores the result ("" when there is none), so
  * later calls hit the database only.
  */
@@ -101,7 +103,7 @@ export async function backfillAssetText(asset: {
   try {
     const bytes = await getObjectBytes(asset.storageKey);
     if (/\.html?$/i.test(asset.fileName)) {
-      text = htmlToText(new TextDecoder().decode(bytes)).slice(0, MAX_LESSON_TEXT);
+      text = extractPackageText({ "index.html": bytes }, "index.html");
     } else {
       const files = unzip(bytes);
       const launch = asset.launchPath
@@ -113,8 +115,22 @@ export async function backfillAssetText(asset: {
     console.error("[packages] text backfill failed:", err);
     return "";
   }
-  await prisma.contentAsset.update({ where: { id: asset.id }, data: { textContent: text } });
+  await prisma.contentAsset.update({ where: { id: asset.id }, data: { textContent: text, textVersion: TEXT_VERSION } });
   return text;
+}
+
+/** Whether an asset's stored text is missing or came from an older extractor. */
+export function needsTextBackfill(
+  lessonType: string,
+  asset: { status: string; textContent: string | null; textVersion: number } | null
+): boolean {
+  return (
+    !!asset &&
+    isStorageConfigured() &&
+    asset.status === "READY" &&
+    (lessonType === "SCORM" || lessonType === "HTML") &&
+    (asset.textContent === null || asset.textVersion < TEXT_VERSION)
+  );
 }
 
 function unzip(bytes: Uint8Array): Record<string, Uint8Array> {

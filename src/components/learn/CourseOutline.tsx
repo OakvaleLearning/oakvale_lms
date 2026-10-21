@@ -46,7 +46,7 @@ export function CourseOutline({
         {modules.map((m, mi) => (
           <section key={m.id} className="py-2">
             <h3 className="truncate px-5 pb-1.5 text-xs font-medium text-ink-500">
-              {mi + 1}. {m.title}
+              {m.id === "final-assessment" ? m.title : `${mi + 1}. ${m.title}`}
             </h3>
             <ol>
               {m.lessons.map((l) => {
@@ -64,7 +64,7 @@ export function CourseOutline({
                     {l.locked ? (
                       <div
                         className="flex items-center gap-2.5 px-5 py-2 text-sm opacity-60"
-                        title="Complete the earlier lessons to unlock"
+                        title={l.exam ? "Complete every lesson to unlock" : "Complete the earlier lessons to unlock"}
                       >
                         {row}
                       </div>

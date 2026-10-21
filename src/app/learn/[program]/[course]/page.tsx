@@ -69,7 +69,9 @@ export default async function CoursePage({ params, searchParams }: PageProps<"/l
           {lockedNotice && (
             <p className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
               <Info className="mt-0.5 size-4 shrink-0" />
-              Complete the earlier lessons first — this course unlocks lessons in order.
+              {lockedNotice === "exam"
+                ? "Complete every lesson first. The final assessment opens once you have."
+                : "Complete the earlier lessons first. This course unlocks lessons in order."}
             </p>
           )}
 
@@ -79,7 +81,9 @@ export default async function CoursePage({ params, searchParams }: PageProps<"/l
               <StaggerItem key={m.id} as="section" className="card overflow-hidden">
                 <div className="flex items-center justify-between gap-4 border-b border-line px-6 py-4">
                   <div className="min-w-0">
-                    <div className="text-xs font-medium text-ink-500">Module {mi + 1}</div>
+                    <div className="text-xs font-medium text-ink-500">
+                      {m.id === "final-assessment" ? "After all lessons" : `Module ${mi + 1}`}
+                    </div>
                     <h2 className="mt-0.5 truncate text-[15px] font-semibold text-ink-950">{m.title}</h2>
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
@@ -105,7 +109,7 @@ export default async function CoursePage({ params, searchParams }: PageProps<"/l
                           </span>
                           <span className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-500">
                             <LessonIcon type={l.type} className="size-3.5" />
-                            {LESSON_TYPE_LABEL[l.type]}
+                            {l.exam ? "Final assessment" : LESSON_TYPE_LABEL[l.type]}
                             {duration && <> · {duration}</>}
                           </span>
                         </span>
@@ -126,7 +130,7 @@ export default async function CoursePage({ params, searchParams }: PageProps<"/l
                         {l.locked ? (
                           <div
                             className="flex items-center gap-3 px-6 py-3.5 opacity-55"
-                            title="Complete the earlier lessons to unlock"
+                            title={l.exam ? "Complete every lesson to unlock" : "Complete the earlier lessons to unlock"}
                           >
                             {row}
                           </div>

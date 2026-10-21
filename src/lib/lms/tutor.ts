@@ -3,7 +3,7 @@ import { openai } from "@ai-sdk/openai";
 import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/auth";
 import type { LessonAccess } from "./access";
-import { backfillAssetText } from "./packages";
+import { backfillAssetText, needsTextBackfill } from "./packages";
 import type { QuizOption } from "./quiz";
 
 /**
@@ -109,7 +109,7 @@ export async function buildTutorSystemPrompt(session: SessionPayload, lesson: Ac
   ]);
 
   let packageText = lesson.asset?.textContent ?? null;
-  if (packageText === null && lesson.asset?.status === "READY" && (lesson.type === "SCORM" || lesson.type === "HTML")) {
+  if (lesson.asset && needsTextBackfill(lesson.type, lesson.asset)) {
     packageText = await backfillAssetText(lesson.asset);
   }
 

@@ -123,6 +123,7 @@ export async function updateQuizSettings(
 ): Promise<{ error?: string; ok?: boolean }> {
   await requireAdmin();
   const parsed = quizSettingsSchema.safeParse({
+    kind: fd.get("kind") || undefined,
     passMark: fd.get("passMark"),
     maxAttempts: fd.get("maxAttempts") || undefined,
     shuffle: fd.get("shuffle") === "on",

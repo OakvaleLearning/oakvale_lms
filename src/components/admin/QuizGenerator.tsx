@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { FormError } from "@/components/ui/TextField";
 import { cn } from "@/lib/utils";
 import { generateQuestions } from "@/app/admin/lessons/[id]/actions";
-import type { Difficulty, QuestionKind, SourceLesson } from "@/lib/lms/quiz-generator";
+import type { Difficulty, QuestionKind, QuizKind, SourceLesson } from "@/lib/lms/quiz-generator";
 import { CheckCard, Field, Input, Switch } from "./forms";
 
 const COUNTS = [5, 10, 15, 20];
@@ -19,16 +19,20 @@ const TYPE_LABEL: Record<QuestionKind, string> = {
 
 export function QuizGenerator({
   lessonId,
+  kind,
   sources,
   existingCount,
 }: {
   lessonId: string;
+  kind: QuizKind;
   sources: SourceLesson[];
   existingCount: number;
 }) {
-  const withText = sources.filter((s) => s.chars > 0).map((s) => s.id);
-  const [selected, setSelected] = useState<string[]>(withText.length ? withText : sources.map((s) => s.id));
-  const [count, setCount] = useState(10);
+  const ids = (list: SourceLesson[]) => list.map((s) => s.id);
+  const suggested = sources.filter((s) => s.suggested);
+  const suggestedWithText = suggested.filter((s) => s.chars > 0);
+  const [selected, setSelected] = useState<string[]>(ids(suggestedWithText.length ? suggestedWithText : suggested));
+  const [count, setCount] = useState(kind === "EXAM" ? 20 : 10);
   const [difficulty, setDifficulty] = useState<Difficulty>("mixed");
   const [types, setTypes] = useState<QuestionKind[]>(["SINGLE", "TRUE_FALSE"]);
   const [focus, setFocus] = useState("");
@@ -65,22 +69,34 @@ export function QuizGenerator({
   return (
     <div className="space-y-5">
       <fieldset>
-        <div className="mb-1.5 flex items-baseline justify-between gap-3">
+        <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <legend className="text-sm font-medium text-ink-800">Base questions on</legend>
-          <button
-            type="button"
-            onClick={() => setSelected(selected.length === sources.length ? [] : sources.map((s) => s.id))}
-            className="text-xs font-medium text-primary-600 hover:text-primary-700"
-          >
-            {selected.length === sources.length ? "Clear all" : "Select all"}
-          </button>
+          <div className="flex gap-3 text-xs font-medium text-primary-600">
+            {kind === "QUIZ" && suggested.length < sources.length && (
+              <button type="button" onClick={() => setSelected(ids(suggested))} className="hover:text-primary-700">
+                Lessons before this quiz
+              </button>
+            )}
+            <button type="button" onClick={() => setSelected(ids(sources))} className="hover:text-primary-700">
+              Whole course
+            </button>
+            <button type="button" onClick={() => setSelected([])} className="hover:text-primary-700">
+              Clear
+            </button>
+          </div>
         </div>
+        <p className="mb-2.5 text-xs leading-relaxed text-ink-500">
+          {kind === "EXAM"
+            ? "A final assessment covers the whole course, so every lesson is selected."
+            : "A quiz checks the lessons just before it, so those are selected. Make this a final assessment in Quiz settings to cover the whole course."}{" "}
+          The AI reads each lesson&apos;s uploaded content, notes for learners and tutor notes.
+        </p>
         <div className="grid max-h-64 gap-2 overflow-y-auto sm:grid-cols-2">
           {sources.map((s) => (
             <CheckCard
               key={s.id}
               label={s.title}
-              hint={s.chars > 0 ? s.moduleTitle : `${s.moduleTitle} · no written content yet`}
+              hint={s.chars > 0 ? s.moduleTitle : `${s.moduleTitle} · no text found, add tutor notes`}
               checked={selected.includes(s.id)}
               onChange={() => setSelected((all) => toggle(all, s.id))}
             />

@@ -10,6 +10,8 @@ import type { SessionPayload } from "@/lib/auth";
  *     that includes it, and the course and its program are published.
  *  2. If the course has a prerequisite, that course must be completed first.
  *  3. In a `sequential` course, each lesson opens only after the one before it.
+ *  4. A final assessment (an EXAM quiz) comes after every other lesson and
+ *     opens once they are all completed.
  *
  * Admins can open everything (for previewing), published or not.
  */
@@ -23,13 +25,14 @@ export async function getUnlockedCourseIds(userId: string): Promise<Set<string>>
   return new Set(rows.map((r) => r.courseId));
 }
 
-/** Published lessons of a course, in display order (module order, then lesson order). */
+/** Published lessons of a course, in display order (module order, then lesson order, final assessments last). */
 export async function getOrderedLessons(courseId: string, includeUnpublished = false) {
-  return prisma.lesson.findMany({
+  const lessons = await prisma.lesson.findMany({
     where: { module: { courseId }, ...(includeUnpublished ? {} : { published: true }) },
     orderBy: [{ module: { order: "asc" } }, { order: "asc" }, { createdAt: "asc" }],
-    select: { id: true, title: true, type: true, moduleId: true },
+    select: { id: true, title: true, type: true, moduleId: true, quiz: { select: { kind: true } } },
   });
+  return [...lessons.filter((l) => l.quiz?.kind !== "EXAM"), ...lessons.filter((l) => l.quiz?.kind === "EXAM")];
 }
 
 /** Which of the given courses the user has completed (every published lesson COMPLETED). */
@@ -97,13 +100,14 @@ export type LessonAccess =
       ok: true;
       lesson: NonNullable<Awaited<ReturnType<typeof loadLesson>>>;
     }
-  | { ok: false; reason: "NOT_FOUND" | CourseLock | "SEQUENTIAL" | "PRELAUNCH" };
+  | { ok: false; reason: "NOT_FOUND" | CourseLock | "SEQUENTIAL" | "EXAM_LOCKED" | "PRELAUNCH" };
 
 function loadLesson(lessonId: string) {
   return prisma.lesson.findUnique({
     where: { id: lessonId },
     include: {
       asset: true,
+      quiz: { select: { kind: true } },
       module: {
         include: {
           course: {
@@ -130,7 +134,13 @@ export async function checkLessonAccess(
   const lock = await getCourseLock(session, course);
   if (lock !== "OPEN") return { ok: false, reason: lock };
 
-  if (course.sequential) {
+  if (lesson.quiz?.kind === "EXAM") {
+    const others = await getOrderedLessons(course.id).then((all) => all.filter((l) => l.quiz?.kind !== "EXAM").map((l) => l.id));
+    const done = await prisma.lessonProgress.count({
+      where: { userId: session.userId, status: "COMPLETED", lessonId: { in: others } },
+    });
+    if (done < others.length) return { ok: false, reason: "EXAM_LOCKED" };
+  } else if (course.sequential) {
     const ordered = await getOrderedLessons(course.id);
     const index = ordered.findIndex((l) => l.id === lesson.id);
     const before = ordered.slice(0, Math.max(index, 0)).map((l) => l.id);

@@ -48,7 +48,7 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
         include: {
           lessons: {
             orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-            include: { asset: { select: { status: true } }, quiz: { select: { _count: { select: { questions: true } } } } },
+            include: { asset: { select: { status: true } }, quiz: { select: { kind: true, _count: { select: { questions: true } } } } },
           },
         },
       },
@@ -164,7 +164,7 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
                           <span className="min-w-0 flex-1">
                             <span className="block text-sm font-medium text-ink-900 sm:truncate">{l.title}</span>
                             <span className="block text-xs text-ink-500">
-                              {LESSON_TYPE_LABEL[l.type]}
+                              {l.quiz?.kind === "EXAM" ? "Final assessment · shown after all lessons" : LESSON_TYPE_LABEL[l.type]}
                               {duration && ` · ${duration}`}
                             </span>
                           </span>
@@ -261,10 +261,10 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
               <Switch
                 name="certificateEnabled"
                 label="Issue a certificate"
-                description="When every lesson is complete and the quiz average reaches the pass mark"
+                description="When every lesson is complete and the quiz and assessment average reaches the pass mark"
                 defaultChecked={course.certificateEnabled}
               />
-              <Field label="Pass mark" hint="Average of the learner's best score on each quiz in this course">
+              <Field label="Pass mark" hint="Average of the learner's best score on each quiz and final assessment in this course">
                 <span className="flex items-center gap-2">
                   <Input
                     name="certificatePassMark"

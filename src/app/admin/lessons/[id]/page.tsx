@@ -6,7 +6,7 @@ import { requireAdmin } from "@/lib/auth";
 import { isStorageConfigured } from "@/lib/storage";
 import { listQuizSources } from "@/lib/lms/quiz-generator";
 import { LESSON_TYPE_LABEL, LessonIcon } from "@/components/learn/LessonIcon";
-import { ActionForm, DeleteButton, Field, Input, MoveButtons, Panel, Switch, Textarea } from "@/components/admin/forms";
+import { ActionForm, DeleteButton, Field, Input, MoveButtons, Panel, Select, Switch, Textarea } from "@/components/admin/forms";
 import { UploadField } from "@/components/admin/UploadField";
 import { QuestionEditor, type EditableQuestion } from "@/components/admin/QuestionEditor";
 import { QuizGenerator } from "@/components/admin/QuizGenerator";
@@ -37,7 +37,9 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
   const contentStatus =
     lesson.type === "QUIZ" ? (questions.length ? "READY" : "EMPTY") : (lesson.asset?.status ?? "EMPTY");
   const duration = formatDuration(lesson.durationSec);
-  const quizSources = lesson.type === "QUIZ" ? await listQuizSources(lesson.id) : [];
+  const quizSources = lesson.type === "QUIZ" ? await listQuizSources(lesson.id) : null;
+  const isExam = lesson.quiz?.kind === "EXAM";
+  const typeLabel = isExam ? "Final assessment" : LESSON_TYPE_LABEL[lesson.type];
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -52,7 +54,7 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
       <PageHeader
         eyebrow={
           <span className="inline-flex items-center gap-1.5">
-            <LessonIcon type={lesson.type} className="size-3.5" /> {LESSON_TYPE_LABEL[lesson.type]} lesson
+            <LessonIcon type={lesson.type} className="size-3.5" /> {isExam ? typeLabel : `${typeLabel} lesson`}
           </span>
         }
         title={
@@ -81,12 +83,18 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0 space-y-6">
-          {lesson.type === "QUIZ" && (
+          {quizSources && (
             <Panel
               title="Generate with AI"
               description="Draft questions, answers and explanations from this course's lessons. You can edit every question afterwards."
             >
-              <QuizGenerator lessonId={lesson.id} sources={quizSources} existingCount={questions.length} />
+              <QuizGenerator
+                key={quizSources.kind}
+                lessonId={lesson.id}
+                kind={quizSources.kind}
+                sources={quizSources.sources}
+                existingCount={questions.length}
+              />
             </Panel>
           )}
           {lesson.type === "QUIZ" ? (
@@ -217,7 +225,7 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
               </div>
               <div className="flex items-center justify-between gap-3">
                 <dt className="text-ink-500">Type</dt>
-                <dd className="font-medium text-ink-900">{LESSON_TYPE_LABEL[lesson.type]}</dd>
+                <dd className="font-medium text-ink-900">{typeLabel}</dd>
               </div>
               {duration && (
                 <div className="flex items-center justify-between gap-3">
@@ -233,8 +241,21 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
           </Panel>
 
           {lesson.type === "QUIZ" && (
-            <Panel title="Quiz settings">
+            <Panel title={isExam ? "Assessment settings" : "Quiz settings"}>
               <ActionForm action={updateQuizSettings.bind(null, lesson.id)}>
+                <Field
+                  label="Where it sits"
+                  hint={
+                    isExam
+                      ? "Shown after every other lesson; learners open it once they've completed them all."
+                      : "Shown where you place it in the course, after the lessons it checks."
+                  }
+                >
+                  <Select name="kind" defaultValue={lesson.quiz?.kind ?? "QUIZ"}>
+                    <option value="QUIZ">Quiz, between lessons</option>
+                    <option value="EXAM">Final assessment, after all lessons</option>
+                  </Select>
+                </Field>
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Pass mark (%)">
                     <Input name="passMark" type="number" min={0} max={100} required defaultValue={lesson.quiz?.passMark ?? 70} />

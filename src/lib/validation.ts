@@ -88,7 +88,8 @@ export const LESSON_TYPES = ["VIDEO", "AUDIO", "SCORM", "HTML", "QUIZ"] as const
 
 export const lessonCreateSchema = z.object({
   title: z.string().trim().min(2, "Title is too short").max(200),
-  type: z.enum(LESSON_TYPES),
+  // "EXAM" creates a QUIZ lesson that is the course's final assessment.
+  type: z.enum([...LESSON_TYPES, "EXAM"]),
 });
 
 export const lessonUpdateSchema = z.object({
@@ -99,7 +100,10 @@ export const lessonUpdateSchema = z.object({
   durationMin: z.coerce.number().min(0).max(24 * 60).optional(),
 });
 
+export const QUIZ_KINDS = ["QUIZ", "EXAM"] as const;
+
 export const quizSettingsSchema = z.object({
+  kind: z.enum(QUIZ_KINDS).default("QUIZ"),
   passMark: z.coerce.number().int().min(0).max(100),
   maxAttempts: z.coerce.number().int().min(1).max(100).optional(),
   shuffle: z.boolean().default(false),

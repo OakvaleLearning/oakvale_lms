@@ -2,7 +2,7 @@ import "server-only";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { backfillAssetText } from "./packages";
+import { backfillAssetText, needsTextBackfill } from "./packages";
 import { tutorModel } from "./tutor";
 
 /**
@@ -19,55 +19,89 @@ export const DIFFICULTIES = ["easy", "mixed", "challenging"] as const;
 export type QuestionKind = "SINGLE" | "MULTIPLE" | "TRUE_FALSE";
 export type Difficulty = (typeof DIFFICULTIES)[number];
 
+export type QuizKind = "QUIZ" | "EXAM";
+
 export interface SourceLesson {
   id: string;
   title: string;
   moduleTitle: string;
   /** Characters of written material available; 0 means only the title. */
   chars: number;
+  /** Selected by default: the lessons a quiz follows, or the whole course for an exam. */
+  suggested: boolean;
 }
 
-/** Non-quiz lessons in the quiz's course, in course order, with how much text each has. */
-export async function listQuizSources(quizLessonId: string): Promise<SourceLesson[]> {
+/**
+ * Non-quiz lessons in the quiz's course, in course order, with how much text
+ * each has. A quiz suggests the lessons since the previous quiz; a final
+ * assessment suggests every lesson.
+ */
+export async function listQuizSources(quizLessonId: string): Promise<{ kind: QuizKind; sources: SourceLesson[] }> {
   const quizLesson = await prisma.lesson.findUnique({
     where: { id: quizLessonId },
-    select: { module: { select: { courseId: true } } },
+    select: { module: { select: { courseId: true } }, quiz: { select: { kind: true } } },
   });
-  if (!quizLesson) return [];
+  if (!quizLesson) return { kind: "QUIZ", sources: [] };
+  const kind = quizLesson.quiz?.kind ?? "QUIZ";
   const lessons = await prisma.lesson.findMany({
-    where: { module: { courseId: quizLesson.module.courseId }, type: { not: "QUIZ" } },
+    where: { module: { courseId: quizLesson.module.courseId } },
     orderBy: [{ module: { order: "asc" } }, { order: "asc" }, { createdAt: "asc" }],
     select: {
       id: true,
+      type: true,
       title: true,
       description: true,
       tutorNotes: true,
       module: { select: { title: true } },
-      asset: { select: { status: true, textContent: true } },
+      asset: true,
     },
   });
-  return lessons.map((l) => ({
-    id: l.id,
-    title: l.title,
-    moduleTitle: l.module.title,
-    chars: l.description.length + l.tutorNotes.length + (l.asset?.textContent?.length ?? 0),
-  }));
+
+  // Packages extracted before (or by an older extractor) are read again, so the counts are real.
+  const text = new Map(
+    await Promise.all(
+      lessons.map(async (l) => [l.id, needsTextBackfill(l.type, l.asset) ? await backfillAssetText(l.asset!) : (l.asset?.textContent ?? "")] as const)
+    )
+  );
+
+  const at = lessons.findIndex((l) => l.id === quizLessonId);
+  const previousQuiz = lessons.slice(0, Math.max(at, 0)).findLastIndex((l) => l.type === "QUIZ");
+  const sinceLastQuiz = new Set(lessons.slice(previousQuiz + 1, Math.max(at, 0)).map((l) => l.id));
+  const beforeQuiz = new Set(lessons.slice(0, Math.max(at, 0)).map((l) => l.id));
+  const content = lessons.filter((l) => l.type !== "QUIZ");
+  const pick =
+    kind === "EXAM"
+      ? () => true
+      : content.some((l) => sinceLastQuiz.has(l.id))
+        ? (id: string) => sinceLastQuiz.has(id)
+        : content.some((l) => beforeQuiz.has(l.id))
+          ? (id: string) => beforeQuiz.has(id)
+          : () => true;
+
+  return {
+    kind,
+    sources: content.map((l) => ({
+      id: l.id,
+      title: l.title,
+      moduleTitle: l.module.title,
+      chars: l.description.length + l.tutorNotes.length + (text.get(l.id)?.length ?? 0),
+      suggested: pick(l.id),
+    })),
+  };
 }
 
 async function gatherMaterial(courseId: string, lessonIds: string[]): Promise<string> {
   const lessons = await prisma.lesson.findMany({
     where: { id: { in: lessonIds }, module: { courseId }, type: { not: "QUIZ" } },
     orderBy: [{ module: { order: "asc" } }, { order: "asc" }],
-    include: { asset: true },
+    include: { asset: true, module: { select: { title: true } } },
   });
   const parts = await Promise.all(
     lessons.map(async (l) => {
-      let text = l.asset?.textContent ?? null;
-      if (text === null && l.asset?.status === "READY" && (l.type === "SCORM" || l.type === "HTML")) {
-        text = await backfillAssetText(l.asset);
-      }
+      const text = needsTextBackfill(l.type, l.asset) ? await backfillAssetText(l.asset!) : (l.asset?.textContent ?? "");
       const body = [l.description, l.tutorNotes, text].filter(Boolean).join("\n\n");
-      return body ? `<lesson title="${l.title.replace(/"/g, "'")}">\n${body}\n</lesson>` : "";
+      const attr = (v: string) => v.replace(/"/g, "'");
+      return body ? `<lesson module="${attr(l.module.title)}" title="${attr(l.title)}">\n${body}\n</lesson>` : "";
     })
   );
   // Share the budget evenly so one long package doesn't crowd out the rest.
@@ -111,7 +145,11 @@ export async function generateQuizDraft(input: {
 }): Promise<GenerateResult> {
   const quizLesson = await prisma.lesson.findUnique({
     where: { id: input.quizLessonId },
-    select: { title: true, module: { select: { courseId: true, course: { select: { title: true } } } } },
+    select: {
+      title: true,
+      quiz: { select: { kind: true } },
+      module: { select: { courseId: true, course: { select: { title: true } } } },
+    },
   });
   if (!quizLesson) return { ok: false, error: "Lesson not found." };
 
@@ -145,7 +183,12 @@ Rules:
 - Vary which position holds the correct answer.
 - Each explanation says why the correct answer is right, based on the material.`,
       prompt: `Course: ${quizLesson.module.course.title}
-Quiz: ${quizLesson.title}
+${quizLesson.quiz?.kind === "EXAM" ? "Final assessment" : "Quiz"}: ${quizLesson.title}
+${
+  quizLesson.quiz?.kind === "EXAM"
+    ? "This is the course's final assessment, taken after every lesson. Spread the questions evenly across all the lessons below, and include some that bring together ideas from more than one lesson."
+    : "This quiz sits straight after the lessons below and checks that learners understood them. Focus on their key points and safe practice."
+}
 
 Write exactly ${input.count} questions. Difficulty: ${input.difficulty}.
 Use only these question types, mixed sensibly:

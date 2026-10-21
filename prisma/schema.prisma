@@ -167,6 +167,11 @@ model Module {
   @@index([courseId, order])
 }
 
+enum QuizKind {
+  QUIZ
+  EXAM
+}
+
 enum LessonType {
   SCORM
   HTML
@@ -222,6 +227,8 @@ model ContentAsset {
   scormVersion String? // "1.2" | "2004"
   // Plain text pulled from the package's HTML, used to ground the AI tutor.
   textContent  String?
+  // Which text extractor produced textContent; older ones are re-run (see lesson-text.ts).
+  textVersion  Int         @default(0)
   status       AssetStatus @default(UPLOADING)
   error        String?
   createdAt    DateTime    @default(now())
@@ -232,6 +239,9 @@ model Quiz {
   id          String        @id @default(cuid())
   lesson      Lesson        @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   lessonId    String        @unique
+  // QUIZ checks the lessons just before it; EXAM is the final assessment,
+  // shown after every other lesson and opened once they're all complete.
+  kind        QuizKind      @default(QUIZ)
   passMark    Int           @default(70) // percent
   maxAttempts Int? // null = unlimited
   shuffle     Boolean       @default(false)
