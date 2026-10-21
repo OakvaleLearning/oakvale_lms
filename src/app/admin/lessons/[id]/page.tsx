@@ -8,6 +8,7 @@ import { LESSON_TYPE_LABEL, LessonIcon } from "@/components/learn/LessonIcon";
 import { ActionForm, Checkbox, DeleteButton, Field, Input, MoveButtons, Panel, Textarea } from "@/components/admin/forms";
 import { UploadField } from "@/components/admin/UploadField";
 import { QuestionEditor, type EditableQuestion } from "@/components/admin/QuestionEditor";
+import { PageHeader } from "@/components/dashboard/ui";
 import { deleteLesson, moveItem, updateLesson } from "../../actions";
 import { deleteQuestion, updateQuizSettings } from "./actions";
 
@@ -32,7 +33,7 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between gap-3">
-        <Link href={`/admin/courses/${course.id}`} className="inline-flex items-center gap-1.5 text-sm text-ink-500 hover:text-primary-600">
+        <Link href={`/admin/courses/${course.id}`} className="inline-flex items-center gap-1.5 text-sm text-ink-500 transition-colors hover:text-ink-900">
           <ArrowLeft className="size-4" /> {course.title}
         </Link>
         <Link
@@ -43,9 +44,15 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
         </Link>
       </div>
 
-      <div className="flex items-center gap-2 text-sm text-ink-500">
-        <LessonIcon type={lesson.type} /> {LESSON_TYPE_LABEL[lesson.type]} lesson · {lesson.module.title}
-      </div>
+      <PageHeader
+        eyebrow={
+          <span className="inline-flex items-center gap-2">
+            <LessonIcon type={lesson.type} className="size-3.5" /> {LESSON_TYPE_LABEL[lesson.type]} lesson
+            <span className="text-ink-300">/</span> {lesson.module.title}
+          </span>
+        }
+        title={lesson.title}
+      />
 
       {lesson.type === "QUIZ" ? (
         <>
@@ -66,14 +73,14 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
           <Panel title={`Questions (${lesson.quiz?.questions.length ?? 0})`}>
             <div className="space-y-3">
               {lesson.quiz?.questions.map((q, i) => (
-                <details key={q.id} className="rounded-2xl border border-ink-100">
+                <details key={q.id} className="rounded-2xl border border-line">
                   <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2">
                     <MoveButtons onMove={moveItem.bind(null, "question", q.id)} />
                     <span className="text-sm font-bold text-primary-600">{i + 1}.</span>
                     <span className="min-w-0 flex-1 truncate text-sm text-ink-800">{q.prompt}</span>
                     <DeleteButton onDelete={deleteQuestion.bind(null, lesson.id, q.id)} confirmText="Delete this question?" />
                   </summary>
-                  <div className="border-t border-ink-100 p-4">
+                  <div className="border-t border-line p-4">
                     <QuestionEditor lessonId={lesson.id} question={q as unknown as EditableQuestion} />
                   </div>
                 </details>
@@ -128,6 +135,12 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
           </Field>
           <Field label="Notes for learners" hint="Shown under the lesson. Optional.">
             <Textarea name="description" rows={4} defaultValue={lesson.description} />
+          </Field>
+          <Field
+            label="Tutor notes"
+            hint="Extra material for the AI tutor; learners don't see it. Paste a transcript or key points, especially for video and audio lessons."
+          >
+            <Textarea name="tutorNotes" rows={6} defaultValue={lesson.tutorNotes} />
           </Field>
           {!isMedia && (
             <Field label="Estimated duration (minutes)" hint="Optional">

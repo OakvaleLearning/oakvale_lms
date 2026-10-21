@@ -330,6 +330,7 @@ export async function updateLesson(id: string, _prev: ActionState, fd: FormData)
   const parsed = lessonUpdateSchema.safeParse({
     title: text(fd, "title"),
     description: text(fd, "description"),
+    tutorNotes: text(fd, "tutorNotes"),
     published: bool(fd, "published"),
     durationMin: text(fd, "durationMin") || undefined,
   });

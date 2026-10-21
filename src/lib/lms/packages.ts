@@ -3,6 +3,7 @@ import { unzipSync } from "fflate";
 import { XMLParser } from "fast-xml-parser";
 import { prisma } from "@/lib/prisma";
 import { deletePrefix, getObjectBytes, isStorageConfigured, mimeFromPath, putObject } from "@/lib/storage";
+import { extractPackageText, htmlToText, MAX_LESSON_TEXT } from "@/lib/lms/lesson-text";
 
 /**
  * Unpacking uploaded SCORM / HTML packages.
@@ -36,7 +37,8 @@ export async function ingestPackage(assetId: string): Promise<void> {
     // A single HTML file needs no unpacking.
     if (/\.html?$/i.test(asset.fileName)) {
       await putObject(prefix + "index.html", bytes, "text/html; charset=utf-8");
-      await markReady(assetId, { launchPath: "index.html", scormVersion: null });
+      const textContent = htmlToText(new TextDecoder().decode(bytes)).slice(0, MAX_LESSON_TEXT);
+      await markReady(assetId, { launchPath: "index.html", scormVersion: null, textContent });
       return;
     }
 
@@ -47,14 +49,18 @@ export async function ingestPackage(assetId: string): Promise<void> {
       const base = manifestPath.slice(0, manifestPath.lastIndexOf("/") + 1);
       const manifest = parseManifest(new TextDecoder().decode(files[manifestPath]));
       await uploadFiles(prefix, files, base);
-      await markReady(assetId, manifest);
+      await markReady(assetId, { ...manifest, textContent: extractPackageText(files, base + manifest.launchPath) });
     } else {
       const entry = shallowest(Object.keys(files), (p) => /(^|\/)index\.html?$/i.test(p))
         ?? shallowest(Object.keys(files), (p) => /\.html?$/i.test(p));
       if (!entry) throw new PackageError("No .html file found in the zip.");
       const base = entry.slice(0, entry.lastIndexOf("/") + 1);
       await uploadFiles(prefix, files, base);
-      await markReady(assetId, { launchPath: entry.slice(base.length), scormVersion: null });
+      await markReady(assetId, {
+        launchPath: entry.slice(base.length),
+        scormVersion: null,
+        textContent: extractPackageText(files, entry),
+      });
     }
   } catch (err) {
     const message =
@@ -64,11 +70,51 @@ export async function ingestPackage(assetId: string): Promise<void> {
   }
 }
 
-function markReady(assetId: string, info: { launchPath: string; scormVersion: string | null }) {
+function markReady(
+  assetId: string,
+  info: { launchPath: string; scormVersion: string | null; textContent: string }
+) {
   return prisma.contentAsset.update({
     where: { id: assetId },
-    data: { status: "READY", error: null, launchPath: info.launchPath, scormVersion: info.scormVersion },
+    data: {
+      status: "READY",
+      error: null,
+      launchPath: info.launchPath,
+      scormVersion: info.scormVersion,
+      textContent: info.textContent,
+    },
   });
+}
+
+/**
+ * Text of an asset processed before text extraction existed. Reads the
+ * original upload once and stores the result ("" when there is none), so
+ * later calls hit the database only.
+ */
+export async function backfillAssetText(asset: {
+  id: string;
+  storageKey: string;
+  fileName: string;
+  launchPath: string | null;
+}): Promise<string> {
+  let text = "";
+  try {
+    const bytes = await getObjectBytes(asset.storageKey);
+    if (/\.html?$/i.test(asset.fileName)) {
+      text = htmlToText(new TextDecoder().decode(bytes)).slice(0, MAX_LESSON_TEXT);
+    } else {
+      const files = unzip(bytes);
+      const launch = asset.launchPath
+        ? Object.keys(files).find((p) => p === asset.launchPath || p.endsWith("/" + asset.launchPath))
+        : undefined;
+      text = extractPackageText(files, launch);
+    }
+  } catch (err) {
+    console.error("[packages] text backfill failed:", err);
+    return "";
+  }
+  await prisma.contentAsset.update({ where: { id: asset.id }, data: { textContent: text } });
+  return text;
 }
 
 function unzip(bytes: Uint8Array): Record<string, Uint8Array> {

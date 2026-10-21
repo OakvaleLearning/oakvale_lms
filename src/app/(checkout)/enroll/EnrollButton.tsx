@@ -5,7 +5,15 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
-export function EnrollButton({ tierId, label }: { tierId: string; label: string }) {
+export function EnrollButton({
+  tierId,
+  label,
+  variant = "primary",
+}: {
+  tierId: string;
+  label: string;
+  variant?: "primary" | "white";
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -34,7 +42,7 @@ export function EnrollButton({ tierId, label }: { tierId: string; label: string 
 
   return (
     <div>
-      <Button onClick={start} disabled={loading} className="w-full">
+      <Button onClick={start} disabled={loading} variant={variant} className="w-full">
         {loading && <Loader2 className="size-4 animate-spin" />}
         {label}
       </Button>

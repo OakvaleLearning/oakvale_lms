@@ -1,54 +1,99 @@
+import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CountUp } from "@/components/motion";
+
+/** Eyebrow, serif title, supporting copy and optional actions at the top of a page. */
+export function PageHeader({
+  eyebrow,
+  title,
+  description,
+  actions,
+  className,
+}: {
+  eyebrow?: React.ReactNode;
+  title: React.ReactNode;
+  description?: React.ReactNode;
+  actions?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <header className={cn("flex flex-wrap items-end justify-between gap-x-8 gap-y-4", className)}>
+      <div className="min-w-0 max-w-2xl">
+        {eyebrow && <div className="eyebrow">{eyebrow}</div>}
+        <h1 className="mt-2 font-display text-3xl leading-tight text-ink-950 sm:text-[2.125rem]">
+          {title}
+        </h1>
+        {description && <p className="mt-3 text-[15px] leading-relaxed text-ink-500">{description}</p>}
+      </div>
+      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+    </header>
+  );
+}
+
+/** Centred message for empty or blocked states. */
+export function EmptyState({
+  icon: Icon,
+  title,
+  children,
+  action,
+}: {
+  icon: React.ElementType;
+  title: string;
+  children?: React.ReactNode;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="card mx-auto max-w-lg px-8 py-12 text-center">
+      <span className="mx-auto grid size-11 place-items-center rounded-xl border border-line bg-canvas text-ink-500">
+        <Icon className="size-5" />
+      </span>
+      <h2 className="mt-5 font-display text-2xl text-ink-950">{title}</h2>
+      {children && <div className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-ink-500">{children}</div>}
+      {action && <div className="mt-7">{action}</div>}
+    </div>
+  );
+}
 
 export function StatCard({
   label,
   value,
   icon: Icon,
   hint,
-  accent = "primary",
 }: {
   label: string;
   value: string | number;
   icon: React.ElementType;
   hint?: string;
-  accent?: "primary" | "accent" | "emerald" | "amber";
 }) {
-  const accents = {
-    primary: "bg-primary-50 text-primary-600",
-    accent: "bg-accent-50 text-accent-600",
-    emerald: "bg-emerald-50 text-emerald-600",
-    amber: "bg-amber-50 text-amber-600",
-  } as const;
   return (
-    <div className="rounded-3xl border border-ink-100 bg-white p-6">
+    <div className="card p-5">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-ink-500">{label}</span>
-        <span className={cn("grid size-10 place-items-center rounded-xl", accents[accent])}>
-          <Icon className="size-5" />
-        </span>
+        <span className="eyebrow">{label}</span>
+        <Icon className="size-4 text-ink-400" />
       </div>
-      <div className="mt-3 text-3xl font-black tracking-tight text-ink-900">
-        {value}
+      <div className="mt-6 font-display text-[2rem] leading-none text-ink-950 tabular-nums">
+        {typeof value === "number" ? <CountUp value={value} /> : value}
       </div>
-      {hint && <div className="mt-1 text-xs text-ink-400">{hint}</div>}
+      {hint && <div className="mt-2 text-xs text-ink-500">{hint}</div>}
     </div>
   );
 }
 
 const statusStyles: Record<string, string> = {
-  ACTIVE: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  PARTIAL: "bg-amber-50 text-amber-700 ring-amber-200",
-  PENDING: "bg-ink-100 text-ink-600 ring-ink-200",
-  CANCELLED: "bg-ink-100 text-ink-500 ring-ink-200",
-  SUCCESS: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  FAILED: "bg-accent-50 text-accent-700 ring-accent-200",
-  ABANDONED: "bg-ink-100 text-ink-500 ring-ink-200",
-  READY: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  PROCESSING: "bg-amber-50 text-amber-700 ring-amber-200",
-  UPLOADING: "bg-amber-50 text-amber-700 ring-amber-200",
-  PUBLISHED: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  DRAFT: "bg-ink-100 text-ink-600 ring-ink-200",
-  EMPTY: "bg-amber-50 text-amber-700 ring-amber-200",
+  ACTIVE: "text-emerald-700 [--dot:var(--color-emerald-500)]",
+  PARTIAL: "text-amber-700 [--dot:var(--color-amber-500)]",
+  PENDING: "text-ink-600 [--dot:var(--color-ink-400)]",
+  CANCELLED: "text-ink-500 [--dot:var(--color-ink-300)]",
+  SUCCESS: "text-emerald-700 [--dot:var(--color-emerald-500)]",
+  FAILED: "text-accent-700 [--dot:var(--color-accent-500)]",
+  ABANDONED: "text-ink-500 [--dot:var(--color-ink-300)]",
+  READY: "text-emerald-700 [--dot:var(--color-emerald-500)]",
+  PROCESSING: "text-amber-700 [--dot:var(--color-amber-500)]",
+  UPLOADING: "text-amber-700 [--dot:var(--color-amber-500)]",
+  PUBLISHED: "text-emerald-700 [--dot:var(--color-emerald-500)]",
+  DRAFT: "text-ink-600 [--dot:var(--color-ink-400)]",
+  EMPTY: "text-amber-700 [--dot:var(--color-amber-500)]",
 };
 
 const statusLabels: Record<string, string> = {
@@ -71,12 +116,47 @@ export function StatusBadge({ status }: { status: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset",
-        statusStyles[status] ?? "bg-ink-100 text-ink-600 ring-ink-200"
+        "inline-flex h-6 items-center gap-1.5 rounded-md border border-line bg-white px-2 text-xs font-medium whitespace-nowrap",
+        statusStyles[status] ?? "text-ink-600 [--dot:var(--color-ink-400)]"
       )}
     >
-      <span className="size-1.5 rounded-full bg-current" />
+      <span className="size-1.5 rounded-full bg-(--dot)" />
       {statusLabels[status] ?? status}
     </span>
+  );
+}
+
+/** Trail of parent pages above a title; the last crumb is the current page. */
+export function Breadcrumbs({ items, className }: { items: { label: string; href?: string }[]; className?: string }) {
+  // Phones get a single "back to parent" link; the full trail would truncate to nothing.
+  const parent = items.findLast((item) => item.href);
+  return (
+    <nav aria-label="Breadcrumb" className={cn("min-w-0", className)}>
+      {parent?.href && (
+        <Link
+          href={parent.href}
+          className="flex min-w-0 items-center gap-1 text-sm text-ink-500 transition-colors hover:text-ink-900 sm:hidden"
+        >
+          <ChevronLeft className="size-4 shrink-0" />
+          <span className="truncate">{parent.label}</span>
+        </Link>
+      )}
+      <ol className="hidden min-w-0 items-center gap-1.5 text-sm text-ink-500 sm:flex">
+        {items.map((item, i) => (
+          <li key={i} className="flex min-w-0 items-center gap-1.5">
+            {i > 0 && <ChevronRight className="size-3.5 shrink-0 text-ink-300" />}
+            {item.href ? (
+              <Link href={item.href} className="truncate transition-colors hover:text-ink-900">
+                {item.label}
+              </Link>
+            ) : (
+              <span aria-current="page" className="truncate text-ink-800">
+                {item.label}
+              </span>
+            )}
+          </li>
+        ))}
+      </ol>
+    </nav>
   );
 }

@@ -13,9 +13,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/* ------------------------------------------------------------------ *
+/**
+ * ------------------------------------------------------------------ *
  * Accounts
- * ------------------------------------------------------------------ */
+ * ------------------------------------------------------------------
+ */
 
 enum Role {
   LEARNER
@@ -23,23 +25,26 @@ enum Role {
 }
 
 model User {
-  id           String               @id @default(cuid())
-  name         String
-  email        String               @unique
+  id                String               @id @default(cuid())
+  name              String
+  email             String               @unique
   // WhatsApp / phone number, stored normalised (e.g. "+2348108189514").
-  phone        String?
-  passwordHash String
-  role         Role                 @default(LEARNER)
+  phone             String?
+  passwordHash      String
+  role              Role                 @default(LEARNER)
   // When the "courses are open" email went out (sent once, after pre-launch).
   launchEmailSentAt DateTime?
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
-  resetTokens  PasswordResetToken[]
-  enrollments  Enrollment[]
-  payments     Payment[]
-  progress     LessonProgress[]
-  scormStates  ScormState[]
-  quizAttempts QuizAttempt[]
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  resetTokens       PasswordResetToken[]
+  enrollments       Enrollment[]
+  payments          Payment[]
+  progress          LessonProgress[]
+  scormStates       ScormState[]
+  quizAttempts      QuizAttempt[]
+  tutorThreads      TutorThread[]
+  supportChat       SupportConversation?
+  supportMessages   SupportMessage[]
 }
 
 /// Single-use, time-limited password reset tokens. Only the SHA-256 hash of the
@@ -57,9 +62,11 @@ model PasswordResetToken {
   @@index([expiresAt])
 }
 
-/* ------------------------------------------------------------------ *
+/**
+ * ------------------------------------------------------------------ *
  * Catalogue
- * ------------------------------------------------------------------ */
+ * ------------------------------------------------------------------
+ */
 
 model Program {
   id          String   @id @default(cuid())
@@ -157,22 +164,25 @@ enum LessonType {
 }
 
 model Lesson {
-  id          String           @id @default(cuid())
-  module      Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  moduleId    String
-  title       String
-  type        LessonType
+  id           String           @id @default(cuid())
+  module       Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  moduleId     String
+  title        String
+  type         LessonType
   // Optional notes shown under the player.
-  description String           @default("")
-  order       Int              @default(0)
-  published   Boolean          @default(true)
-  durationSec Int?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  asset       ContentAsset?
-  quiz        Quiz?
-  progress    LessonProgress[]
-  scormStates ScormState[]
+  description  String           @default("")
+  // Extra material for the AI tutor, e.g. a transcript for video/audio lessons.
+  tutorNotes   String           @default("")
+  order        Int              @default(0)
+  published    Boolean          @default(true)
+  durationSec  Int?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  asset        ContentAsset?
+  quiz         Quiz?
+  progress     LessonProgress[]
+  scormStates  ScormState[]
+  tutorThreads TutorThread[]
 
   @@index([moduleId, order])
 }
@@ -198,6 +208,8 @@ model ContentAsset {
   // Entry file inside an unpacked package, e.g. "index_lms.html".
   launchPath   String?
   scormVersion String? // "1.2" | "2004"
+  // Plain text pulled from the package's HTML, used to ground the AI tutor.
+  textContent  String?
   status       AssetStatus @default(UPLOADING)
   error        String?
   createdAt    DateTime    @default(now())
@@ -250,9 +262,11 @@ model QuizAttempt {
   @@index([quizId, userId])
 }
 
-/* ------------------------------------------------------------------ *
+/**
+ * ------------------------------------------------------------------ *
  * Commerce
- * ------------------------------------------------------------------ */
+ * ------------------------------------------------------------------
+ */
 
 enum EnrollmentStatus {
   PENDING // created, awaiting payment
@@ -312,9 +326,11 @@ model Payment {
   @@index([status])
 }
 
-/* ------------------------------------------------------------------ *
+/**
+ * ------------------------------------------------------------------ *
  * Learning progress
- * ------------------------------------------------------------------ */
+ * ------------------------------------------------------------------
+ */
 
 enum ProgressStatus {
   IN_PROGRESS
@@ -351,4 +367,83 @@ model ScormState {
   updatedAt DateTime @updatedAt
 
   @@id([userId, lessonId])
+}
+
+/**
+ * ------------------------------------------------------------------ *
+ * AI tutor
+ * ------------------------------------------------------------------
+ */
+
+enum TutorRole {
+  USER
+  ASSISTANT
+}
+
+/// One tutor conversation per learner per lesson.
+model TutorThread {
+  id        String         @id @default(cuid())
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  lesson    Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId  String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  messages  TutorMessage[]
+
+  @@unique([userId, lessonId])
+}
+
+model TutorMessage {
+  id        String      @id @default(cuid())
+  thread    TutorThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  threadId  String
+  role      TutorRole
+  content   String
+  createdAt DateTime    @default(now())
+
+  @@index([threadId, createdAt])
+}
+
+/**
+ * ------------------------------------------------------------------ *
+ * Support chat (learner ↔ Oakvale support team)
+ * ------------------------------------------------------------------
+ */
+
+enum SupportStatus {
+  OPEN
+  RESOLVED
+}
+
+/// One ongoing support conversation per learner; any admin can reply.
+model SupportConversation {
+  id                String           @id @default(cuid())
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            String           @unique
+  status            SupportStatus    @default(OPEN)
+  lastMessageAt     DateTime         @default(now())
+  // Whether the newest message came from support (drives "awaiting reply").
+  lastFromSupport   Boolean          @default(false)
+  learnerLastReadAt DateTime         @default(now())
+  supportLastReadAt DateTime         @default(now())
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  messages          SupportMessage[]
+
+  @@index([status, lastMessageAt])
+}
+
+model SupportMessage {
+  id             String              @id @default(cuid())
+  conversation   SupportConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String
+  // Who wrote it; kept even if that admin account is later removed.
+  sender         User?               @relation(fields: [senderId], references: [id], onDelete: SetNull)
+  senderId       String?
+  fromSupport    Boolean
+  body           String
+  createdAt      DateTime            @default(now())
+
+  @@index([conversationId, createdAt])
 }

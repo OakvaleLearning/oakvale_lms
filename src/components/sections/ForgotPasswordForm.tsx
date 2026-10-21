@@ -2,10 +2,9 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { AlertCircle, ArrowLeft, Loader2, Mail, MailCheck } from "lucide-react";
-
-const inputClass =
-  "w-full rounded-2xl border border-ink-200 bg-white py-3.5 pl-11 pr-11 text-sm text-ink-900 outline-none transition-colors placeholder:text-ink-400 focus:border-primary-400 focus:ring-2 focus:ring-primary-200";
+import { ArrowLeft, Loader2, MailCheck } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { AuthHeading, FormError, TextField } from "@/components/ui/TextField";
 
 export function ForgotPasswordForm() {
   const [status, setStatus] = useState<"idle" | "loading" | "sent">("idle");
@@ -35,22 +34,19 @@ export function ForgotPasswordForm() {
   if (status === "sent") {
     return (
       <div>
-        <span className="grid size-12 place-items-center rounded-2xl bg-primary-50 text-primary-600">
-          <MailCheck className="size-6" />
+        <span className="mb-8 grid size-11 place-items-center rounded-xl border border-line bg-white text-primary-600 shadow-card">
+          <MailCheck className="size-5" />
         </span>
-        <h1 className="mt-6 text-2xl font-bold tracking-tight text-ink-900 sm:text-3xl">
-          Check your inbox
-        </h1>
-        <p className="mt-2 text-sm text-ink-500">
+        <AuthHeading title="Check your inbox">
           If an account exists for that email address, we&apos;ve sent a link to
           reset your password. The link expires in one hour.
-        </p>
+        </AuthHeading>
         <p className="mt-6 text-sm text-ink-500">
           Didn&apos;t get it? Check your spam folder, or{" "}
           <button
             type="button"
             onClick={() => setStatus("idle")}
-            className="font-semibold text-primary-600 hover:text-primary-700"
+            className="font-medium text-primary-600 hover:text-primary-800"
           >
             try another email
           </button>
@@ -58,7 +54,7 @@ export function ForgotPasswordForm() {
         </p>
         <Link
           href="/login"
-          className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-primary-600 hover:text-primary-700"
+          className="mt-8 inline-flex items-center gap-2 border-t border-line pt-6 text-sm font-medium text-ink-700 hover:text-primary-700"
         >
           <ArrowLeft className="size-4" />
           Back to log in
@@ -69,53 +65,34 @@ export function ForgotPasswordForm() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold tracking-tight text-ink-900 sm:text-3xl">
-        Forgot your password?
-      </h1>
-      <p className="mt-2 text-sm text-ink-500">
+      <AuthHeading title="Forgot your password?">
         Enter the email you signed up with and we&apos;ll send you a link to set
         a new password.
-      </p>
+      </AuthHeading>
 
       {error && (
-        <div className="mt-6 flex items-start gap-2.5 rounded-2xl border border-accent-200 bg-accent-50 px-4 py-3 text-sm text-accent-700">
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          {error}
+        <div className="mt-8">
+          <FormError>{error}</FormError>
         </div>
       )}
 
-      <form onSubmit={onSubmit} className="mt-6 space-y-4">
-        <div className="relative">
-          <Mail className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-ink-400" />
-          <input
-            name="email"
-            type="email"
-            required
-            placeholder="Email address"
-            autoComplete="email"
-            className={inputClass}
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={status === "loading"}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary-600 px-6 py-4 text-sm font-semibold text-white shadow-lg shadow-primary-600/30 transition-all hover:-translate-y-0.5 hover:bg-primary-700 disabled:opacity-70"
-        >
-          {status === "loading" ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            "Send reset link"
-          )}
-        </button>
+      <form onSubmit={onSubmit} className="mt-8 space-y-5">
+        <TextField
+          label="Email address"
+          name="email"
+          type="email"
+          required
+          autoComplete="email"
+          placeholder="you@example.com"
+        />
+        <Button type="submit" size="lg" disabled={status === "loading"} className="w-full">
+          {status === "loading" ? <Loader2 className="size-4 animate-spin" /> : "Send reset link"}
+        </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-ink-500">
+      <p className="mt-8 border-t border-line pt-6 text-sm text-ink-500">
         Remembered it?{" "}
-        <Link
-          href="/login"
-          className="font-semibold text-primary-600 hover:text-primary-700"
-        >
+        <Link href="/login" className="font-medium text-primary-600 hover:text-primary-800">
           Log in
         </Link>
       </p>

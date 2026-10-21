@@ -91,7 +91,7 @@ export function ScormPlayer({
       className={
         fullScreen
           ? "fixed inset-0 bg-white"
-          : "relative aspect-[4/3] w-full overflow-hidden rounded-3xl border border-ink-100 bg-white sm:aspect-video"
+          : "relative aspect-[4/3] w-full overflow-hidden card sm:aspect-video"
       }
     >
       {ready ? (

@@ -18,27 +18,27 @@ export function PaymentsTable({
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm">
-        <thead className="text-xs uppercase tracking-wide text-ink-400">
+        <thead className="border-b border-line bg-canvas/60 text-[11px] uppercase tracking-[0.08em] text-ink-500">
           <tr>
-            <th className="px-6 py-3 font-medium">Learner</th>
-            <th className="px-6 py-3 font-medium">Purchase</th>
-            <th className="px-6 py-3 font-medium">Amount</th>
-            <th className="px-6 py-3 font-medium">Status</th>
-            <th className="px-6 py-3 font-medium">Date</th>
+            <th className="px-6 py-2.5 font-medium">Learner</th>
+            <th className="px-6 py-2.5 font-medium">Purchase</th>
+            <th className="px-6 py-2.5 font-medium">Amount</th>
+            <th className="px-6 py-2.5 font-medium">Status</th>
+            <th className="px-6 py-2.5 font-medium">Date</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-ink-50">
+        <tbody className="divide-y divide-line/70">
           {payments.map((p) => (
             <tr key={p.id}>
-              <td className="px-6 py-3 font-medium text-ink-900">{p.user.name}</td>
-              <td className="px-6 py-3 text-ink-600">
+              <td className="px-6 py-2.5 font-medium text-ink-900">{p.user.name}</td>
+              <td className="px-6 py-3.5 text-ink-600">
                 {p.enrollment.tier.program.title} — {p.enrollment.tier.name}
               </td>
-              <td className="px-6 py-3 text-ink-900">{formatNaira(p.amount)}</td>
-              <td className="px-6 py-3">
+              <td className="px-6 py-3.5 tabular-nums text-ink-900">{formatNaira(p.amount)}</td>
+              <td className="px-6 py-3.5">
                 <StatusBadge status={p.status} />
               </td>
-              <td className="px-6 py-3 whitespace-nowrap text-ink-500">{formatDate(p.createdAt)}</td>
+              <td className="px-6 py-3.5 whitespace-nowrap text-ink-500">{formatDate(p.createdAt)}</td>
             </tr>
           ))}
         </tbody>

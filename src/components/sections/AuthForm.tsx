@@ -3,20 +3,9 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Eye,
-  EyeOff,
-  Loader2,
-  Mail,
-  Lock,
-  Phone,
-  User,
-  AlertCircle,
-} from "lucide-react";
-
-const inputWrap = "relative";
-const inputClass =
-  "w-full rounded-2xl border border-ink-200 bg-white py-3.5 pl-11 pr-11 text-sm text-ink-900 outline-none transition-colors placeholder:text-ink-400 focus:border-primary-400 focus:ring-2 focus:ring-primary-200";
+import { ArrowRight, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { AuthHeading, FormError, PasswordField, TextField } from "@/components/ui/TextField";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
@@ -25,7 +14,6 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const rawNext = params.get("next");
   const next = rawNext && /^\/(?![/\\])/.test(rawNext) ? rawNext : null;
 
-  const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading">("idle");
   const [error, setError] = useState("");
 
@@ -66,122 +54,84 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold tracking-tight text-ink-900 sm:text-3xl">
-        {isSignup ? "Create your account" : "Welcome back"}
-      </h1>
-      <p className="mt-2 text-sm text-ink-500">
+      <AuthHeading title={isSignup ? "Create your account" : "Welcome back"}>
         {isSignup
           ? "Start your journey to a verified caregiving career."
           : "Log in to continue your learning journey."}
-      </p>
+      </AuthHeading>
 
       {error && (
-        <div className="mt-6 flex items-start gap-2.5 rounded-2xl border border-accent-200 bg-accent-50 px-4 py-3 text-sm text-accent-700">
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          {error}
+        <div className="mt-8">
+          <FormError>{error}</FormError>
         </div>
       )}
 
-      <form onSubmit={onSubmit} className="mt-6 space-y-4">
+      <form onSubmit={onSubmit} className="mt-8 space-y-5">
         {isSignup && (
-          <div className={inputWrap}>
-            <User className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-ink-400" />
-            <input
-              name="name"
-              required
-              placeholder="Full name"
-              autoComplete="name"
-              className={inputClass}
-            />
-          </div>
+          <TextField label="Full name" name="name" required autoComplete="name" placeholder="Ada Okafor" />
         )}
-        <div className={inputWrap}>
-          <Mail className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-ink-400" />
-          <input
-            name="email"
-            type="email"
-            required
-            placeholder="Email address"
-            autoComplete="email"
-            className={inputClass}
-          />
-        </div>
+        <TextField
+          label="Email address"
+          name="email"
+          type="email"
+          required
+          autoComplete="email"
+          placeholder="you@example.com"
+        />
         {isSignup && (
-          <div className={inputWrap}>
-            <Phone className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-ink-400" />
-            <input
-              name="phone"
-              type="tel"
-              required
-              placeholder="WhatsApp number"
-              autoComplete="tel"
-              inputMode="tel"
-              className={inputClass}
-            />
-          </div>
-        )}
-        <div className={inputWrap}>
-          <Lock className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-ink-400" />
-          <input
-            name="password"
-            type={showPassword ? "text" : "password"}
+          <TextField
+            label="WhatsApp number"
+            name="phone"
+            type="tel"
             required
-            placeholder="Password"
-            autoComplete={isSignup ? "new-password" : "current-password"}
-            minLength={isSignup ? 8 : undefined}
-            className={inputClass}
+            autoComplete="tel"
+            inputMode="tel"
+            placeholder="0810 818 9514"
+            hint="For course updates and support — nothing else."
           />
-          <button
-            type="button"
-            onClick={() => setShowPassword((v) => !v)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-ink-400 hover:text-ink-700"
-            aria-label={showPassword ? "Hide password" : "Show password"}
-          >
-            {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-          </button>
-        </div>
-        {isSignup ? (
-          <p className="text-xs text-ink-400">
-            Use at least 8 characters. We&apos;ll use your WhatsApp number for
-            course updates and support — nothing else.
-          </p>
-        ) : (
-          <p className="text-right">
-            <Link
-              href="/forgot-password"
-              className="text-sm font-medium text-primary-600 hover:text-primary-700"
-            >
-              Forgot password?
-            </Link>
-          </p>
         )}
+        <PasswordField
+          label="Password"
+          name="password"
+          required
+          autoComplete={isSignup ? "new-password" : "current-password"}
+          minLength={isSignup ? 8 : undefined}
+          hint={isSignup ? "At least 8 characters." : undefined}
+          labelAction={
+            !isSignup && (
+              <Link
+                href="/forgot-password"
+                className="text-sm font-medium text-primary-600 hover:text-primary-800"
+              >
+                Forgot password?
+              </Link>
+            )
+          }
+        />
 
-        <button
-          type="submit"
-          disabled={status === "loading"}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary-600 px-6 py-4 text-sm font-semibold text-white shadow-lg shadow-primary-600/30 transition-all hover:-translate-y-0.5 hover:bg-primary-700 disabled:opacity-70"
-        >
+        <Button type="submit" size="lg" disabled={status === "loading"} className="mt-2 w-full">
           {status === "loading" ? (
             <Loader2 className="size-4 animate-spin" />
-          ) : isSignup ? (
-            "Create account"
           ) : (
-            "Log in"
+            <>
+              {isSignup ? "Create account" : "Log in"}
+              <ArrowRight className="size-4" />
+            </>
           )}
-        </button>
+        </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-ink-500">
-        {isSignup ? "Already have an account? " : "Don't have an account? "}
+      <p className="mt-8 border-t border-line pt-6 text-sm text-ink-500">
+        {isSignup ? "Already have an account? " : "New to Oakvale? "}
         <Link
           href={
             isSignup
               ? `/login${next ? `?next=${encodeURIComponent(next)}` : ""}`
               : `/signup${next ? `?next=${encodeURIComponent(next)}` : ""}`
           }
-          className="font-semibold text-primary-600 hover:text-primary-700"
+          className="font-medium text-primary-600 hover:text-primary-800"
         >
-          {isSignup ? "Log in" : "Create one"}
+          {isSignup ? "Log in" : "Create an account"}
         </Link>
       </p>
     </div>

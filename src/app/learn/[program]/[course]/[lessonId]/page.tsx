@@ -1,18 +1,23 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
 import { checkLessonAccess, getOrderedLessons } from "@/lib/lms/access";
 import { getQuizForLearner } from "@/lib/lms/quiz";
 import { getInitialCmi } from "@/lib/lms/scorm";
 import { isStorageConfigured, presignDownload } from "@/lib/storage";
-import { ButtonLink } from "@/components/ui/Button";
 import { LESSON_TYPE_LABEL, LessonIcon } from "@/components/learn/LessonIcon";
 import { MediaPlayer } from "@/components/learn/MediaPlayer";
 import { ScormPlayer } from "@/components/learn/ScormPlayer";
 import { QuizPlayer } from "@/components/learn/QuizPlayer";
 import { MarkCompleteButton } from "@/components/learn/MarkCompleteButton";
+import { TutorPanel } from "@/components/learn/TutorPanel";
+import { getTutorAvailability } from "@/lib/lms/tutor";
+import { getCourseOutline } from "@/lib/lms/catalog";
+import { getCourseProgress } from "@/lib/lms/progress";
+import { CourseOutline } from "@/components/learn/CourseOutline";
+import { Breadcrumbs } from "@/components/dashboard/ui";
 
 export default async function LessonPage({ params }: PageProps<"/learn/[program]/[course]/[lessonId]">) {
   const { program: programSlug, course: courseSlug, lessonId } = await params;
@@ -29,9 +34,12 @@ export default async function LessonPage({ params }: PageProps<"/learn/[program]
   if (course.slug !== courseSlug || course.program.slug !== programSlug) notFound();
 
   const isAdmin = session.role === "ADMIN";
-  const [ordered, progress] = await Promise.all([
+  const [ordered, progress, tutor, outline, courseProgress] = await Promise.all([
     getOrderedLessons(course.id, isAdmin),
     prisma.lessonProgress.findUnique({ where: { userId_lessonId: { userId: session.userId, lessonId } } }),
+    getTutorAvailability(session, lesson),
+    getCourseOutline(session.userId, course.id, { sequential: course.sequential, isAdmin }),
+    getCourseProgress(session.userId, [course.id]),
   ]);
   const index = ordered.findIndex((l) => l.id === lessonId);
   const prev = ordered[index - 1];
@@ -39,45 +47,88 @@ export default async function LessonPage({ params }: PageProps<"/learn/[program]
   const completed = progress?.status === "COMPLETED";
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <Link href={base} className="inline-flex items-center gap-1.5 text-sm text-ink-500 hover:text-primary-600">
-        <ArrowLeft className="size-4" /> {course.title}
-      </Link>
+    <div className="mx-auto max-w-6xl pb-16 lg:pb-0">
+      <Breadcrumbs
+        items={[
+          { label: "My learning", href: "/learn" },
+          { label: course.title, href: base },
+          { label: lesson.title },
+        ]}
+      />
 
-      <div className="mt-3 mb-5">
-        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-ink-400">
-          <LessonIcon type={lesson.type} className="size-3.5" />
-          {LESSON_TYPE_LABEL[lesson.type]} · {lesson.module.title}
+      <header className="mt-5 mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-ink-500">
+            <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-white px-2.5 text-xs font-medium text-ink-700 ring-1 ring-line">
+              <LessonIcon type={lesson.type} className="size-3.5" />
+              {LESSON_TYPE_LABEL[lesson.type]}
+            </span>
+            <span className="truncate">{lesson.module.title}</span>
+          </div>
+          <h1 className="mt-3 font-display text-3xl leading-tight text-ink-950">{lesson.title}</h1>
         </div>
-        <h2 className="mt-1 text-2xl font-bold text-ink-900">{lesson.title}</h2>
+        <div className="flex items-center gap-3 text-sm">
+          {completed && (
+            <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700">
+              <CheckCircle2 className="size-4" /> Completed
+            </span>
+          )}
+          <span className="tabular-nums text-ink-500">
+            Lesson {index + 1} of {ordered.length}
+          </span>
+        </div>
+      </header>
+
+      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0">
+          <LessonBody lesson={lesson} session={session} startAt={progress?.positionSec ?? 0} completed={completed} />
+
+          {lesson.description && (
+            <section className="card mt-6 p-6 sm:p-8">
+              <h2 className="text-sm font-medium text-ink-950">About this lesson</h2>
+              <div className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-ink-700">{lesson.description}</div>
+            </section>
+          )}
+
+          <nav aria-label="Lesson navigation" className="mt-8 grid gap-3 sm:grid-cols-2">
+            {prev ? (
+              <Link
+                href={`${base}/${prev.id}`}
+                className="card group flex items-center gap-3 p-4 transition-colors hover:border-ink-300"
+              >
+                <ChevronLeft className="size-4 shrink-0 text-ink-400 transition-transform group-hover:-translate-x-0.5 group-hover:text-ink-700" />
+                <span className="min-w-0">
+                  <span className="block text-xs text-ink-500">Previous</span>
+                  <span className="block truncate text-sm font-medium text-ink-900">{prev.title}</span>
+                </span>
+              </Link>
+            ) : (
+              <span className="hidden sm:block" />
+            )}
+            <Link
+              href={next ? `${base}/${next.id}` : base}
+              className="group flex items-center justify-end gap-3 rounded-2xl bg-primary-600 p-4 text-right text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.12)] transition-colors hover:bg-primary-700"
+            >
+              <span className="min-w-0">
+                <span className="block text-xs text-primary-100">{next ? "Next lesson" : "You've reached the end"}</span>
+                <span className="block truncate text-sm font-medium">{next ? next.title : "Back to course overview"}</span>
+              </span>
+              <ChevronRight className="size-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          </nav>
+        </div>
+
+        <div className="lg:sticky lg:top-8">
+          <CourseOutline
+            modules={outline}
+            base={base}
+            currentId={lesson.id}
+            progress={courseProgress.get(course.id)!}
+          />
+        </div>
       </div>
 
-      <LessonBody lesson={lesson} session={session} startAt={progress?.positionSec ?? 0} completed={completed} />
-
-      {lesson.description && (
-        <div className="mt-6 whitespace-pre-line rounded-3xl border border-ink-100 bg-white p-6 text-sm leading-relaxed text-ink-700">
-          {lesson.description}
-        </div>
-      )}
-
-      <nav className="mt-8 flex items-center justify-between gap-3">
-        {prev ? (
-          <ButtonLink href={`${base}/${prev.id}`} variant="outline" size="sm">
-            <ChevronLeft className="size-4" /> Previous
-          </ButtonLink>
-        ) : (
-          <span />
-        )}
-        {next ? (
-          <ButtonLink href={`${base}/${next.id}`} size="sm">
-            Next <ChevronRight className="size-4" />
-          </ButtonLink>
-        ) : (
-          <ButtonLink href={base} size="sm">
-            Back to course
-          </ButtonLink>
-        )}
-      </nav>
+      <TutorPanel key={lesson.id} lessonId={lesson.id} lessonTitle={lesson.title} locked={tutor !== "OPEN"} />
     </div>
   );
 }
@@ -140,10 +191,13 @@ async function LessonBody({
   // HTML
   return (
     <div>
-      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-3xl border border-ink-100 bg-white sm:aspect-video">
+      <div className="card relative aspect-[4/3] w-full overflow-hidden sm:aspect-video">
         <iframe src={src} title={lesson.title} className="absolute inset-0 size-full" allowFullScreen />
       </div>
-      <div className="mt-4 flex justify-end">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-white px-4 py-3">
+        <span className="text-sm text-ink-600">
+          {completed ? "You've finished this lesson." : "Finished working through this lesson?"}
+        </span>
         <MarkCompleteButton key={lesson.id} lessonId={lesson.id} completed={completed} />
       </div>
     </div>
@@ -152,7 +206,7 @@ async function LessonBody({
 
 function Placeholder() {
   return (
-    <div className="grid aspect-video place-items-center rounded-3xl border border-dashed border-ink-200 bg-white p-6 text-center text-sm text-ink-500">
+    <div className="grid aspect-video place-items-center rounded-2xl border border-dashed border-ink-200 bg-white/60 p-6 text-center text-sm text-ink-500">
       This lesson&apos;s content is being prepared. Please check back soon.
     </div>
   );

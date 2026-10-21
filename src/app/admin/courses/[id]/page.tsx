@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ChevronRight, Eye } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { StatusBadge } from "@/components/dashboard/ui";
+import { StatusBadge, PageHeader } from "@/components/dashboard/ui";
 import { LESSON_TYPE_LABEL, LessonIcon } from "@/components/learn/LessonIcon";
 import {
   ActionForm,
@@ -58,7 +58,7 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
       <div className="flex items-center justify-between gap-3">
         <Link
           href={`/admin/programs/${course.program.id}`}
-          className="inline-flex items-center gap-1.5 text-sm text-ink-500 hover:text-primary-600"
+          className="inline-flex items-center gap-1.5 text-sm text-ink-500 transition-colors hover:text-ink-900"
         >
           <ArrowLeft className="size-4" /> {course.program.title}
         </Link>
@@ -70,11 +70,13 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
         </Link>
       </div>
 
+      <PageHeader eyebrow={course.program.title} title={course.title} />
+
       <Panel title="Modules & lessons">
         <div className="space-y-4">
           {course.modules.map((m) => (
-            <div key={m.id} className="rounded-2xl border border-ink-100">
-              <div className="flex flex-wrap items-center gap-2 border-b border-ink-100 px-3 py-2">
+            <div key={m.id} className="rounded-2xl border border-line">
+              <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2">
                 <MoveButtons onMove={moveItem.bind(null, "module", m.id)} />
                 <details className="min-w-0 flex-1">
                   <summary className="cursor-pointer list-none font-semibold text-ink-900">{m.title}</summary>
@@ -87,7 +89,7 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
                   confirmText={`Delete “${m.title}” and all of its lessons?`}
                 />
               </div>
-              <ul className="divide-y divide-ink-50">
+              <ul className="divide-y divide-line/70">
                 {m.lessons.map((l) => (
                   <li key={l.id} className="flex items-center gap-2 px-3 py-1.5">
                     <MoveButtons onMove={moveItem.bind(null, "lesson", l.id)} />
@@ -104,7 +106,7 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
                   </li>
                 ))}
               </ul>
-              <details className="border-t border-ink-100 px-4 py-3">
+              <details className="border-t border-line px-4 py-3">
                 <summary className="cursor-pointer text-sm font-medium text-primary-600">Add lesson</summary>
                 <ActionForm action={createLesson.bind(null, m.id)} submitLabel="Add lesson" className="mt-3">
                   <div className="grid gap-3 sm:grid-cols-[1fr_200px]">

@@ -6,25 +6,25 @@ type Variant = "primary" | "accent" | "outline" | "ghost" | "white" | "dark";
 type Size = "sm" | "md" | "lg";
 
 const base =
-  "inline-flex items-center justify-center gap-2 font-medium rounded-full transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-accent-500 disabled:opacity-60 disabled:pointer-events-none whitespace-nowrap";
+  "inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-[color,background-color,border-color,transform] duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary-400 disabled:opacity-60 disabled:pointer-events-none whitespace-nowrap";
+
+// A faint top highlight gives filled buttons depth without a gradient.
+const filled = "shadow-[inset_0_1px_0_rgb(255_255_255/0.12),0_1px_2px_rgb(20_18_40/0.12)]";
 
 const variants: Record<Variant, string> = {
-  primary:
-    "bg-primary-600 text-white shadow-lg shadow-primary-600/25 hover:bg-primary-700 hover:shadow-primary-600/40 hover:-translate-y-0.5",
-  accent:
-    "bg-accent-500 text-white shadow-lg shadow-accent-500/30 hover:bg-accent-600 hover:shadow-accent-500/45 hover:-translate-y-0.5",
+  primary: cn("bg-primary-600 text-white hover:bg-primary-700", filled),
+  accent: cn("bg-accent-600 text-white hover:bg-accent-700", filled),
   outline:
-    "border border-ink-300 text-ink-800 hover:border-primary-500 hover:text-primary-700 bg-white/60",
-  ghost: "text-ink-700 hover:bg-ink-100 hover:text-primary-700",
-  white:
-    "bg-white text-primary-700 shadow-lg shadow-black/10 hover:-translate-y-0.5 hover:shadow-black/20",
-  dark: "bg-ink-900 text-white hover:bg-ink-800 hover:-translate-y-0.5",
+    "border border-line bg-white text-ink-800 shadow-card hover:border-ink-300 hover:bg-ink-50",
+  ghost: "text-ink-700 hover:bg-ink-100 hover:text-ink-900",
+  white: "bg-white text-primary-800 shadow-card hover:bg-primary-50",
+  dark: cn("bg-ink-900 text-white hover:bg-ink-800", filled),
 };
 
 const sizes: Record<Size, string> = {
-  sm: "text-sm px-4 py-2",
-  md: "text-[15px] px-6 py-3",
-  lg: "text-base px-8 py-4",
+  sm: "text-sm h-9 px-3.5",
+  md: "text-sm h-10 px-5",
+  lg: "text-[15px] h-12 px-6",
 };
 
 interface CommonProps {
@@ -32,6 +32,10 @@ interface CommonProps {
   size?: Size;
   className?: string;
   children: ReactNode;
+}
+
+export function buttonClass({ variant = "primary", size = "md" }: { variant?: Variant; size?: Size } = {}) {
+  return cn(base, variants[variant], sizes[size]);
 }
 
 export function Button({
@@ -42,7 +46,7 @@ export function Button({
   ...props
 }: CommonProps & ComponentProps<"button">) {
   return (
-    <button className={cn(base, variants[variant], sizes[size], className)} {...props}>
+    <button className={cn(buttonClass({ variant, size }), className)} {...props}>
       {children}
     </button>
   );
@@ -57,11 +61,7 @@ export function ButtonLink({
   ...props
 }: CommonProps & { href: string } & Omit<ComponentProps<typeof Link>, "href">) {
   return (
-    <Link
-      href={href}
-      className={cn(base, variants[variant], sizes[size], className)}
-      {...props}
-    >
+    <Link href={href} className={cn(buttonClass({ variant, size }), className)} {...props}>
       {children}
     </Link>
   );

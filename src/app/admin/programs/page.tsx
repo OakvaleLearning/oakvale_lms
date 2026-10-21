@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { StatusBadge } from "@/components/dashboard/ui";
+import { PageHeader, StatusBadge } from "@/components/dashboard/ui";
 import { ActionForm, Field, MoveButtons, Panel, Textarea, TitleSlugFields } from "@/components/admin/forms";
 import { createProgram, moveItem } from "../actions";
 
@@ -17,12 +17,17 @@ export default async function ProgramsPage() {
   });
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <Panel title="Programmes">
+    <div className="mx-auto max-w-4xl space-y-8">
+      <PageHeader
+        eyebrow="Catalogue"
+        title="Programmes"
+        description="Each programme groups its courses and the pricing tiers learners buy."
+      />
+      <Panel title={`All programmes (${programs.length})`}>
         {programs.length === 0 ? (
           <p className="text-sm text-ink-400">No programmes yet — create one below.</p>
         ) : (
-          <ul className="-my-2 divide-y divide-ink-50">
+          <ul className="-my-2 divide-y divide-line/70">
             {programs.map((p) => (
               <li key={p.id} className="flex items-center gap-3 py-2">
                 <MoveButtons onMove={moveItem.bind(null, "program", p.id)} />

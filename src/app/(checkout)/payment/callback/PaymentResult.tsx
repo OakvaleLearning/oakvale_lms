@@ -27,8 +27,8 @@ export function PaymentResult({ prelaunch }: { prelaunch: boolean }) {
   if (state === "verifying") {
     return (
       <Card>
-        <Loader2 className="size-14 animate-spin text-primary-600" />
-        <h1 className="mt-6 text-2xl font-bold text-ink-900">Verifying your payment…</h1>
+        <Loader2 className="size-10 animate-spin text-primary-600" />
+        <h1 className="mt-6 font-display text-3xl text-ink-950">Verifying your payment…</h1>
         <p className="mt-2 text-ink-500">Please wait while we confirm your transaction.</p>
       </Card>
     );
@@ -37,8 +37,8 @@ export function PaymentResult({ prelaunch }: { prelaunch: boolean }) {
   if (state === "success") {
     return (
       <Card>
-        <CheckCircle2 className="size-16 text-emerald-500" />
-        <h1 className="mt-6 text-2xl font-bold text-ink-900">You&apos;re enrolled!</h1>
+        <CheckCircle2 className="size-12 text-emerald-600" strokeWidth={1.5} />
+        <h1 className="mt-6 font-display text-3xl text-ink-950">You&apos;re enrolled!</h1>
         <p className="mt-2 max-w-sm text-ink-500">
           {prelaunch
             ? "Your payment is confirmed and your place is secured. Our learning platform opens soon — we'll email you the moment your courses are ready."
@@ -54,8 +54,8 @@ export function PaymentResult({ prelaunch }: { prelaunch: boolean }) {
 
   return (
     <Card>
-      <XCircle className="size-16 text-accent-500" />
-      <h1 className="mt-6 text-2xl font-bold text-ink-900">
+      <XCircle className="size-12 text-accent-600" strokeWidth={1.5} />
+      <h1 className="mt-6 font-display text-3xl text-ink-950">
         {state === "error" ? "Something went wrong" : "Payment not completed"}
       </h1>
       <p className="mt-2 max-w-sm text-ink-500">
@@ -78,7 +78,7 @@ export function PaymentResult({ prelaunch }: { prelaunch: boolean }) {
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mx-auto flex max-w-lg flex-col items-center rounded-4xl border border-ink-100 bg-white px-8 py-16 text-center shadow-sm">
+    <div className="mx-auto flex max-w-lg flex-col items-center card px-8 py-16 text-center">
       {children}
     </div>
   );

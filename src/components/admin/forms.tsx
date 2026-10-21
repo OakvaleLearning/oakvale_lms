@@ -56,7 +56,7 @@ export function SubmitButton({ children }: { children: ReactNode }) {
 }
 
 const fieldClass =
-  "w-full rounded-xl border border-ink-200 bg-white px-3.5 py-2.5 text-sm text-ink-900 outline-none transition-colors placeholder:text-ink-400 focus:border-primary-400 focus:ring-2 focus:ring-primary-200";
+  "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink-900 shadow-card outline-none transition-colors placeholder:text-ink-400 hover:border-ink-300 focus:border-primary-500 focus:ring-3 focus:ring-primary-100";
 
 export function Field({
   label,
@@ -69,9 +69,9 @@ export function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-ink-700">{label}</span>
+      <span className="mb-1.5 block text-sm font-medium text-ink-800">{label}</span>
       {children}
-      {hint && <span className="mt-1 block text-xs text-ink-400">{hint}</span>}
+      {hint && <span className="mt-1.5 block text-xs text-ink-500">{hint}</span>}
     </label>
   );
 }
@@ -197,9 +197,9 @@ export function DeleteButton({
 
 export function Panel({ title, children, actions }: { title: string; children: ReactNode; actions?: ReactNode }) {
   return (
-    <section className="rounded-3xl border border-ink-100 bg-white">
-      <div className="flex items-center justify-between gap-3 border-b border-ink-100 px-6 py-4">
-        <h2 className="font-bold text-ink-900">{title}</h2>
+    <section className="card">
+      <div className="flex min-h-14 items-center justify-between gap-3 border-b border-line px-6 py-3">
+        <h2 className="text-[15px] font-semibold text-ink-950">{title}</h2>
         {actions}
       </div>
       <div className="p-6">{children}</div>

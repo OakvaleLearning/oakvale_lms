@@ -4,7 +4,7 @@ import { ArrowLeft, ChevronRight, ExternalLink } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { formatNaira } from "@/lib/utils";
-import { StatusBadge } from "@/components/dashboard/ui";
+import { StatusBadge, PageHeader } from "@/components/dashboard/ui";
 import {
   ActionForm,
   Checkbox,
@@ -43,12 +43,14 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <Link href="/admin/programs" className="inline-flex items-center gap-1.5 text-sm text-ink-500 hover:text-primary-600">
+      <Link href="/admin/programs" className="inline-flex items-center gap-1.5 text-sm text-ink-500 transition-colors hover:text-ink-900">
         <ArrowLeft className="size-4" /> Programmes
       </Link>
 
+      <PageHeader eyebrow="Programme" title={program.title} description={`/${program.slug}`} />
+
       <Panel
-        title={program.title}
+        title="Details"
         actions={
           <DeleteButton
             onDelete={deleteProgram.bind(null, program.id)}
@@ -73,7 +75,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
         {program.courses.length === 0 ? (
           <p className="text-sm text-ink-400">No courses yet.</p>
         ) : (
-          <ul className="-my-2 divide-y divide-ink-50">
+          <ul className="-my-2 divide-y divide-line/70">
             {program.courses.map((c) => (
               <li key={c.id} className="flex items-center gap-3 py-2">
                 <MoveButtons onMove={moveItem.bind(null, "course", c.id)} />
@@ -91,7 +93,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
             ))}
           </ul>
         )}
-        <details className="mt-6 rounded-2xl border border-ink-100 p-4">
+        <details className="mt-6 rounded-2xl border border-line p-4">
           <summary className="cursor-pointer text-sm font-semibold text-primary-600">Add a course</summary>
           <ActionForm action={createCourse.bind(null, program.id)} submitLabel="Create course" className="mt-4">
             <TitleSlugFields />
@@ -122,7 +124,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
           {program.tiers.map((t) => {
             const included = new Set(t.courses.map((c) => c.courseId));
             return (
-              <div key={t.id} className="rounded-2xl border border-ink-100 p-4">
+              <div key={t.id} className="rounded-2xl border border-line p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <MoveButtons onMove={moveItem.bind(null, "tier", t.id)} />

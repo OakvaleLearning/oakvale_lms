@@ -10,7 +10,10 @@ export async function getLearnerHome(userId: string) {
   const courses = await prisma.course.findMany({
     where: { id: { in: [...unlocked] }, published: true, program: { published: true } },
     orderBy: [{ program: { order: "asc" } }, { order: "asc" }],
-    include: { program: { select: { id: true, slug: true, title: true } } },
+    include: {
+      program: { select: { id: true, slug: true, title: true } },
+      prerequisite: { select: { title: true } },
+    },
   });
 
   const ids = courses.map((c) => c.id);
@@ -48,6 +51,7 @@ export async function getLearnerHome(userId: string) {
       coverImage: c.coverImage,
       progress: progress.get(c.id)!,
       lock: c.prerequisiteId && !completedPrereqs.has(c.prerequisiteId) ? "PREREQUISITE" : "OPEN",
+      prerequisiteTitle: c.prerequisite?.title ?? null,
     });
     programs.set(c.program.id, entry);
   }
@@ -77,6 +81,7 @@ export interface LearnerCourseCard {
   coverImage: string | null;
   progress: { completed: number; total: number; percent: number };
   lock: CourseLock;
+  prerequisiteTitle: string | null;
 }
 
 /** A course by its program + course slug, with lock state for the current user. */

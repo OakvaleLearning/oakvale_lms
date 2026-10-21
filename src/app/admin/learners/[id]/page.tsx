@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { formatDay, formatNaira, whatsappLink } from "@/lib/utils";
 import { getCourseProgress } from "@/lib/lms/progress";
-import { StatusBadge } from "@/components/dashboard/ui";
+import { StatusBadge, PageHeader } from "@/components/dashboard/ui";
 import { ProgressBar } from "@/components/learn/ProgressBar";
 import { ActionForm, DeleteButton, Panel, Select } from "@/components/admin/forms";
 import { cancelEnrollment, grantEnrollment } from "../actions";
@@ -41,13 +41,15 @@ export default async function LearnerPage({ params }: PageProps<"/admin/learners
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <Link href="/admin/learners" className="inline-flex items-center gap-1.5 text-sm text-ink-500 hover:text-primary-600">
+      <Link href="/admin/learners" className="inline-flex items-center gap-1.5 text-sm text-ink-500 transition-colors hover:text-ink-900">
         <ArrowLeft className="size-4" /> Learners
       </Link>
 
-      <div className="rounded-3xl border border-ink-100 bg-white p-6">
-        <h2 className="text-xl font-bold text-ink-900">{learner.name}</h2>
-        <div className="mt-1 text-sm text-ink-500">
+      <PageHeader
+        eyebrow="Learner"
+        title={learner.name}
+        description={
+          <>
           {learner.email}
           {learner.phone && (
             <>
@@ -58,8 +60,9 @@ export default async function LearnerPage({ params }: PageProps<"/admin/learners
             </>
           )}
           {" · "}joined {formatDay(learner.createdAt)}
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <Panel title="Course progress">
         {courses.size === 0 ? (
@@ -85,7 +88,7 @@ export default async function LearnerPage({ params }: PageProps<"/admin/learners
       </Panel>
 
       <Panel title="Enrolments">
-        <ul className="divide-y divide-ink-50">
+        <ul className="divide-y divide-line/70">
           {learner.enrollments.map((e) => (
             <li key={e.id} className="flex flex-wrap items-center gap-3 py-3">
               <div className="min-w-0 flex-1">
@@ -124,7 +127,7 @@ export default async function LearnerPage({ params }: PageProps<"/admin/learners
 
       {attempts.length > 0 && (
         <Panel title="Recent quiz attempts">
-          <ul className="divide-y divide-ink-50 text-sm">
+          <ul className="divide-y divide-line/70 text-sm">
             {attempts.map((a) => (
               <li key={a.id} className="flex items-center justify-between gap-3 py-2">
                 <span className="text-ink-800">{a.quiz.lesson.title}</span>

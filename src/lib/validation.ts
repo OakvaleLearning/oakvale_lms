@@ -96,6 +96,7 @@ export const lessonCreateSchema = z.object({
 export const lessonUpdateSchema = z.object({
   title: z.string().trim().min(2, "Title is too short").max(200),
   description: z.string().trim().max(10000).default(""),
+  tutorNotes: z.string().trim().max(30000).default(""),
   published: z.boolean().default(true),
   durationMin: z.coerce.number().min(0).max(24 * 60).optional(),
 });

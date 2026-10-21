@@ -100,7 +100,7 @@ export function UploadField({
   return (
     <div className="space-y-4">
       {asset && (
-        <div className="flex items-center gap-3 rounded-2xl border border-ink-100 bg-ink-50 px-4 py-3">
+        <div className="flex items-center gap-3 rounded-2xl border border-line bg-ink-50 px-4 py-3">
           {asset.status === "READY" ? (
             <CheckCircle2 className="size-5 shrink-0 text-emerald-500" />
           ) : asset.status === "FAILED" ? (

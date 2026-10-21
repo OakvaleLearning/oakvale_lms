@@ -88,7 +88,7 @@ export function MediaPlayer({
 
   if (kind === "AUDIO") {
     return (
-      <div className="rounded-3xl border border-ink-100 bg-white p-6">
+      <div className="card p-6">
         <audio ref={ref} src={src} controls preload="metadata" className="w-full" />
       </div>
     );
@@ -101,7 +101,7 @@ export function MediaPlayer({
       playsInline
       preload="metadata"
       controlsList="nodownload"
-      className="aspect-video w-full rounded-3xl bg-black"
+      className="aspect-video w-full rounded-2xl bg-black"
     />
   );
 }
