@@ -5,72 +5,145 @@ import {
   PutObjectCommand,
   ListObjectsV2Command,
   DeleteObjectsCommand,
+  GetBucketCorsCommand,
+  PutBucketCorsCommand,
+  type S3ClientConfig,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { awsCredentialsProvider } from "@vercel/oidc-aws-credentials-provider";
 
 /**
- * Cloudflare R2 (S3-compatible) object storage for lesson content.
+ * Object storage for lesson content.
+ *
+ * Production: the AWS S3 bucket connected to the Vercel project
+ * (S3_BUCKET_NAME, AWS_REGION, AWS_ROLE_ARN). There are no access keys: the
+ * function's Vercel OIDC token is exchanged for short-lived AWS credentials.
+ *
+ * Local development: any S3-compatible server with keys (R2_ENDPOINT,
+ * R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET), e.g. MinIO.
  *
  * Large files never pass through our functions (Vercel caps request bodies at
- * 4.5 MB): the admin's browser PUTs straight to R2 with a presigned URL, and
- * video/audio is streamed to learners from short-lived presigned GET URLs.
+ * 4.5 MB): the admin's browser PUTs straight to the bucket with a presigned
+ * URL, and video/audio is streamed to learners from presigned GET URLs.
  */
+type Backend = { bucket: string; config: () => S3ClientConfig };
+
+function backend(): Backend | null {
+  const { S3_BUCKET_NAME, AWS_REGION, AWS_ROLE_ARN } = process.env;
+  if (S3_BUCKET_NAME && AWS_REGION && AWS_ROLE_ARN) {
+    return {
+      bucket: S3_BUCKET_NAME,
+      config: () => ({
+        region: AWS_REGION,
+        credentials: awsCredentialsProvider({ roleArn: AWS_ROLE_ARN, clientConfig: { region: AWS_REGION } }),
+      }),
+    };
+  }
+  const { R2_ENDPOINT, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET } = process.env;
+  if ((R2_ENDPOINT || R2_ACCOUNT_ID) && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_BUCKET) {
+    return {
+      bucket: R2_BUCKET,
+      config: () => ({
+        region: "auto",
+        endpoint: R2_ENDPOINT || `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+        forcePathStyle: Boolean(R2_ENDPOINT),
+        credentials: { accessKeyId: R2_ACCESS_KEY_ID, secretAccessKey: R2_SECRET_ACCESS_KEY },
+      }),
+    };
+  }
+  return null;
+}
+
 export function isStorageConfigured(): boolean {
-  return Boolean(
-    process.env.R2_ACCOUNT_ID &&
-      process.env.R2_ACCESS_KEY_ID &&
-      process.env.R2_SECRET_ACCESS_KEY &&
-      process.env.R2_BUCKET
-  );
+  return backend() !== null;
+}
+
+function newClient(): S3Client {
+  const b = backend();
+  if (!b) throw new Error("File storage is not configured (S3_BUCKET_NAME / AWS_ROLE_ARN missing).");
+  return new S3Client({
+    ...b.config(),
+    // Browsers can't compute the CRC32 checksums newer SDKs add to presigned
+    // PUT URLs by default, which would break direct uploads.
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
+  });
 }
 
 let client: S3Client | null = null;
-function r2(): S3Client {
-  if (!isStorageConfigured()) {
-    throw new Error("Cloudflare R2 is not configured (R2_* env vars missing).");
-  }
-  if (!client) {
-    client = new S3Client({
-      region: "auto",
-      // R2_ENDPOINT lets local development point at an S3-compatible server
-      // (e.g. MinIO); production uses the account's R2 endpoint.
-      endpoint: process.env.R2_ENDPOINT || `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-      forcePathStyle: Boolean(process.env.R2_ENDPOINT),
-      credentials: {
-        accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-      },
-      // R2 rejects the CRC32 checksum params newer SDKs add to presigned URLs
-      // by default, which would break browser uploads.
-      requestChecksumCalculation: "WHEN_REQUIRED",
-      responseChecksumValidation: "WHEN_REQUIRED",
-    });
-  }
+function s3(): S3Client {
+  client ??= newClient();
   return client;
 }
 
-const bucket = () => process.env.R2_BUCKET!;
+const bucket = () => backend()!.bucket;
+
+/**
+ * A presigned URL stops working when the credentials that signed it expire.
+ * OIDC credentials last an hour and are cached, so a URL signed with a cached
+ * set could die within minutes; sign with a fresh client (fresh credentials)
+ * so every URL gets its full lifetime.
+ */
+const SIGNED_URL_TTL = 55 * 60;
 
 /** Presigned URL the browser PUTs a file to. Must send the same Content-Type. */
-export function presignUpload(key: string, contentType: string, ttlSec = 60 * 60) {
+export function presignUpload(key: string, contentType: string) {
   return getSignedUrl(
-    r2(),
+    newClient(),
     new PutObjectCommand({ Bucket: bucket(), Key: key, ContentType: contentType }),
-    { expiresIn: ttlSec }
+    { expiresIn: SIGNED_URL_TTL }
   );
 }
 
-/** Short-lived presigned GET URL (supports range requests, so media can seek). */
-export function presignDownload(key: string, ttlSec = 2 * 60 * 60) {
-  return getSignedUrl(r2(), new GetObjectCommand({ Bucket: bucket(), Key: key }), {
-    expiresIn: ttlSec,
+/** Presigned GET URL (supports range requests, so media can seek). Valid ~1 hour. */
+export function presignDownload(key: string) {
+  return getSignedUrl(newClient(), new GetObjectCommand({ Bucket: bucket(), Key: key }), {
+    expiresIn: SIGNED_URL_TTL,
   });
+}
+
+/**
+ * Browser uploads need a CORS rule on the bucket allowing PUT from this app.
+ * Adds it if missing (once per server instance). Returns an error message if
+ * the bucket's permissions don't allow us to check or set it.
+ */
+let corsChecked = false;
+export async function ensureUploadCors(origin: string): Promise<string | null> {
+  // Only the AWS bucket; local S3-compatible servers are configured by hand.
+  if (corsChecked || !process.env.AWS_ROLE_ARN) return null;
+  const rule = {
+    AllowedOrigins: [origin],
+    AllowedMethods: ["PUT", "GET", "HEAD"],
+    AllowedHeaders: ["*"],
+    ExposeHeaders: ["ETag"],
+    MaxAgeSeconds: 3600,
+  };
+  try {
+    let rules: (typeof rule)[] = [];
+    try {
+      const current = await s3().send(new GetBucketCorsCommand({ Bucket: bucket() }));
+      rules = (current.CORSRules ?? []) as (typeof rule)[];
+    } catch (err) {
+      if ((err as { name?: string }).name !== "NoSuchCORSConfiguration") throw err;
+    }
+    const covered = rules.some(
+      (r) => r.AllowedOrigins?.some((o) => o === origin || o === "*") && r.AllowedMethods?.includes("PUT")
+    );
+    if (!covered) {
+      await s3().send(new PutBucketCorsCommand({ Bucket: bucket(), CORSConfiguration: { CORSRules: [...rules, rule] } }));
+    }
+    corsChecked = true;
+    return null;
+  } catch (err) {
+    console.error("[storage] CORS check failed:", err);
+    return `The storage bucket needs a CORS rule allowing PUT from ${origin}, and the app isn't allowed to add it. Add it in the AWS console (see README).`;
+  }
 }
 
 /** Fetch an object, or null when it doesn't exist. */
 export async function getObject(key: string) {
   try {
-    const res = await r2().send(new GetObjectCommand({ Bucket: bucket(), Key: key }));
+    const res = await s3().send(new GetObjectCommand({ Bucket: bucket(), Key: key }));
     if (!res.Body) return null;
     return {
       body: res.Body.transformToWebStream(),
@@ -86,13 +159,13 @@ export async function getObject(key: string) {
 
 /** Fetch a whole object into memory (used to unpack uploaded zips). */
 export async function getObjectBytes(key: string): Promise<Uint8Array> {
-  const res = await r2().send(new GetObjectCommand({ Bucket: bucket(), Key: key }));
+  const res = await s3().send(new GetObjectCommand({ Bucket: bucket(), Key: key }));
   if (!res.Body) throw new Error(`Object ${key} is empty`);
   return res.Body.transformToByteArray();
 }
 
 export async function putObject(key: string, body: Uint8Array | string, contentType: string) {
-  await r2().send(
+  await s3().send(
     new PutObjectCommand({ Bucket: bucket(), Key: key, Body: body, ContentType: contentType })
   );
 }
@@ -101,12 +174,12 @@ export async function putObject(key: string, body: Uint8Array | string, contentT
 export async function deletePrefix(prefix: string): Promise<void> {
   let token: string | undefined;
   do {
-    const list = await r2().send(
+    const list = await s3().send(
       new ListObjectsV2Command({ Bucket: bucket(), Prefix: prefix, ContinuationToken: token })
     );
     const keys = (list.Contents ?? []).map((o) => ({ Key: o.Key! }));
     if (keys.length) {
-      await r2().send(new DeleteObjectsCommand({ Bucket: bucket(), Delete: { Objects: keys } }));
+      await s3().send(new DeleteObjectsCommand({ Bucket: bucket(), Delete: { Objects: keys } }));
     }
     token = list.IsTruncated ? list.NextContinuationToken : undefined;
   } while (token);

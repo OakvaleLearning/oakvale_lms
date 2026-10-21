@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { isStorageConfigured, presignUpload } from "@/lib/storage";
+import { ensureUploadCors, isStorageConfigured, presignUpload } from "@/lib/storage";
 import { ingestPackage, removeAssetFiles } from "@/lib/lms/packages";
 import { questionSchema, quizSettingsSchema } from "@/lib/validation";
 
@@ -38,7 +38,7 @@ export async function createUpload(
 ): Promise<Result<{ assetId: string; uploadUrl: string; contentType: string }>> {
   await requireAdmin();
   if (!isStorageConfigured()) {
-    return { ok: false, error: "File storage (Cloudflare R2) is not configured yet." };
+    return { ok: false, error: "File storage (AWS S3) is not configured yet." };
   }
   const lesson = await prisma.lesson.findUnique({ where: { id: lessonId }, include: { asset: true } });
   if (!lesson || lesson.type === "QUIZ") return { ok: false, error: "Lesson not found." };
@@ -52,6 +52,9 @@ export async function createUpload(
   if (!(file.size > 0) || file.size > rule.max) {
     return { ok: false, error: `That file is too large (max ${Math.round(rule.max / MB)} MB).` };
   }
+
+  const corsError = await ensureUploadCors(new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3001").origin);
+  if (corsError) return { ok: false, error: corsError };
 
   // Replacing content: remove the old asset and its files first.
   if (lesson.asset) {

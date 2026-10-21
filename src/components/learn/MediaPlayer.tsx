@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 const HEARTBEAT_MS = 15_000;
 const COMPLETE_AT = 0.9; // fraction watched/listened that counts as complete
+let lastRefresh = 0;
 
 /**
  * Native video/audio player streaming from a presigned R2 URL. Saves the
@@ -61,15 +62,25 @@ export function MediaPlayer({
     };
     const onPause = () => save(true);
     const onLeave = () => save(true);
+    // The signed media link lasts about an hour. If it has expired (e.g. the
+    // learner paused for a long time), save the position and fetch a new link;
+    // the player resumes from the saved position.
+    const onError = () => {
+      if (Date.now() - lastRefresh < 60_000) return;
+      lastRefresh = Date.now();
+      send({ positionSec: el.currentTime }).then(() => router.refresh());
+    };
 
     el.addEventListener("loadedmetadata", onMeta);
     el.addEventListener("timeupdate", onTime);
     el.addEventListener("pause", onPause);
+    el.addEventListener("error", onError);
     window.addEventListener("pagehide", onLeave);
     return () => {
       el.removeEventListener("loadedmetadata", onMeta);
       el.removeEventListener("timeupdate", onTime);
       el.removeEventListener("pause", onPause);
+      el.removeEventListener("error", onError);
       window.removeEventListener("pagehide", onLeave);
       if (el.currentTime > 0) send({ positionSec: el.currentTime });
     };

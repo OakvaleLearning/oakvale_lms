@@ -1,25 +1,26 @@
-// Seeds an admin, the two marketing-site programs with their tiers, and a demo
-// learner. Safe to re-run: everything is upserted by its natural key.
+// Seeds an admin and the marketing-site programmes (prisma/programs.mjs) with
+// their tiers, courses and module outline, plus a demo learner in development.
+// Safe to re-run: rows are matched by their natural keys, and text is only
+// filled in where it is still blank (or an old placeholder), so edits made in
+// the admin are never overwritten.
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { PROGRAMS } from "./programs.mjs";
 
 const prisma = new PrismaClient();
 
-// Mirrors learners_portal src/content/site.ts (slugs + tier prices in Naira).
-const PROGRAMS = [
-  {
-    slug: "adult-care",
-    title: "Adult & Elderly Care",
-    tiers: { foundation: 35000, professional: 70000, full: 100000 },
-  },
-  {
-    slug: "child-care",
-    title: "Childcare & Early Years",
-    tiers: { foundation: 30000, professional: 55000, full: 80000 },
-  },
-];
+// Placeholder text from earlier versions of this script; safe to replace.
+const OLD_DEFAULTS = new Set([
+  "",
+  "Core knowledge and skills every caregiver needs.",
+  "Advanced practice. Complete the Foundation course first.",
+  ...PROGRAMS.flatMap((p) => [`${p.title}: Foundation`, `${p.title}: Professional`]),
+]);
 
-const TIER_NAMES = { foundation: "Foundation", professional: "Professional", full: "Full Programme" };
+/** Field updates for values that are still blank / placeholders. */
+function fillBlanks(row, wanted) {
+  return Object.fromEntries(Object.entries(wanted).filter(([k, v]) => row[k] !== v && OLD_DEFAULTS.has(row[k] ?? "")));
+}
 
 async function upsertUser({ email, name, password, role }) {
   const passwordHash = await bcrypt.hash(password, 12);
@@ -31,50 +32,57 @@ async function upsertUser({ email, name, password, role }) {
 }
 
 async function seedProgram(def, order) {
-  const program = await prisma.program.upsert({
+  let program = await prisma.program.upsert({
     where: { slug: def.slug },
     update: {},
-    create: { slug: def.slug, title: def.title, published: true, order },
+    create: { slug: def.slug, title: def.title, description: def.description, published: true, order },
   });
+  program = await prisma.program.update({ where: { id: program.id }, data: fillBlanks(program, { description: def.description }) });
 
-  const foundation = await prisma.course.upsert({
-    where: { programId_slug: { programId: program.id, slug: "foundation" } },
-    update: {},
-    create: {
-      programId: program.id,
-      slug: "foundation",
-      title: `${def.title}: Foundation`,
-      description: "Core knowledge and skills every caregiver needs.",
-      published: true,
-      order: 0,
-    },
-  });
-  const professional = await prisma.course.upsert({
-    where: { programId_slug: { programId: program.id, slug: "professional" } },
-    update: {},
-    create: {
-      programId: program.id,
-      slug: "professional",
-      title: `${def.title}: Professional`,
-      description: "Advanced practice. Complete the Foundation course first.",
-      published: true,
-      order: 1,
-      prerequisiteId: foundation.id,
-    },
-  });
-
-  const unlocks = {
-    foundation: [foundation.id],
-    professional: [professional.id],
-    full: [foundation.id, professional.id],
-  };
-  let i = 0;
-  for (const [slug, naira] of Object.entries(def.tiers)) {
-    const tier = await prisma.tier.upsert({
+  const courses = {};
+  for (const [i, slug] of ["foundation", "professional"].entries()) {
+    const c = def.courses[slug];
+    let course = await prisma.course.upsert({
       where: { programId_slug: { programId: program.id, slug } },
       update: {},
-      create: { programId: program.id, slug, name: TIER_NAMES[slug], price: naira * 100, order: i++ },
+      create: {
+        programId: program.id,
+        slug,
+        title: c.title,
+        description: c.description,
+        published: true,
+        order: i,
+        prerequisiteId: slug === "professional" ? courses.foundation.id : null,
+      },
     });
+    course = await prisma.course.update({
+      where: { id: course.id },
+      data: fillBlanks(course, { title: c.title, description: c.description }),
+    });
+    // The outline from the marketing page; lessons are added in the admin.
+    if ((await prisma.module.count({ where: { courseId: course.id } })) === 0) {
+      for (const [m, title] of c.modules.entries()) {
+        await prisma.module.create({ data: { courseId: course.id, title: `Module ${m + 1}: ${title}`, order: m } });
+      }
+    }
+    courses[slug] = course;
+  }
+  const foundation = courses.foundation;
+
+  const unlocks = {
+    foundation: [courses.foundation.id],
+    professional: [courses.professional.id],
+    full: [courses.foundation.id, courses.professional.id],
+  };
+  let i = 0;
+  for (const [slug, t] of Object.entries(def.tiers)) {
+    let tier = await prisma.tier.upsert({
+      where: { programId_slug: { programId: program.id, slug } },
+      update: {},
+      create: { programId: program.id, slug, name: t.name, description: t.description, price: t.price * 100, order: i },
+    });
+    i++;
+    tier = await prisma.tier.update({ where: { id: tier.id }, data: fillBlanks(tier, { description: t.description }) });
     for (const courseId of unlocks[slug]) {
       await prisma.tierCourse.upsert({
         where: { tierId_courseId: { tierId: tier.id, courseId } },
@@ -84,17 +92,17 @@ async function seedProgram(def, order) {
     }
   }
 
-  // A starter module with a quiz, so the learner side has something playable
-  // before any files are uploaded to R2. Dev only.
+  // A starter quiz in the first module, so the learner side has something
+  // playable before any files are uploaded. Dev only.
+  const firstModule = await prisma.module.findFirst({ where: { courseId: foundation.id }, orderBy: { order: "asc" } });
   if (
     process.env.NODE_ENV !== "production" &&
-    (await prisma.module.count({ where: { courseId: foundation.id } })) === 0
+    firstModule &&
+    (await prisma.lesson.count({ where: { module: { courseId: foundation.id } } })) === 0
   ) {
-    await prisma.module.create({
+    await prisma.module.update({
+      where: { id: firstModule.id },
       data: {
-        courseId: foundation.id,
-        title: "Module 1: Getting started",
-        order: 0,
         lessons: {
           create: {
             title: "Check your understanding",

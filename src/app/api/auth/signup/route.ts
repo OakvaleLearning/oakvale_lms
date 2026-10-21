@@ -45,7 +45,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ ok: true, role: user.role });
-  } catch {
+  } catch (err) {
+    console.error("[signup]", err);
     return NextResponse.json(
       { error: "Could not create your account. Please try again." },
       { status: 500 }

@@ -105,8 +105,8 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
             />
           ) : (
             <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              File uploads need Cloudflare R2. Set <code>R2_ACCOUNT_ID</code>, <code>R2_ACCESS_KEY_ID</code>,{" "}
-              <code>R2_SECRET_ACCESS_KEY</code> and <code>R2_BUCKET</code>.
+              File uploads need the AWS S3 bucket connected to this Vercel project (<code>S3_BUCKET_NAME</code>,{" "}
+              <code>AWS_REGION</code>, <code>AWS_ROLE_ARN</code>).
             </p>
           )}
         </Panel>
