@@ -45,7 +45,7 @@ async function loadLearners(take?: number) {
       id: true,
       name: true,
       email: true,
-      emailDeliveries: { select: { key: true, sentAt: true } },
+      emailDeliveries: { where: { key: { in: [...SEQUENCE_KEYS] } }, select: { key: true, sentAt: true } },
       enrollments: {
         where: { status: "ACTIVE" },
         orderBy: { createdAt: "asc" },

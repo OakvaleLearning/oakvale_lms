@@ -123,3 +123,65 @@ export const questionSchema = z
   })
   .refine((q) => q.correct.every((c) => q.options.some((o) => o.id === c)), "Correct answer must be one of the options")
   .refine((q) => q.type === "MULTIPLE" || q.correct.length === 1, "Single-answer questions need exactly one correct option");
+
+/* ------------------------------------------------------------------ *
+ * Community
+ * ------------------------------------------------------------------ */
+
+export const POST_MAX_CHARS = 5000;
+export const COMMENT_MAX_CHARS = 2000;
+export const POST_MAX_IMAGES = 4;
+export const REACTION_KINDS = ["LIKE", "LOVE", "CELEBRATE", "INSIGHTFUL"] as const;
+export const GROUP_AUDIENCES = ["ALL_PAID", "PROGRAM", "TIER"] as const;
+export const RSVP_STATUSES = ["GOING", "MAYBE", "NO"] as const;
+/** /community/<slug> sits beside these pages, so groups can't use their names. */
+export const RESERVED_GROUP_SLUGS = ["events", "members", "notifications", "settings", "new"];
+
+export const postSchema = z.object({
+  groupId: z.string().min(1, "Choose a group").max(40),
+  body: z.string().trim().min(1, "Write something first").max(POST_MAX_CHARS, `Posts are limited to ${POST_MAX_CHARS} characters`),
+  images: z.array(z.string().max(300)).max(POST_MAX_IMAGES, `Add up to ${POST_MAX_IMAGES} images`).default([]),
+  announcement: z.boolean().default(false),
+});
+
+export const postEditSchema = z.object({
+  body: z.string().trim().min(1, "Write something first").max(POST_MAX_CHARS, `Posts are limited to ${POST_MAX_CHARS} characters`),
+});
+
+export const commentSchema = z.object({
+  body: z.string().trim().min(1, "Write a comment first").max(COMMENT_MAX_CHARS, `Comments are limited to ${COMMENT_MAX_CHARS} characters`),
+  parentId: z.string().max(40).optional(),
+});
+
+export const communityProfileSchema = z.object({
+  headline: z.string().trim().max(80).default(""),
+  location: z.string().trim().max(80).default(""),
+  bio: z.string().trim().max(280, "Keep your bio under 280 characters").default(""),
+  notifyEmail: z.boolean().default(true),
+  digest: z.boolean().default(true),
+});
+
+export const communityGroupSchema = z
+  .object({
+    name: z.string().trim().min(2, "Name is too short").max(80),
+    slug: slugSchema,
+    description: z.string().trim().max(1000).default(""),
+    audience: z.enum(GROUP_AUDIENCES),
+    programId: z.string().max(40).optional(),
+    tierId: z.string().max(40).optional(),
+  })
+  .refine((g) => !RESERVED_GROUP_SLUGS.includes(g.slug), { message: "That slug is reserved — choose another", path: ["slug"] })
+  .refine((g) => g.audience !== "PROGRAM" || g.programId, { message: "Choose the programme", path: ["programId"] })
+  .refine((g) => g.audience !== "TIER" || g.tierId, { message: "Choose the tier", path: ["tierId"] });
+
+export const communityEventSchema = z
+  .object({
+    groupId: z.string().min(1).max(40),
+    title: z.string().trim().min(3, "Title is too short").max(140),
+    description: z.string().trim().max(5000).default(""),
+    startsAt: z.date({ error: "Enter a valid start time" }),
+    endsAt: z.date().optional(),
+    location: z.string().trim().max(200).default(""),
+    meetingUrl: z.url({ protocol: /^https?$/, error: "Enter a full link starting with https://" }).max(500).optional(),
+  })
+  .refine((e) => !e.endsAt || e.endsAt > e.startsAt, { message: "The end must be after the start", path: ["endsAt"] });

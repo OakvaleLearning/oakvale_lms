@@ -11,6 +11,7 @@ import {
   lessonCreateSchema,
   lessonUpdateSchema,
   programSchema,
+  RESERVED_GROUP_SLUGS,
   tierSchema,
 } from "@/lib/validation";
 
@@ -40,6 +41,26 @@ async function nextOrder(count: Promise<{ _max: { order: number | null } }>) {
  * Programs
  * ------------------------------------------------------------------ */
 
+/** Every programme gets its own community group; learners join it once enrolled. */
+async function createProgramGroup(program: { id: string; slug: string; title: string; order: number }) {
+  const data = {
+    name: program.title,
+    description: `For everyone enrolled in ${program.title}.`,
+    audience: "PROGRAM" as const,
+    programId: program.id,
+    order: program.order + 1,
+  };
+  for (const slug of [program.slug, `${program.slug}-community`]) {
+    if (RESERVED_GROUP_SLUGS.includes(slug)) continue;
+    try {
+      await prisma.communityGroup.create({ data: { ...data, slug } });
+      return;
+    } catch (err) {
+      if (!isUniqueError(err)) throw err;
+    }
+  }
+}
+
 function parseProgram(fd: FormData) {
   return programSchema.safeParse({
     title: text(fd, "title"),
@@ -60,6 +81,7 @@ export async function createProgram(_prev: ActionState, fd: FormData): Promise<A
       data: { ...parsed.data, order },
     });
     id = program.id;
+    await createProgramGroup(program);
   } catch (err) {
     if (isUniqueError(err)) return { error: "A programme with that slug already exists." };
     throw err;

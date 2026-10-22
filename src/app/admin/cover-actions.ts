@@ -16,7 +16,7 @@ import {
 
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
-export type CoverTarget = { kind: "program" | "course"; id: string };
+export type CoverTarget = { kind: "program" | "course" | "group"; id: string };
 
 const IMAGE_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 const MAX_COVER_BYTES = 5 * 1024 * 1024;
@@ -24,14 +24,18 @@ const MAX_COVER_BYTES = 5 * 1024 * 1024;
 const prefixFor = (t: CoverTarget) => `${COVER_PREFIX}${t.kind}s/${t.id}/`;
 
 async function exists(t: CoverTarget) {
-  const row =
-    t.kind === "program"
-      ? await prisma.program.findUnique({ where: { id: t.id }, select: { coverImage: true } })
-      : await prisma.course.findUnique({ where: { id: t.id }, select: { coverImage: true } });
-  return row;
+  const select = { coverImage: true } as const;
+  if (t.kind === "program") return prisma.program.findUnique({ where: { id: t.id }, select });
+  if (t.kind === "group") return prisma.communityGroup.findUnique({ where: { id: t.id }, select });
+  return prisma.course.findUnique({ where: { id: t.id }, select });
 }
 
 function refresh(t: CoverTarget) {
+  if (t.kind === "group") {
+    revalidatePath(`/admin/community/groups/${t.id}`);
+    revalidatePath("/community", "layout");
+    return;
+  }
   revalidatePath(t.kind === "program" ? `/admin/programs/${t.id}` : `/admin/courses/${t.id}`);
   revalidatePath("/learn", "layout");
   revalidatePath("/enroll");
@@ -67,6 +71,8 @@ export async function saveCover(target: CoverTarget, key: string | null): Promis
   const coverImage = key ? coverPath(key) : null;
   if (target.kind === "program") {
     await prisma.program.update({ where: { id: target.id }, data: { coverImage } });
+  } else if (target.kind === "group") {
+    await prisma.communityGroup.update({ where: { id: target.id }, data: { coverImage } });
   } else {
     await prisma.course.update({ where: { id: target.id }, data: { coverImage } });
   }

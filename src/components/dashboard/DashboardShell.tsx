@@ -18,6 +18,7 @@ import {
   MessagesSquare,
   Mail,
   Award,
+  UsersRound,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/utils";
@@ -25,13 +26,14 @@ import { Logo } from "@/components/layout/Logo";
 import { SITE } from "@/content/site";
 import { EASE, PageTransition } from "@/components/motion";
 import { SUPPORT_READ_EVENT } from "@/components/support/SupportChat";
+import { COMMUNITY_READ_EVENT } from "@/components/community/NotificationsRead";
 
 interface NavItem {
   label: string;
   href: string;
   icon: React.ElementType;
-  /** Shows the support unread count. */
-  badge?: boolean;
+  /** Shows an unread count: support replies, or community notifications. */
+  badge?: "support" | "community";
 }
 
 const NAV: Record<"learner" | "admin", { section: string; items: NavItem[] }> = {
@@ -39,9 +41,10 @@ const NAV: Record<"learner" | "admin", { section: string; items: NavItem[] }> = 
     section: "Learning",
     items: [
       { label: "My learning", href: "/learn", icon: BookOpen },
+      { label: "Community", href: "/community", icon: UsersRound, badge: "community" },
       { label: "Certificates", href: "/learn/certificates", icon: Award },
       { label: "Programmes", href: "/enroll", icon: ShoppingBag },
-      { label: "Support", href: "/support", icon: LifeBuoy, badge: true },
+      { label: "Support", href: "/support", icon: LifeBuoy, badge: "support" },
     ],
   },
   admin: {
@@ -52,7 +55,8 @@ const NAV: Record<"learner" | "admin", { section: string; items: NavItem[] }> = 
       { label: "Learners", href: "/admin/learners", icon: Users },
       { label: "Payments", href: "/admin/payments", icon: Receipt },
       { label: "Certificates", href: "/admin/certificates", icon: Award },
-      { label: "Support", href: "/admin/support", icon: MessagesSquare, badge: true },
+      { label: "Community", href: "/admin/community", icon: UsersRound },
+      { label: "Support", href: "/admin/support", icon: MessagesSquare, badge: "support" },
       { label: "Emails", href: "/admin/emails", icon: Mail },
     ],
   },
@@ -73,7 +77,9 @@ export function DashboardShell({
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const unread = useSupportUnread(pathname);
+  const unread = useUnread(pathname, "/api/support/unread", SUPPORT_READ_EVENT);
+  const communityUnread = useUnread(pathname, variant === "learner" ? "/api/community/notifications/unread" : null, COMMUNITY_READ_EVENT);
+  const badges = { support: unread, community: communityUnread };
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -125,12 +131,12 @@ export function DashboardShell({
                   )}
                   <Icon className={cn("relative size-4", active ? "text-primary-600" : "text-ink-400")} />
                   <span className="relative flex-1">{item.label}</span>
-                  {item.badge && unread > 0 && (
+                  {item.badge && badges[item.badge] > 0 && (
                     <span
                       className="relative grid h-5 min-w-5 place-items-center rounded-full bg-primary-600 px-1.5 text-[11px] font-semibold tabular-nums text-white"
-                      aria-label={`${unread} unread`}
+                      aria-label={`${badges[item.badge]} unread`}
                     >
-                      {unread > 99 ? "99+" : unread}
+                      {badges[item.badge] > 99 ? "99+" : badges[item.badge]}
                     </span>
                   )}
                 </Link>
@@ -239,24 +245,25 @@ export function DashboardShell({
   );
 }
 
-/** Support badge count, refreshed on navigation and every 30 seconds. */
-function useSupportUnread(pathname: string) {
+/** A badge count, refreshed on navigation, every 30 seconds and when `readEvent` fires. */
+function useUnread(pathname: string, endpoint: string | null, readEvent: string) {
   const [count, setCount] = useState(0);
   useEffect(() => {
+    if (!endpoint) return;
     let cancelled = false;
     const load = () =>
-      fetch("/api/support/unread", { cache: "no-store" })
+      fetch(endpoint, { cache: "no-store" })
         .then((res) => (res.ok ? res.json() : null))
         .then((data: { count: number } | null) => !cancelled && data && setCount(data.count))
         .catch(() => {});
     load();
     const timer = setInterval(() => document.visibilityState === "visible" && load(), 30_000);
-    window.addEventListener(SUPPORT_READ_EVENT, load);
+    window.addEventListener(readEvent, load);
     return () => {
       cancelled = true;
       clearInterval(timer);
-      window.removeEventListener(SUPPORT_READ_EVENT, load);
+      window.removeEventListener(readEvent, load);
     };
-  }, [pathname]);
+  }, [pathname, endpoint, readEvent]);
   return count;
 }

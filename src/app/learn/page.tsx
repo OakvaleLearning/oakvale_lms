@@ -8,6 +8,7 @@ import { EmptyState, PageHeader } from "@/components/dashboard/ui";
 import { ProgressBar } from "@/components/learn/ProgressBar";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { cn } from "@/lib/utils";
+import { CommunityCard } from "@/components/community/CommunityCard";
 
 export const metadata: Metadata = { title: "My learning" };
 
@@ -125,6 +126,10 @@ export default async function LearnHome() {
           </Link>
         </Reveal>
       )}
+
+      <Reveal delay={0.1}>
+        <CommunityCard session={session} />
+      </Reveal>
 
       {programs.map((program) => (
         <section key={program.slug}>

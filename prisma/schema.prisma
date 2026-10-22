@@ -51,6 +51,15 @@ model User {
   supportMessages   SupportMessage[]
   emailDeliveries   EmailDelivery[]
   certificates      Certificate[]
+  communityProfile  CommunityProfile?
+  posts             Post[]
+  comments          Comment[]
+  reactions         Reaction[]
+  eventRsvps        EventRsvp[]
+  eventsCreated     CommunityEvent[]
+  notifications     Notification[]       @relation("NotificationRecipient")
+  notificationsSent Notification[]       @relation("NotificationActor")
+  reports           PostReport[]
 }
 
 /// Single-use, time-limited password reset tokens. Only the SHA-256 hash of the
@@ -109,6 +118,7 @@ model Program {
   updatedAt   DateTime @updatedAt
   tiers       Tier[]
   courses     Course[]
+  groups      CommunityGroup[]
 
   @@index([published, order])
 }
@@ -128,6 +138,7 @@ model Tier {
   updatedAt   DateTime     @updatedAt
   courses     TierCourse[]
   enrollments Enrollment[]
+  groups      CommunityGroup[]
 
   @@unique([programId, slug])
   @@index([programId, order])
@@ -594,4 +605,211 @@ model Certificate {
   @@unique([userId, courseId])
   @@index([cpdStatus, issuedAt])
   @@index([issuedAt])
+}
+
+/**
+ * ------------------------------------------------------------------ *
+ * Community
+ * ------------------------------------------------------------------
+ * Membership isn't stored: a learner belongs to a group while they hold an
+ * ACTIVE enrolment that matches its audience (see src/lib/community/access.ts),
+ * so paying adds them and a cancelled enrolment removes them.
+ */
+
+enum GroupAudience {
+  ALL_PAID // every learner with an active enrolment
+  PROGRAM // learners enrolled in `program`
+  TIER // learners enrolled in `tier`
+}
+
+model CommunityGroup {
+  id          String           @id @default(cuid())
+  slug        String           @unique
+  name        String
+  description String           @default("")
+  coverImage  String?
+  audience    GroupAudience    @default(ALL_PAID)
+  program     Program?         @relation(fields: [programId], references: [id], onDelete: Cascade)
+  programId   String?
+  tier        Tier?            @relation(fields: [tierId], references: [id], onDelete: Cascade)
+  tierId      String?
+  order       Int              @default(0)
+  archived    Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  posts       Post[]
+  events      CommunityEvent[]
+
+  @@index([archived, order])
+}
+
+/// Community-facing profile; the display name is User.name. Created on first save.
+model CommunityProfile {
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String   @id
+  avatar       String? // storage key under community/avatars/<userId>/
+  headline     String   @default("")
+  bio          String   @default("")
+  location     String   @default("")
+  // Email me when someone comments on my post or replies to my comment.
+  notifyEmail  Boolean  @default(true)
+  digestOptOut Boolean  @default(false)
+  updatedAt    DateTime @updatedAt
+}
+
+model Post {
+  id             String         @id @default(cuid())
+  group          CommunityGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId        String
+  author         User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId       String
+  body           String
+  images         String[]       @default([]) // storage keys under community/<groupId>/
+  // Admin announcement: every member is notified.
+  announcement   Boolean        @default(false)
+  pinnedAt       DateTime?
+  lockedAt       DateTime? // no new comments
+  commentCount   Int            @default(0)
+  reactionCount  Int            @default(0)
+  lastActivityAt DateTime       @default(now())
+  editedAt       DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  comments       Comment[]
+  reactions      Reaction[]
+  reports        PostReport[]
+  notifications  Notification[]
+
+  @@index([groupId, deletedAt, createdAt])
+  @@index([deletedAt, createdAt])
+  @@index([authorId])
+}
+
+model Comment {
+  id        String       @id @default(cuid())
+  post      Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String
+  author    User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId  String
+  // One level of replies: a reply's parent is always a top-level comment.
+  parent    Comment?     @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId  String?
+  replies   Comment[]    @relation("CommentReplies")
+  body      String
+  deletedAt DateTime?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  reactions Reaction[]
+  reports   PostReport[]
+
+  @@index([postId, createdAt])
+}
+
+enum ReactionKind {
+  LIKE
+  LOVE
+  CELEBRATE
+  INSIGHTFUL
+}
+
+/// One reaction per person per post or comment (changing it replaces the kind).
+model Reaction {
+  id        String       @id @default(cuid())
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  post      Post?        @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String?
+  comment   Comment?     @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId String?
+  kind      ReactionKind @default(LIKE)
+  createdAt DateTime     @default(now())
+
+  @@unique([userId, postId])
+  @@unique([userId, commentId])
+  @@index([commentId])
+}
+
+model CommunityEvent {
+  id             String         @id @default(cuid())
+  group          CommunityGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId        String
+  title          String
+  description    String         @default("")
+  startsAt       DateTime
+  endsAt         DateTime?
+  // A venue address, or "Online" with a meeting link.
+  location       String         @default("")
+  meetingUrl     String?
+  coverImage     String?
+  createdBy      User?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdById    String?
+  reminderSentAt DateTime?
+  cancelledAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  rsvps          EventRsvp[]
+  notifications  Notification[]
+
+  @@index([groupId, startsAt])
+  @@index([startsAt])
+}
+
+enum RsvpStatus {
+  GOING
+  MAYBE
+  NO
+}
+
+model EventRsvp {
+  event     CommunityEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId   String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  status    RsvpStatus
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@id([eventId, userId])
+  @@index([userId])
+}
+
+enum NotificationKind {
+  COMMENT_ON_POST
+  REPLY
+  EVENT_NEW
+  EVENT_REMINDER
+  ANNOUNCEMENT
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  user      User             @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  kind      NotificationKind
+  actor     User?            @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  actorId   String?
+  post      Post?            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    String?
+  event     CommunityEvent?  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId   String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt, createdAt])
+}
+
+model PostReport {
+  id         String    @id @default(cuid())
+  post       Post?     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId     String?
+  comment    Comment?  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId  String?
+  reporter   User      @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  reporterId String
+  reason     String
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([resolvedAt, createdAt])
 }
