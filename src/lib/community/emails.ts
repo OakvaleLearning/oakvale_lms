@@ -102,7 +102,7 @@ async function sendEventReminders(now: Date) {
 
     const link = `${appUrl()}/community/events/${event.id}`;
     const when = formatEventTime(event.startsAt);
-    const where = event.meetingUrl ? "Online — the joining link is on the event page." : event.location;
+    const where = event.meetingUrl ? "Online. The joining link is on the event page." : event.location;
     const emails = event.rsvps.map(({ user }) => {
       const bodyHtml =
         p(`Hi ${escape(user.name.split(" ")[0])},`) +
@@ -120,7 +120,7 @@ View event: ${link}
 
 See you there,
 ${TEAM}`;
-      return { to: user.email, subject: `Reminder: ${event.title} — ${when}`, html: layout(event.title, bodyHtml), text };
+      return { to: user.email, subject: `Reminder: ${event.title} on ${when}`, html: layout(event.title, bodyHtml), text };
     });
 
     for (let i = 0; i < emails.length; i += EMAIL_BATCH_SIZE) {
@@ -175,7 +175,7 @@ function digestEmail(
   const eventHtml = events
     .map(
       (e) =>
-        `<li style="margin:0 0 8px;font-size:14px;color:#3f3f46;"><a href="${appUrl()}/community/events/${e.id}" style="color:#3229a2;font-weight:600;text-decoration:none;">${escape(e.title)}</a> — ${escape(formatEventTime(e.startsAt))} <span style="color:#71717a;">(${escape(e.groupName)})</span></li>`
+        `<li style="margin:0 0 8px;font-size:14px;color:#3f3f46;"><a href="${appUrl()}/community/events/${e.id}" style="color:#3229a2;font-weight:600;text-decoration:none;">${escape(e.title)}</a>, ${escape(formatEventTime(e.startsAt))} <span style="color:#71717a;">(${escape(e.groupName)})</span></li>`
     )
     .join("");
 
@@ -189,7 +189,7 @@ function digestEmail(
   const text = `Hi ${first}, here's what's been happening in your Oakvale community this week.
 
 ${posts.map((post) => `• ${post.groupName} · ${post.author}: ${short(post.body)}\n  ${appUrl()}/community/${post.groupSlug}/posts/${post.id}`).join("\n\n")}
-${events.length ? `\nComing up:\n${events.map((e) => `• ${e.title} — ${formatEventTime(e.startsAt)}`).join("\n")}\n` : ""}
+${events.length ? `\nComing up:\n${events.map((e) => `• ${e.title}, ${formatEventTime(e.startsAt)}`).join("\n")}\n` : ""}
 Join the conversation: ${appUrl()}/community
 
 Unsubscribe from the weekly digest: ${digestUnsubscribeUrl(user.id)}`;

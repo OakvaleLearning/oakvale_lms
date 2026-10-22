@@ -45,7 +45,7 @@ export async function ingestPackage(assetId: string): Promise<void> {
     const files = unzip(bytes);
     if (asset.lesson.type === "SCORM") {
       const manifestPath = shallowest(Object.keys(files), (p) => /(^|\/)imsmanifest\.xml$/i.test(p));
-      if (!manifestPath) throw new PackageError("No imsmanifest.xml found — is this a SCORM package?");
+      if (!manifestPath) throw new PackageError("No imsmanifest.xml found. Is this a SCORM package?");
       const base = manifestPath.slice(0, manifestPath.lastIndexOf("/") + 1);
       const manifest = parseManifest(new TextDecoder().decode(files[manifestPath]));
       await uploadFiles(prefix, files, base);

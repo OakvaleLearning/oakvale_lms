@@ -129,7 +129,7 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
           <p>
             <span className="font-semibold">Early enrolment is open.</span>{" "}
             <span className="text-primary-900/75">
-              Secure your place now — we&apos;ll email you the moment your courses are ready.
+              Secure your place now and we&apos;ll email you the moment your courses are ready.
             </span>
           </p>
         </div>

@@ -47,10 +47,10 @@ export default async function EmailsPage({ searchParams }: PageProps<"/admin/ema
 
       <div className="flex flex-wrap gap-2 text-xs">
         <span className={cn("rounded-full px-2.5 py-1 font-medium", configured ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800")}>
-          {configured ? "Sending is on" : "Sending is off — set RESEND_API_KEY"}
+          {configured ? "Sending is on" : "Sending is off. Set RESEND_API_KEY"}
         </span>
         <span className={cn("rounded-full px-2.5 py-1 font-medium", isPrelaunch() ? "bg-primary-50 text-primary-700" : "bg-ink-100 text-ink-600")}>
-          {isPrelaunch() ? "Pre-launch mode on" : "Pre-launch mode off — emails 1–3 won't send"}
+          {isPrelaunch() ? "Pre-launch mode on" : "Pre-launch mode off, so emails 1 to 3 won't send"}
         </span>
         <span className="rounded-full bg-ink-100 px-2.5 py-1 font-medium text-ink-600">Checked daily at 8am (Lagos)</span>
       </div>

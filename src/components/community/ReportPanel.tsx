@@ -29,7 +29,7 @@ export function ReportPanel({ target, onClose }: { target: { postId: string } | 
   if (state === "sent") {
     return (
       <p className="mt-4 flex items-center gap-2 rounded-lg bg-emerald-50 px-3.5 py-3 text-sm text-emerald-800">
-        <CheckCircle2 className="size-4" /> Thanks — the Oakvale team will take a look.
+        <CheckCircle2 className="size-4" /> Thanks! The Oakvale team will take a look.
       </p>
     );
   }

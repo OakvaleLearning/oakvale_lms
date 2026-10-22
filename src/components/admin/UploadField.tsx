@@ -52,7 +52,7 @@ function putWithProgress(url: string, file: File, contentType: string, onProgres
     xhr.setRequestHeader("Content-Type", contentType);
     xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(Math.round((e.loaded / e.total) * 100));
     xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Upload failed (${xhr.status})`)));
-    xhr.onerror = () => reject(new Error("Upload failed — check your connection and the storage bucket's CORS settings."));
+    xhr.onerror = () => reject(new Error("Upload failed. Check your connection and the storage bucket's CORS settings."));
     xhr.send(file);
   });
 }
@@ -113,7 +113,7 @@ export function UploadField({
             <div className="text-xs text-ink-500">
               {asset.status === "READY" && "Ready"}
               {asset.status === "FAILED" && (asset.error ?? "Processing failed")}
-              {(asset.status === "UPLOADING" || asset.status === "PROCESSING") && "Not finished — upload again if this persists"}
+              {(asset.status === "UPLOADING" || asset.status === "PROCESSING") && "Not finished. Upload again if this persists"}
               {asset.sizeBytes ? ` · ${(asset.sizeBytes / 1024 / 1024).toFixed(1)} MB` : ""}
               {asset.scormVersion ? ` · SCORM ${asset.scormVersion}` : ""}
             </div>

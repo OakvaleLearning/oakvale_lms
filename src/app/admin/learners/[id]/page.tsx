@@ -93,7 +93,7 @@ export default async function LearnerPage({ params }: PageProps<"/admin/learners
             <li key={e.id} className="flex flex-wrap items-center gap-3 py-3">
               <div className="min-w-0 flex-1">
                 <div className="font-medium text-ink-900">
-                  {e.tier.program.title} — {e.tier.name}
+                  {e.tier.program.title} ({e.tier.name})
                 </div>
                 <div className="text-xs text-ink-400">
                   {e.source === "PAYSTACK" ? formatNaira(e.amount) : e.source === "ADMIN" ? "Granted by admin" : "Imported"} ·{" "}
@@ -118,7 +118,7 @@ export default async function LearnerPage({ params }: PageProps<"/admin/learners
             </option>
             {tiers.map((t) => (
               <option key={t.id} value={t.id}>
-                {t.program.title} — {t.name}
+                {t.program.title} ({t.name})
               </option>
             ))}
           </Select>

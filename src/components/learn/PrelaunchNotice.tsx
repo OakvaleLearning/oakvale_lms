@@ -23,12 +23,12 @@ export async function PrelaunchNotice({ userId }: { userId: string }) {
             {enrollments.map((e) => (
               <li key={e.id} className="flex items-center gap-2.5 bg-canvas/60 px-4 py-3 text-sm font-medium text-ink-800">
                 <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
-                {e.tier.program.title} — {e.tier.name}
+                {e.tier.program.title} ({e.tier.name})
               </li>
             ))}
           </ul>
           <p className="mt-6 text-sm leading-relaxed text-ink-500">
-            Our learning platform opens soon. We&apos;ll email you the moment your courses are ready — on the web
+            Our learning platform opens soon. We&apos;ll email you the moment your courses are ready, on the web
             and in the Oakvale app.
           </p>
         </>

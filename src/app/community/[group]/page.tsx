@@ -133,7 +133,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/co
               </dl>
               <h3 className="mt-6 text-sm font-semibold text-ink-950">Community guidelines</h3>
               <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed text-ink-600">
-                <li>Be kind and respectful — everyone is here to learn.</li>
+                <li>Be kind and respectful. Everyone is here to learn.</li>
                 <li>Never share personal details about the people you care for.</li>
                 <li>No advertising or spam.</li>
                 <li>Use “Report” on anything that breaks these rules; the Oakvale team will review it.</li>

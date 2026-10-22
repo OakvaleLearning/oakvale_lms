@@ -232,7 +232,7 @@ export async function react(
     await prisma.reaction.update({ where: { id: existing.id }, data: { kind } });
   } else {
     const limited = await rateLimit(`community:react:${session.userId}`, 300, HOUR);
-    if (!limited.ok) return fail("Slow down a little — try again shortly.");
+    if (!limited.ok) return fail("Slow down a little and try again shortly.");
     await prisma.$transaction([prisma.reaction.create({ data: { userId: session.userId, kind, ...target } }), ...postCounter(1)]);
   }
   return { ok: true, mine: kind };

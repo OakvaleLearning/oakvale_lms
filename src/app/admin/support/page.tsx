@@ -225,7 +225,7 @@ export default async function SupportInboxPage({
                     <div className="truncate text-xs text-ink-500">
                       {selected.user.email}
                       {selected.user.enrollments.length > 0 &&
-                        ` · ${selected.user.enrollments.map((e) => `${e.tier.program.title} — ${e.tier.name}`).join(", ")}`}
+                        ` · ${selected.user.enrollments.map((e) => `${e.tier.program.title} (${e.tier.name})`).join(", ")}`}
                     </div>
                   </div>
                   <Link

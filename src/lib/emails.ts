@@ -20,8 +20,8 @@ export async function sendEnrolledEmail(
   }
 
   const link = `${appUrl()}/learn`;
-  const what = `${info.programTitle} — ${info.tierName}`;
-  const next = "Your courses are open now — learn at your own pace, on your phone or computer.";
+  const what = `${info.programTitle} (${info.tierName})`;
+  const next = "Your courses are open now. Learn at your own pace, on your phone or computer.";
 
   const bodyHtml =
     p(`Dear ${escape(user.name)},`) +
@@ -44,7 +44,7 @@ ${TEAM}`;
   return sendEmail({
     to: user.email,
     subject: `You're enrolled: ${what}`,
-    html: layout("Welcome — your courses are ready", bodyHtml),
+    html: layout("Welcome! Your courses are ready", bodyHtml),
     text,
   });
 }
@@ -55,14 +55,14 @@ export async function sendCoursesOpenEmail(user: { name: string; email: string }
 
   const bodyHtml =
     p(`Dear ${escape(user.name)},`) +
-    p(`The wait is over — your ${SITE.name} courses are now open.`) +
+    p(`The wait is over: your ${SITE.name} courses are now open.`) +
     p(`Sign in with the email and password you enrolled with and start learning at your own pace, on your phone or computer.`) +
     button(link, "Start learning") +
     p(`Warm regards,<br/>${TEAM}`);
 
   const text = `Dear ${user.name},
 
-The wait is over — your ${SITE.name} courses are now open.
+The wait is over: your ${SITE.name} courses are now open.
 
 Sign in with the email and password you enrolled with and start learning at your own pace: ${link}
 
@@ -111,7 +111,7 @@ ${TEAM}`;
 
   return sendEmail({
     to: user.email,
-    subject: `Welcome to ${SITE.name} – confirm your email`,
+    subject: `Welcome to ${SITE.name}! Please confirm your email`,
     html: layout("Confirm your email", bodyHtml),
     text,
   });
@@ -132,7 +132,7 @@ export async function sendPasswordResetEmail(
     p(`We received a request to reset the password for your ${SITE.name} account. Click the button below to choose a new one.`) +
     button(link, "Reset my password") +
     p(`This link expires in <strong>${ttl}</strong> and can only be used once.`) +
-    p(`If you did not request this, you can safely ignore this email — your password will stay unchanged.`) +
+    p(`If you did not request this, you can safely ignore this email. Your password will stay unchanged.`) +
     p(`Warm regards,<br/>${TEAM}`);
 
   const text = `Dear ${user.name},
@@ -143,7 +143,7 @@ Reset your password here: ${link}
 
 This link expires in ${ttl} and can only be used once.
 
-If you did not request this, you can safely ignore this email — your password will stay unchanged.
+If you did not request this, you can safely ignore this email. Your password will stay unchanged.
 
 Warm regards,
 ${TEAM}`;

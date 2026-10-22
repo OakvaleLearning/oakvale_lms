@@ -70,7 +70,7 @@ export default async function LearnersPage({ searchParams }: PageProps<"/admin/l
                 <p className="truncate text-xs text-ink-400">{l.email}</p>
                 <p className="mt-2 text-sm text-ink-600">
                   {l.enrollments.length
-                    ? l.enrollments.map((e) => `${e.tier.program.title} — ${e.tier.name}`).join(", ")
+                    ? l.enrollments.map((e) => `${e.tier.program.title} (${e.tier.name})`).join(", ")
                     : "Not enrolled"}
                 </p>
                 <div className="mt-3 flex items-center justify-between gap-3 text-xs text-ink-500">
@@ -107,7 +107,7 @@ export default async function LearnersPage({ searchParams }: PageProps<"/admin/l
                   </td>
                   <td className="px-6 py-3.5 text-ink-600">
                     {l.enrollments.length
-                      ? l.enrollments.map((e) => `${e.tier.program.title} — ${e.tier.name}`).join(", ")
+                      ? l.enrollments.map((e) => `${e.tier.program.title} (${e.tier.name})`).join(", ")
                       : "—"}
                   </td>
                   <td className="px-6 py-3.5 text-ink-900">{l._count.progress}</td>

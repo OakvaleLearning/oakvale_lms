@@ -26,7 +26,7 @@ export function PaymentsTable({
               <p className="shrink-0 text-sm font-semibold tabular-nums text-ink-950">{formatNaira(p.amount)}</p>
             </div>
             <p className="mt-0.5 text-sm text-ink-600">
-              {p.enrollment.tier.program.title} — {p.enrollment.tier.name}
+              {p.enrollment.tier.program.title} ({p.enrollment.tier.name})
             </p>
             <div className="mt-3 flex items-center justify-between gap-3">
               <StatusBadge status={p.status} />
@@ -51,7 +51,7 @@ export function PaymentsTable({
               <tr key={p.id}>
                 <td className="px-6 py-2.5 font-medium text-ink-900">{p.user.name}</td>
                 <td className="px-6 py-3.5 text-ink-600">
-                  {p.enrollment.tier.program.title} — {p.enrollment.tier.name}
+                  {p.enrollment.tier.program.title} ({p.enrollment.tier.name})
                 </td>
                 <td className="px-6 py-3.5 tabular-nums text-ink-900">{formatNaira(p.amount)}</td>
                 <td className="px-6 py-3.5">

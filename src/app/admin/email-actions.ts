@@ -23,5 +23,5 @@ export async function sendTestEmail(_prev: TestEmailState, formData: FormData): 
   if (!email) return { error: "Unknown email." };
 
   const ok = await sendEmail({ to: session.email, ...email, subject: `[Test] ${email.subject}` });
-  return ok ? { message: `Sent to ${session.email}.` } : { error: "Couldn't send — check the server logs." };
+  return ok ? { message: `Sent to ${session.email}.` } : { error: "Couldn't send. Check the server logs." };
 }

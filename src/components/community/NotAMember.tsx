@@ -17,7 +17,7 @@ export function NotAMember({ unverified = false }: { unverified?: boolean }) {
   }
   return (
     <EmptyState icon={Users} title="Join a programme to access the community" action={<ButtonLink href="/enroll">Browse programmes</ButtonLink>}>
-      Once you enrol, you&apos;re added to the Oakvale Community and your programme&apos;s group automatically — meet other
+      Once you enrol, you&apos;re added to the Oakvale Community and your programme&apos;s group automatically. Meet other
       learners, join live sessions and get support from the Oakvale team.
     </EmptyState>
   );

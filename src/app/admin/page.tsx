@@ -50,7 +50,7 @@ export default async function AdminOverview() {
           <div>
             <div className="font-semibold">Pre-launch mode is on</div>
             <p className="mt-1 text-amber-900/80">
-              Learners can enrol and pay, but can&apos;t open courses yet — they see &ldquo;your place is
+              Learners can enrol and pay, but can&apos;t open courses yet. They see &ldquo;your place is
               secured&rdquo;. You can build and preview everything. On launch day, remove the{" "}
               <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-xs">PRELAUNCH</code> environment
               variable and redeploy.

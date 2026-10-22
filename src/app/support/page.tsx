@@ -20,7 +20,7 @@ export default async function SupportPage() {
       <PageHeader
         eyebrow="Help"
         title="Chat with support"
-        description="Message the Oakvale team about anything — your course, payments or your account. Replies appear here, so you can leave and come back."
+        description="Message the Oakvale team about anything: your course, payments or your account. Replies appear here, so you can leave and come back."
       />
 
       <section className="card mt-8 flex h-[calc(100dvh-16rem)] min-h-[28rem] flex-col overflow-hidden">

@@ -59,7 +59,7 @@ export async function sendLaunchEmails(): Promise<LaunchEmailState> {
   return {
     message:
       `Sent ${sent}.` +
-      (failed ? ` ${failed} failed — click again to retry.` : "") +
-      (remaining ? ` ${remaining} still to send — click again.` : " Everyone has been told."),
+      (failed ? ` ${failed} failed. Click again to retry.` : "") +
+      (remaining ? ` ${remaining} still to send. Click again.` : " Everyone has been told."),
   };
 }

@@ -124,7 +124,7 @@ export function QuestionEditor({ lessonId, question }: { lessonId: string; quest
         <legend className="mb-1.5 text-sm font-medium text-ink-700">
           Answers{" "}
           <span className="font-normal text-ink-500">
-            — mark the correct {type === "MULTIPLE" ? "answers" : "answer"}
+            (mark the correct {type === "MULTIPLE" ? "answers" : "answer"})
           </span>
         </legend>
         <div className="space-y-2">

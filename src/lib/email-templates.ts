@@ -172,7 +172,7 @@ function supportLines(): string[] {
   return [
     `**Email:** ${SITE.email}`,
     ...(whatsapp ? [`**WhatsApp:** ${whatsapp}`] : []),
-    "**Support hours:** 9am – 6pm",
+    "**Support hours:** 9am to 6pm",
   ];
 }
 

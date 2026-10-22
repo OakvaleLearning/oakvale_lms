@@ -91,7 +91,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             autoComplete="tel"
             inputMode="tel"
             placeholder="0810 818 9514"
-            hint="For course updates and support — nothing else."
+            hint="For course updates and support, nothing else."
           />
         )}
         <PasswordField

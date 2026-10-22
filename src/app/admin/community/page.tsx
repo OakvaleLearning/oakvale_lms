@@ -99,7 +99,7 @@ export default async function AdminCommunityPage() {
                 <p className="mt-0.5 truncate text-xs text-ink-500">
                   {AUDIENCE_LABEL[g.audience]}
                   {g.program && ` · ${g.program.title}`}
-                  {g.tier && ` · ${g.tier.program.title} — ${g.tier.name}`}
+                  {g.tier && ` · ${g.tier.program.title} (${g.tier.name})`}
                   {g.archived && " · Archived"}
                 </p>
               </div>

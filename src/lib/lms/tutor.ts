@@ -166,7 +166,7 @@ async function describeQuizResults(userId: string, lessonId: string): Promise<st
     const right = given.length === correct.length && given.every((id) => correct.includes(id));
     return [
       `${i + 1}. ${q.prompt}`,
-      `   Learner answered: ${text(given)} — ${right ? "correct" : "incorrect"}`,
+      `   Learner answered: ${text(given)} (${right ? "correct" : "incorrect"})`,
       `   Correct answer: ${text(correct)}`,
       q.explanation ? `   Explanation: ${q.explanation}` : "",
     ]

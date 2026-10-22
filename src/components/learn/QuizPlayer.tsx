@@ -122,7 +122,7 @@ export function QuizPlayer({
           <div>
             <div className="font-display text-4xl leading-none tabular-nums">{outcome.score}%</div>
             <div className="mt-1 text-sm opacity-80">
-              {outcome.passed ? "Well done — you passed!" : `You need ${passMark}% to pass.`}
+              {outcome.passed ? "Well done, you passed!" : `You need ${passMark}% to pass.`}
             </div>
           </div>
         </motion.div>

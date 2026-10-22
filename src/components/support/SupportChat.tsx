@@ -242,7 +242,7 @@ export function SupportChat({
                           onClick={() => deliver(m.id, m.body)}
                           className="inline-flex items-center gap-1 font-medium text-accent-700 hover:underline"
                         >
-                          <RotateCcw className="size-3" /> Not sent — tap to retry
+                          <RotateCcw className="size-3" /> Not sent. Tap to retry
                         </button>
                       ) : (
                         <span suppressHydrationWarning>{timeLabel(m.createdAt)}</span>

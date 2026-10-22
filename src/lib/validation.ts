@@ -170,7 +170,7 @@ export const communityGroupSchema = z
     programId: z.string().max(40).optional(),
     tierId: z.string().max(40).optional(),
   })
-  .refine((g) => !RESERVED_GROUP_SLUGS.includes(g.slug), { message: "That slug is reserved — choose another", path: ["slug"] })
+  .refine((g) => !RESERVED_GROUP_SLUGS.includes(g.slug), { message: "That slug is reserved. Choose another", path: ["slug"] })
   .refine((g) => g.audience !== "PROGRAM" || g.programId, { message: "Choose the programme", path: ["programId"] })
   .refine((g) => g.audience !== "TIER" || g.tierId, { message: "Choose the tier", path: ["tierId"] });
 
