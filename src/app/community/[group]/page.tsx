@@ -7,6 +7,7 @@ import { requireSession } from "@/lib/auth";
 import { isStorageConfigured } from "@/lib/storage";
 import { canManageGroup, groupMemberWhere } from "@/lib/community/access";
 import { GroupAdminToggle } from "@/components/community/GroupAdminToggle";
+import { GroupMembershipButton } from "@/components/community/GroupMemberButtons";
 import { AUTHOR_SELECT, listPinnedPosts, listPosts, toAuthor } from "@/lib/community/feed";
 import { getMe, loadCommunity } from "@/lib/community/viewer";
 import { listGroupEvents } from "@/lib/community/events";
@@ -114,7 +115,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/co
         <div className="min-w-0">
           {tab === "feed" && <FeedTab session={session} groupId={group.id} groupName={group.name} canManage={canManage} />}
           {tab === "events" && <EventsTab groupId={group.id} userId={session.userId} isAdmin={isAdmin} />}
-          {tab === "members" && <MembersTab group={full} slug={slug} q={String(sp.q ?? "")} page={Number(sp.page) || 1} canManage={canManage} />}
+          {tab === "members" && <MembersTab group={full} slug={slug} q={String(sp.q ?? "")} page={Number(sp.page) || 1} canManage={canManage} viewerId={session.userId} />}
           {tab === "about" && (
             <section className="card p-6">
               <h2 className="text-sm font-semibold text-ink-950">About this group</h2>
@@ -258,6 +259,7 @@ async function MembersTab({
   q,
   page,
   canManage,
+  viewerId,
 }: {
   group: Parameters<typeof groupMemberWhere>[0];
   slug: string;
@@ -265,6 +267,7 @@ async function MembersTab({
   page: number;
   /** The viewer can appoint and remove this group's admins. */
   canManage: boolean;
+  viewerId: string;
 }) {
   const search = q.trim().slice(0, 80);
   const where = {
@@ -296,6 +299,13 @@ async function MembersTab({
   const groupAdminIds = new Set(
     (await prisma.groupAdmin.findMany({ where: { groupId: group.id, userId: { in: members.map((m) => m.id) } }, select: { userId: true } })).map((r) => r.userId)
   );
+  const removed = canManage
+    ? await prisma.groupRemoval.findMany({
+        where: { groupId: group.id },
+        orderBy: { createdAt: "desc" },
+        select: { userId: true, user: { select: { name: true } } },
+      })
+    : [];
   const pages = Math.max(1, Math.ceil(total / MEMBERS_PAGE));
   const pageHref = (p: number) => `/community/${slug}?tab=members${search ? `&q=${encodeURIComponent(search)}` : ""}${p > 1 ? `&page=${p}` : ""}`;
 
@@ -332,12 +342,30 @@ async function MembersTab({
                 </span>
               </Link>
               {canManage && !author.team && (
-                <GroupAdminToggle groupId={group.id} userId={m.id} name={author.name} isAdmin={groupAdminIds.has(m.id)} />
+                <div className="flex shrink-0 items-start gap-2">
+                  <GroupAdminToggle groupId={group.id} userId={m.id} name={author.name} isAdmin={groupAdminIds.has(m.id)} />
+                  {m.id !== viewerId && <GroupMembershipButton groupId={group.id} userId={m.id} name={author.name} member />}
+                </div>
               )}
             </li>
           );
         })}
       </ul>
+      {removed.length > 0 && (
+        <details className="card group/removed">
+          <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-ink-800 [&::-webkit-details-marker]:hidden">
+            Removed from this group ({removed.length})
+          </summary>
+          <ul className="divide-y divide-line border-t border-line">
+            {removed.map((r) => (
+              <li key={r.userId} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                <span className="min-w-0 truncate text-sm text-ink-700">{r.user.name}</span>
+                <GroupMembershipButton groupId={group.id} userId={r.userId} name={r.user.name} member={false} />
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
       {pages > 1 && (
         <nav className="flex items-center justify-between pt-2 text-sm" aria-label="Pages">
           {page > 1 ? <Link href={pageHref(page - 1)} className="font-medium text-primary-700 hover:underline">← Previous</Link> : <span />}

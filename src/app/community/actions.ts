@@ -358,3 +358,38 @@ export async function setGroupAdmin(groupId: string, userId: string, on: boolean
   revalidatePath(`/community/${group.slug}`);
   return { ok: true };
 }
+
+/**
+ * Take a member out of this group, or let them back in. Allowed for site
+ * admins and the group's own admins. It only affects this group; the person
+ * keeps their account, enrolments and their other groups, and their earlier
+ * posts stay (a group admin can delete those). Removing a group admin also
+ * ends their admin role. Site admins can't be removed.
+ */
+export async function setGroupMembership(groupId: string, userId: string, member: boolean): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return fail("Please log in again.");
+  if (!(await canManageGroup(session, groupId))) return fail("Only group admins can do that.");
+  if (userId === session.userId) return fail("You can't remove yourself.");
+
+  const group = await prisma.communityGroup.findUnique({ where: { id: groupId }, select: { slug: true } });
+  if (!group) return fail("That group isn't available.");
+
+  if (member) {
+    await prisma.groupRemoval.deleteMany({ where: { groupId, userId } });
+  } else {
+    const target = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    if (!target) return fail("That member isn't available.");
+    if (target.role === "ADMIN") return fail("The Oakvale team can't be removed from groups.");
+    await prisma.$transaction([
+      prisma.groupRemoval.upsert({
+        where: { groupId_userId: { groupId, userId } },
+        create: { groupId, userId, removedById: session.userId },
+        update: {},
+      }),
+      prisma.groupAdmin.deleteMany({ where: { groupId, userId } }),
+    ]);
+  }
+  revalidatePath(`/community/${group.slug}`);
+  return { ok: true };
+}

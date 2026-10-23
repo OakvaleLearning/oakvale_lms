@@ -15,7 +15,9 @@ import { isEmailVerified, type SessionPayload } from "@/lib/auth";
  * So paying (or an admin grant) adds a learner straight away, and a cancelled
  * enrolment removes them. Site admins are in every group, shown as the Oakvale
  * Team. A group admin (GroupAdmin row) is always a member of that group, paid
- * or not, and can moderate it (see canManageGroup).
+ * or not, and can moderate it (see canManageGroup). A GroupRemoval row keeps a
+ * learner out of one group even though their enrolment qualifies; site admins
+ * can't be removed.
  */
 
 type Viewer = Pick<SessionPayload, "userId" | "role">;
@@ -39,6 +41,7 @@ export const getMemberGroups = cache(async (userId: string, role: Viewer["role"]
   return prisma.communityGroup.findMany({
     where: {
       archived: false,
+      removals: { none: { userId } },
       OR: [
         { admins: { some: { userId } } },
         { audience: "ALL_PAID" },
@@ -75,8 +78,12 @@ export function groupMemberWhere(group: Pick<CommunityGroup, "id" | "audience" |
   return {
     OR: [
       { role: "ADMIN" },
-      { role: "LEARNER", emailVerifiedAt: { not: null }, enrollments: { some: active } },
-      { role: "LEARNER", emailVerifiedAt: { not: null }, groupAdminOf: { some: { groupId: group.id } } },
+      {
+        role: "LEARNER",
+        emailVerifiedAt: { not: null },
+        groupRemovals: { none: { groupId: group.id } },
+        OR: [{ enrollments: { some: active } }, { groupAdminOf: { some: { groupId: group.id } } }],
+      },
     ],
   };
 }

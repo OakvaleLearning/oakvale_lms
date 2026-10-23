@@ -54,6 +54,7 @@ model User {
   certificates      Certificate[]
   communityProfile  CommunityProfile?
   groupAdminOf      GroupAdmin[]
+  groupRemovals     GroupRemoval[]
   posts             Post[]
   comments          Comment[]
   reactions         Reaction[]
@@ -715,6 +716,7 @@ model CommunityGroup {
   posts       Post[]
   events      CommunityEvent[]
   admins      GroupAdmin[]
+  removals    GroupRemoval[]
 
   @@index([archived, order])
 }
@@ -728,6 +730,21 @@ model GroupAdmin {
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
   createdAt DateTime       @default(now())
+
+  @@id([groupId, userId])
+  @@index([userId])
+}
+
+/// A member taken out of one group by a group admin or the team. Membership is
+/// otherwise derived from enrolments, so this is the only way to keep someone
+/// out of a group they would qualify for. Delete the row to let them back in.
+model GroupRemoval {
+  group       CommunityGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId     String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  removedById String?
+  createdAt   DateTime       @default(now())
 
   @@id([groupId, userId])
   @@index([userId])
