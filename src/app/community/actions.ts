@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession, type SessionPayload } from "@/lib/auth";
 import { HOUR, rateLimit } from "@/lib/rate-limit";
-import { deletePrefix, ensureUploadCors, isStorageConfigured, presignUpload } from "@/lib/storage";
+import { COVER_PREFIX, coverKey, coverPath, deletePrefix, ensureUploadCors, isStorageConfigured, presignUpload } from "@/lib/storage";
 import { canManageGroup, getMemberGroupIds, groupMemberWhere, isGroupMember } from "@/lib/community/access";
 import { postViewById } from "@/lib/community/feed";
 import { markNotificationsRead, notifyComment, notifyGroup } from "@/lib/community/notifications";
@@ -356,5 +356,55 @@ export async function setGroupAdmin(groupId: string, userId: string, on: boolean
     await prisma.groupAdmin.deleteMany({ where: { groupId, userId } });
   }
   revalidatePath(`/community/${group.slug}`);
+  return { ok: true };
+}
+
+/* ------------------------------------------------------------------ *
+ * Group cover photo (the banner), changeable by the group's admins
+ * ------------------------------------------------------------------ */
+
+const groupCoverPrefix = (groupId: string) => `${COVER_PREFIX}groups/${groupId}/`;
+
+/** Step 1: a presigned PUT URL for the browser to upload the banner image to. */
+export async function createGroupCoverUpload(
+  groupId: string,
+  file: { type: string; size: number }
+): Promise<ActionResult<{ uploadUrl: string; key: string; contentType: string }>> {
+  const session = await getSession();
+  if (!session) return fail("Please log in again.");
+  if (!(await canManageGroup(session, groupId))) return fail("Only group admins can change the photo.");
+  if (!isStorageConfigured()) return fail("Image uploads aren't available yet.");
+
+  const ext = IMAGE_TYPES[String(file.type)];
+  if (!ext) return fail("Please choose a JPG, PNG or WebP image.");
+  if (!(file.size > 0) || file.size > MAX_IMAGE_BYTES) return fail("That image is too large (max 5 MB).");
+
+  const limited = await rateLimit(`community:cover:${session.userId}`, 20, HOUR);
+  if (!limited.ok) return fail("You've changed the photo a lot recently. Please try again later.");
+
+  const corsError = await ensureUploadCors(new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3001").origin);
+  if (corsError) return fail(corsError);
+
+  const key = `${groupCoverPrefix(groupId)}${randomUUID()}.${ext}`;
+  return { ok: true, key, contentType: file.type, uploadUrl: await presignUpload(key, file.type) };
+}
+
+/** Step 2 (or removal with key = null): save the banner and delete the previous upload. */
+export async function saveGroupCover(groupId: string, key: string | null): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return fail("Please log in again.");
+  if (!(await canManageGroup(session, groupId))) return fail("Only group admins can change the photo.");
+  if (key !== null && (!key.startsWith(groupCoverPrefix(groupId)) || key.includes(".."))) return fail("Invalid upload.");
+
+  const current = await prisma.communityGroup.findUnique({ where: { id: groupId }, select: { coverImage: true, slug: true } });
+  if (!current) return fail("That group isn't available.");
+
+  await prisma.communityGroup.update({ where: { id: groupId }, data: { coverImage: key ? coverPath(key) : null } });
+  const old = coverKey(current.coverImage);
+  if (old && old !== key) await deletePrefix(old).catch((err) => console.error("[community] cover cleanup failed:", err));
+
+  revalidatePath(`/community/${current.slug}`);
+  revalidatePath("/community", "layout");
+  revalidatePath(`/admin/community/groups/${groupId}`);
   return { ok: true };
 }

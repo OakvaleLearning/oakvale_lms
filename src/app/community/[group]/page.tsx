@@ -7,6 +7,7 @@ import { requireSession } from "@/lib/auth";
 import { isStorageConfigured } from "@/lib/storage";
 import { canManageGroup, groupMemberWhere } from "@/lib/community/access";
 import { GroupAdminToggle } from "@/components/community/GroupAdminToggle";
+import { GroupCoverButton } from "@/components/community/GroupCoverButton";
 import { AUTHOR_SELECT, listPinnedPosts, listPosts, toAuthor } from "@/lib/community/feed";
 import { getMe, loadCommunity } from "@/lib/community/viewer";
 import { listGroupEvents } from "@/lib/community/events";
@@ -72,11 +73,12 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/co
       <Breadcrumbs items={[{ label: "Community", href: "/community" }, { label: group.name }]} />
 
       <header className="card overflow-hidden">
-        <div className="relative h-32 bg-white sm:h-44">
+        <div className="relative h-32 bg-gradient-to-br from-primary-700 via-primary-600 to-primary-900 sm:h-44">
           {group.coverImage && (
             // eslint-disable-next-line @next/next/no-img-element -- covers come from /media redirects
             <img src={group.coverImage} alt="" className="absolute inset-0 size-full object-cover" />
           )}
+          {canManage && <GroupCoverButton groupId={group.id} hasCover={Boolean(group.coverImage)} />}
         </div>
         <div className="px-5 pb-0 pt-5 sm:px-6">
           <div className="flex flex-wrap items-end justify-between gap-4">
