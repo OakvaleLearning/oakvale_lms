@@ -12,6 +12,7 @@ import { LESSON_TYPE_LABEL, LessonIcon } from "@/components/learn/LessonIcon";
 import { ActionForm, DeleteButton, Field, Input, Panel, Switch, Textarea } from "@/components/admin/forms";
 import { UploadField } from "@/components/admin/UploadField";
 import { TextPartEditor } from "@/components/admin/TextPartEditor";
+import { DocumentAccess } from "@/components/admin/DocumentAccess";
 import { LessonBuilder, type BuilderPart } from "@/components/admin/LessonBuilder";
 import type { EditableQuestion } from "@/components/admin/QuestionEditor";
 import { Breadcrumbs, PageHeader, StatusBadge } from "@/components/dashboard/ui";
@@ -255,5 +256,10 @@ function PartEditor({
       </p>
     );
   }
-  return <UploadField blockId={block.id} kind={block.type} asset={block.asset} />;
+  return (
+    <div className="space-y-4">
+      <UploadField blockId={block.id} kind={block.type} asset={block.asset} />
+      {block.type === "DOCUMENT" && <DocumentAccess blockId={block.id} allowDownload={block.allowDownload} />}
+    </div>
+  );
 }

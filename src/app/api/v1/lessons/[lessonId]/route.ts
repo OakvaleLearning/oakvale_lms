@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkLessonAccess, getOrderedLessons } from "@/lib/lms/access";
-import { documentKind } from "@/lib/lms/blocks";
+import { documentKind, isOfficeFile, officeViewerUrl } from "@/lib/lms/blocks";
 import { getBlockProgress } from "@/lib/lms/progress";
 import { getQuizForLearner } from "@/lib/lms/quiz";
 import { isStorageConfigured, presignDownload } from "@/lib/storage";
@@ -14,7 +14,9 @@ import { jsonError, requireApiSession } from "@/lib/api/mobile";
  * - quiz: questions without answers; submit to POST /api/lms/quiz/<lessonId>
  * - web: SCORM/HTML; get a WebView URL from POST /api/v1/lessons/<lessonId>/launch
  *   with `{ "blockId": "<part id>" }`
- * - document: `url` (presigned) to show (`display` "pdf" | "image") or download
+ * - document: `url` (presigned) to show (`display` "pdf" | "image"); for "download" files
+ *   (Word/PowerPoint/Excel) show `viewUrl` in a web view instead. When `allowDownload` is
+ *   false, don't offer save/share/open-externally controls
  * - text: `markdown` to render
  * - unavailable: content not uploaded yet
  * Progress is reported to POST /api/lms/progress with the part's `blockId`.
@@ -105,7 +107,11 @@ async function partContent(block: Part, lessonId: string, userId: string, startA
       display,
       fileName: asset.fileName,
       mimeType: asset.mimeType,
-      url: await presignDownload(asset.storageKey, display === "download" ? { downloadName: asset.fileName } : {}),
+      // false: hide any save/share/open-externally controls in the app.
+      allowDownload: block.allowDownload,
+      url: await presignDownload(asset.storageKey, display === "download" && block.allowDownload ? { downloadName: asset.fileName } : {}),
+      // Office files: an embeddable viewer to show instead of downloading.
+      viewUrl: isOfficeFile(asset.fileName) ? officeViewerUrl(await presignDownload(asset.storageKey)) : null,
     };
   }
   return { kind: "web" as const };
