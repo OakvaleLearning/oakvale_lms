@@ -13,8 +13,9 @@ export async function POST(req: Request, ctx: RouteContext<"/api/lms/scorm/[less
   const { lessonId } = await ctx.params;
 
   const access = await checkLessonAccess(session, lessonId);
-  const version = access.ok ? access.lesson.asset?.scormVersion : null;
-  if (!access.ok || access.lesson.type !== "SCORM" || !version) {
+  const scorm = access.ok ? access.lesson.blocks.find((b) => b.type === "SCORM") : undefined;
+  const version = scorm?.asset?.scormVersion;
+  if (!access.ok || !version) {
     return NextResponse.json({ result: false, errorCode: 101 }, { status: 403 });
   }
 

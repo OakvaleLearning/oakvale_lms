@@ -10,16 +10,19 @@ let lastRefresh = 0;
 /**
  * Native video/audio player streaming from a presigned R2 URL. Saves the
  * position every 15s while playing (and on pause/leave), resumes from it, and
- * marks the lesson complete once 90% has been played.
+ * marks the part complete once 90% has been played.
  */
 export function MediaPlayer({
   lessonId,
+  blockId,
   kind,
   src,
   startAt,
   completed,
 }: {
   lessonId: string;
+  /** The lesson part this player is, so progress is saved against it. */
+  blockId: string;
   kind: "VIDEO" | "AUDIO";
   src: string;
   startAt: number;
@@ -38,7 +41,7 @@ export function MediaPlayer({
       fetch("/api/lms/progress", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lessonId, ...body }),
+        body: JSON.stringify({ lessonId, blockId, ...body }),
         keepalive: true,
       }).catch(() => {});
 
@@ -84,7 +87,7 @@ export function MediaPlayer({
       window.removeEventListener("pagehide", onLeave);
       if (el.currentTime > 0) send({ positionSec: el.currentTime });
     };
-  }, [lessonId, startAt, router]);
+  }, [lessonId, blockId, startAt, router]);
 
   if (kind === "AUDIO") {
     return (

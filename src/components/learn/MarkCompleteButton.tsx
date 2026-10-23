@@ -5,8 +5,21 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
-/** For HTML lessons, which have no built-in way to report completion. */
-export function MarkCompleteButton({ lessonId, completed }: { lessonId: string; completed: boolean }) {
+/**
+ * For parts that can't report their own completion (web pages, documents,
+ * written text): the learner says they're done.
+ */
+export function MarkCompleteButton({
+  lessonId,
+  blockId,
+  completed,
+  label = "Mark as complete",
+}: {
+  lessonId: string;
+  blockId: string;
+  completed: boolean;
+  label?: string;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -23,7 +36,7 @@ export function MarkCompleteButton({ lessonId, completed }: { lessonId: string; 
     await fetch("/api/lms/progress", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ lessonId, completed: true }),
+      body: JSON.stringify({ lessonId, blockId, completed: true }),
     }).catch(() => {});
     router.refresh();
     setLoading(false);
@@ -32,7 +45,7 @@ export function MarkCompleteButton({ lessonId, completed }: { lessonId: string; 
   return (
     <Button onClick={complete} disabled={loading} variant="outline" size="sm">
       {loading ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
-      Mark as complete
+      {label}
     </Button>
   );
 }

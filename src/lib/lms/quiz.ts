@@ -110,7 +110,8 @@ export async function submitQuiz(
   await prisma.quizAttempt.create({
     data: { quizId: quiz.id, userId, answers, score, passed },
   });
-  await recordProgress(userId, lessonId, { score, completed: passed });
+  const part = await prisma.lessonBlock.findFirst({ where: { lessonId, type: "QUIZ" }, select: { id: true } });
+  await recordProgress(userId, lessonId, { score, completed: passed, blockId: part?.id });
 
   const attemptsUsed = used + 1;
   const attemptsLeft = quiz.maxAttempts === null ? null : Math.max(0, quiz.maxAttempts - attemptsUsed);

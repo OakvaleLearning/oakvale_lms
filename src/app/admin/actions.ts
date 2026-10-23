@@ -334,13 +334,16 @@ export async function createLesson(moduleId: string, _prev: ActionState, fd: For
   if (!parsed.success) return { error: firstIssue(parsed.error) };
   const order = await nextOrder(prisma.lesson.aggregate({ where: { moduleId }, _max: { order: true } }));
   const { title, type } = parsed.data;
+  // A new lesson starts empty (add parts yourself), with one part, or as the final assessment.
+  const first = type === "MIXED" ? null : type === "EXAM" ? "QUIZ" : type;
   const lesson = await prisma.lesson.create({
     data: {
       moduleId,
       order,
       title,
-      type: type === "EXAM" ? "QUIZ" : type,
-      ...(type === "QUIZ" || type === "EXAM" ? { quiz: { create: { kind: type === "EXAM" ? "EXAM" : "QUIZ" } } } : {}),
+      type: first ?? "MIXED",
+      ...(first ? { blocks: { create: { type: first, order: 0 } } } : {}),
+      ...(first === "QUIZ" ? { quiz: { create: { kind: type === "EXAM" ? "EXAM" : "QUIZ" } } } : {}),
     },
   });
   refresh();
@@ -354,14 +357,9 @@ export async function updateLesson(id: string, _prev: ActionState, fd: FormData)
     description: text(fd, "description"),
     tutorNotes: text(fd, "tutorNotes"),
     published: bool(fd, "published"),
-    durationMin: text(fd, "durationMin") || undefined,
   });
   if (!parsed.success) return { error: firstIssue(parsed.error) };
-  const { durationMin, ...data } = parsed.data;
-  await prisma.lesson.update({
-    where: { id },
-    data: { ...data, ...(durationMin !== undefined ? { durationSec: Math.round(durationMin * 60) } : {}) },
-  });
+  await prisma.lesson.update({ where: { id }, data: parsed.data });
   refresh();
   return { ok: true };
 }
@@ -370,10 +368,10 @@ export async function deleteLesson(id: string): Promise<ActionState> {
   await requireAdmin();
   const lesson = await prisma.lesson.findUniqueOrThrow({
     where: { id },
-    select: { module: { select: { courseId: true } }, asset: { select: { id: true, storageKey: true } } },
+    select: { module: { select: { courseId: true } }, assets: { select: { id: true, storageKey: true } } },
   });
   await prisma.lesson.delete({ where: { id } });
-  if (lesson.asset) await removeAssetFiles([lesson.asset]);
+  await removeAssetFiles(lesson.assets);
   refresh();
   redirect(`/admin/courses/${lesson.module.courseId}`);
 }

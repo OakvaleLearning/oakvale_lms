@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BLOCK_TYPES } from "@/lib/lms/blocks";
 
 /**
  * WhatsApp / phone number. Deliberately lenient about formatting (spaces,
@@ -84,12 +85,16 @@ export const courseSchema = z.object({
   prerequisiteId: z.string().max(40).optional().or(z.literal("")),
 });
 
-export const LESSON_TYPES = ["VIDEO", "AUDIO", "SCORM", "HTML", "QUIZ"] as const;
+/**
+ * What a new lesson starts with: nothing (add parts yourself), one part of a
+ * kind, or the course's final assessment.
+ */
+export const LESSON_STARTS = ["MIXED", ...BLOCK_TYPES, "EXAM"] as const;
 
 export const lessonCreateSchema = z.object({
   title: z.string().trim().min(2, "Title is too short").max(200),
-  // "EXAM" creates a QUIZ lesson that is the course's final assessment.
-  type: z.enum([...LESSON_TYPES, "EXAM"]),
+  // "EXAM" creates a quiz lesson that is the course's final assessment.
+  type: z.enum(LESSON_STARTS),
 });
 
 export const lessonUpdateSchema = z.object({
@@ -97,7 +102,6 @@ export const lessonUpdateSchema = z.object({
   description: z.string().trim().max(10000).default(""),
   tutorNotes: z.string().trim().max(30000).default(""),
   published: z.boolean().default(true),
-  durationMin: z.coerce.number().min(0).max(24 * 60).optional(),
 });
 
 export const QUIZ_KINDS = ["QUIZ", "EXAM"] as const;
