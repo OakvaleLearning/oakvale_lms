@@ -115,6 +115,16 @@ export function documentKind(fileName: string): "pdf" | "image" | "download" {
   return "download";
 }
 
+/** Word, PowerPoint and Excel files, which browsers can't show but Microsoft's web viewer can. */
+export function isOfficeFile(fileName: string): boolean {
+  return /\.(docx?|pptx?|xlsx?)$/i.test(fileName);
+}
+
+/** Microsoft's embeddable viewer for a publicly fetchable (here: short-lived signed) file URL. */
+export function officeViewerUrl(fileUrl: string): string {
+  return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
+}
+
 /**
  * The part type a file most likely belongs in, from its name. A .zip could be
  * a SCORM package or a web page: "ZIP" is resolved on the server by looking for

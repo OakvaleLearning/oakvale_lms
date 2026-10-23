@@ -277,6 +277,9 @@ model LessonBlock {
   required    Boolean         @default(true)
   // TEXT parts: the written content, as Markdown.
   body        String          @default("")
+  // DOCUMENT parts: whether learners get Download / Open-in-new-tab buttons.
+  // Either way the file is viewable in the lesson.
+  allowDownload Boolean       @default(true)
   durationSec Int?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt

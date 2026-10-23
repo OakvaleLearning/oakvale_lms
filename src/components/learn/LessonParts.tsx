@@ -1,6 +1,6 @@
 import { CheckCircle2 } from "lucide-react";
 import type { checkLessonAccess } from "@/lib/lms/access";
-import { BLOCK_LABEL, documentKind, type BlockKind } from "@/lib/lms/blocks";
+import { BLOCK_LABEL, documentKind, isOfficeFile, officeViewerUrl, type BlockKind } from "@/lib/lms/blocks";
 import { getQuizForLearner } from "@/lib/lms/quiz";
 import { getInitialCmi } from "@/lib/lms/scorm";
 import { isStorageConfigured, presignDownload } from "@/lib/storage";
@@ -187,9 +187,10 @@ async function PartBody({
 
   if (part.type === "DOCUMENT") {
     const display = documentKind(asset.fileName);
+    // When downloads are off, no attachment link is ever generated for the learner.
     const [url, downloadUrl] = await Promise.all([
       presignDownload(asset.storageKey),
-      presignDownload(asset.storageKey, { downloadName: asset.fileName }),
+      part.allowDownload ? presignDownload(asset.storageKey, { downloadName: asset.fileName }) : Promise.resolve(null),
     ]);
     return (
       <div>
@@ -199,6 +200,7 @@ async function PartBody({
           sizeBytes={asset.sizeBytes}
           url={url}
           downloadUrl={downloadUrl}
+          viewerUrl={isOfficeFile(asset.fileName) ? officeViewerUrl(url) : null}
           title={title}
         />
         <CompletionBar

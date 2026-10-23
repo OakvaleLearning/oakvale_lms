@@ -75,6 +75,8 @@ export async function addBlock(lessonId: string, type: unknown, position?: numbe
 const partSchema = z.object({
   title: z.string().trim().max(200).optional(),
   required: z.boolean().optional(),
+  /** Document parts: show Download / Open-in-new-tab buttons. */
+  allowDownload: z.boolean().optional(),
   /** Estimated time in minutes; null clears it. */
   durationMin: z.number().min(0).max(24 * 60).nullable().optional(),
   body: z.string().max(MAX_TEXT_CHARS, "That's too long for one part. Split it into two.").optional(),
@@ -85,7 +87,7 @@ export async function updateBlock(blockId: string, input: unknown): Promise<Resu
   await requireAdmin();
   const parsed = partSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
-  const { title, required, durationMin, body } = parsed.data;
+  const { title, required, allowDownload, durationMin, body } = parsed.data;
 
   const block = await prisma.lessonBlock.findUnique({ where: { id: blockId }, select: { lessonId: true, type: true, required: true } });
   if (!block) return { ok: false, error: "Part not found." };
@@ -95,6 +97,7 @@ export async function updateBlock(blockId: string, input: unknown): Promise<Resu
     data: {
       ...(title !== undefined ? { title } : {}),
       ...(required !== undefined ? { required } : {}),
+      ...(allowDownload !== undefined && block.type === "DOCUMENT" ? { allowDownload } : {}),
       ...(body !== undefined && block.type === "TEXT" ? { body } : {}),
       ...(durationMin !== undefined ? { durationSec: durationMin ? minutesToSeconds(durationMin) : null } : {}),
     },
