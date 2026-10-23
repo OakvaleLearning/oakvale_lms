@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, Loader2, Trash2 } from "lucide-react";
+import { Camera, Loader2, MoreHorizontal, Trash2 } from "lucide-react";
 import { createGroupCoverUpload, saveGroupCover } from "@/app/community/actions";
 
 const ACCEPT = "image/jpeg,image/png,image/webp";
@@ -14,6 +14,21 @@ export function GroupCoverButton({ groupId, hasCover }: { groupId: string; hasCo
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+
+  // Close the menu on an outside click or Escape.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => !wrap.current?.contains(e.target as Node) && setOpen(false);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   async function run(task: () => Promise<void>) {
     setBusy(true);
@@ -50,22 +65,50 @@ export function GroupCoverButton({ groupId, hasCover }: { groupId: string; hasCo
     });
   }
 
-  const button =
-    "inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-medium text-ink-900 shadow-sm backdrop-blur transition-colors hover:bg-white disabled:opacity-70";
+  const item = "flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink-800 hover:bg-ink-50 disabled:opacity-60";
   return (
-    <div className="absolute right-3 top-3 z-10 flex flex-col items-end gap-1.5">
+    <div ref={wrap} className="absolute right-3 top-3 z-10 flex flex-col items-end gap-1.5">
       <input ref={input} type="file" accept={ACCEPT} className="hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
-      <div className="flex gap-2">
-        {hasCover && (
-          <button type="button" onClick={remove} disabled={busy} className={button} aria-label="Remove banner photo" title="Remove photo">
-            <Trash2 className="size-4" />
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        disabled={busy}
+        aria-label="Banner photo options"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title="Banner photo options"
+        className="grid size-8 place-items-center rounded-full bg-white/90 text-ink-900 shadow-sm backdrop-blur transition-colors hover:bg-white disabled:opacity-70"
+      >
+        {busy ? <Loader2 className="size-4 animate-spin" /> : <MoreHorizontal className="size-4" />}
+      </button>
+      {open && (
+        <div role="menu" className="w-44 overflow-hidden rounded-xl border border-line bg-white py-1 shadow-raised">
+          <button
+            type="button"
+            role="menuitem"
+            className={item}
+            onClick={() => {
+              setOpen(false);
+              input.current?.click();
+            }}
+          >
+            <Camera className="size-4 text-ink-500" /> {hasCover ? "Change photo" : "Add photo"}
           </button>
-        )}
-        <button type="button" onClick={() => input.current?.click()} disabled={busy} className={button} aria-label={hasCover ? "Change banner photo" : "Add banner photo"}>
-          {busy ? <Loader2 className="size-4 animate-spin" /> : <Camera className="size-4" />}
-          <span className="hidden sm:inline">{busy ? "Saving…" : hasCover ? "Change photo" : "Add photo"}</span>
-        </button>
-      </div>
+          {hasCover && (
+            <button
+              type="button"
+              role="menuitem"
+              className={item + " text-accent-700"}
+              onClick={() => {
+                setOpen(false);
+                remove();
+              }}
+            >
+              <Trash2 className="size-4" /> Remove photo
+            </button>
+          )}
+        </div>
+      )}
       {error && <p className="max-w-56 rounded-lg bg-white/95 px-2.5 py-1.5 text-xs text-accent-700 shadow-sm">{error}</p>}
     </div>
   );
