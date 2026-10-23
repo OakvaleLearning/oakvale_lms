@@ -10,3 +10,11 @@
 - Files attach to a part (`ContentAsset.blockId`), not to the lesson. Read `lesson.blocks[].asset`; `lesson.asset` no longer exists.
 - Admin editor: `src/app/admin/lessons/[id]/` (server actions in `actions.ts`, client builder in `src/components/admin/LessonBuilder.tsx`). Learner view: `src/components/learn/LessonParts.tsx`. Mobile API: `/api/v1/lessons/[id]` returns `parts[]` (plus `content` for older clients).
 - Changing the schema: write a Prisma migration by hand only if `prisma migrate dev` can't run; run `npx prisma generate` before type-checking.
+
+## Community groups and group admins
+
+- Group membership is derived, not stored (`src/lib/community/access.ts`): an active enrolment matching the group's audience plus a verified email. Site admins (`User.role = ADMIN`) are in every group and show as the Oakvale Team.
+- A `GroupAdmin` row makes one member a moderator of one group only; it grants nothing in `/admin`. Group admins are always members of that group, paid or not (`getMemberGroups` and `groupMemberWhere` include them).
+- Group-scoped moderation goes through `canManageGroup(viewer, groupId)` (site admin or `GroupAdmin` row) and `managedGroupIds(viewer)`: announcements, pin and lock, removing any post or comment, and appointing or removing group admins (`setGroupAdmin` in `src/app/community/actions.ts`, button in `src/components/community/GroupAdminToggle.tsx`, shown on the group's Members tab). Never check `session.role === "ADMIN"` for these; use the group-scoped helper.
+- Still site-admin only: creating events and uploading event images, "Manage group", and the `/admin` area.
+- `groupMemberWhere`, `groupLearnerWhere` and `notifyGroup` need the group's `id` as well as its audience fields.

@@ -75,7 +75,7 @@ export async function notifyComment(input: {
 
 /** Notify every member of a group (except the actor), e.g. an announcement or a new event. */
 export async function notifyGroup(
-  group: Pick<CommunityGroup, "audience" | "programId" | "tierId">,
+  group: Pick<CommunityGroup, "id" | "audience" | "programId" | "tierId">,
   kind: NotificationKind,
   data: { actorId: string; postId?: string; eventId?: string }
 ) {
