@@ -13,7 +13,9 @@ import { isEmailVerified, type SessionPayload } from "@/lib/auth";
  *   PROGRAM   an active enrolment in a tier of that programme
  *   TIER      an active enrolment in that tier
  * So paying (or an admin grant) adds a learner straight away, and a cancelled
- * enrolment removes them. Admins are in every group, shown as the Oakvale Team.
+ * enrolment removes them. Site admins are in every group, shown as the Oakvale
+ * Team. A group admin (GroupAdmin row) is always a member of that group, paid
+ * or not, and can moderate it (see canManageGroup).
  */
 
 type Viewer = Pick<SessionPayload, "userId" | "role">;
@@ -33,12 +35,12 @@ export const getMemberGroups = cache(async (userId: string, role: Viewer["role"]
     where: { userId, status: "ACTIVE" },
     select: { tierId: true, tier: { select: { programId: true } } },
   });
-  if (enrolments.length === 0) return [];
 
   return prisma.communityGroup.findMany({
     where: {
       archived: false,
       OR: [
+        { admins: { some: { userId } } },
         { audience: "ALL_PAID" },
         { audience: "PROGRAM", programId: { in: enrolments.map((e) => e.tier.programId) } },
         { audience: "TIER", tierId: { in: enrolments.map((e) => e.tierId) } },
@@ -63,7 +65,7 @@ export async function hasCommunityAccess(viewer: Viewer): Promise<boolean> {
 }
 
 /** Users who belong to a group, as a Prisma filter (for the member directory, notifications and emails). */
-export function groupMemberWhere(group: Pick<CommunityGroup, "audience" | "programId" | "tierId">): Prisma.UserWhereInput {
+export function groupMemberWhere(group: Pick<CommunityGroup, "id" | "audience" | "programId" | "tierId">): Prisma.UserWhereInput {
   const active =
     group.audience === "PROGRAM"
       ? { status: "ACTIVE" as const, tier: { programId: group.programId ?? "" } }
@@ -71,12 +73,16 @@ export function groupMemberWhere(group: Pick<CommunityGroup, "audience" | "progr
         ? { status: "ACTIVE" as const, tierId: group.tierId ?? "" }
         : { status: "ACTIVE" as const };
   return {
-    OR: [{ role: "ADMIN" }, { role: "LEARNER", emailVerifiedAt: { not: null }, enrollments: { some: active } }],
+    OR: [
+      { role: "ADMIN" },
+      { role: "LEARNER", emailVerifiedAt: { not: null }, enrollments: { some: active } },
+      { role: "LEARNER", emailVerifiedAt: { not: null }, groupAdminOf: { some: { groupId: group.id } } },
+    ],
   };
 }
 
 /** Learners (not admins) in a group: who gets announcement notifications and digests. */
-export function groupLearnerWhere(group: Pick<CommunityGroup, "audience" | "programId" | "tierId">): Prisma.UserWhereInput {
+export function groupLearnerWhere(group: Pick<CommunityGroup, "id" | "audience" | "programId" | "tierId">): Prisma.UserWhereInput {
   return { AND: [groupMemberWhere(group), { role: "LEARNER" }] };
 }
 
@@ -89,4 +95,25 @@ export async function sharesGroup(viewer: Viewer, otherUserId: string): Promise<
   const mine = new Set(await getMemberGroupIds(viewer));
   const theirs = await getMemberGroupIds({ userId: otherUserId, role: other.role });
   return theirs.some((id) => mine.has(id));
+}
+
+/**
+ * Whether the viewer can moderate a group: a site admin, or a member the team
+ * made that group's admin. Moderating means announcements, pinning, closing
+ * comments, removing any post or comment, and appointing other group admins.
+ */
+export async function canManageGroup(viewer: Viewer, groupId: string): Promise<boolean> {
+  if (viewer.role === "ADMIN") return true;
+  const row = await prisma.groupAdmin.findUnique({
+    where: { groupId_userId: { groupId, userId: viewer.userId } },
+    select: { userId: true },
+  });
+  return Boolean(row);
+}
+
+/** Ids of the groups the viewer moderates, or "all" for a site admin. */
+export async function managedGroupIds(viewer: Viewer): Promise<Set<string> | "all"> {
+  if (viewer.role === "ADMIN") return "all";
+  const rows = await prisma.groupAdmin.findMany({ where: { userId: viewer.userId }, select: { groupId: true } });
+  return new Set(rows.map((r) => r.groupId));
 }

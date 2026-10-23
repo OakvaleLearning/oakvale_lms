@@ -53,6 +53,7 @@ model User {
   emailDeliveries   EmailDelivery[]
   certificates      Certificate[]
   communityProfile  CommunityProfile?
+  groupAdminOf      GroupAdmin[]
   posts             Post[]
   comments          Comment[]
   reactions         Reaction[]
@@ -710,8 +711,23 @@ model CommunityGroup {
   updatedAt   DateTime         @updatedAt
   posts       Post[]
   events      CommunityEvent[]
+  admins      GroupAdmin[]
 
   @@index([archived, order])
+}
+
+/// A member who moderates one group (announce, pin, lock, remove posts and
+/// comments, appoint other group admins). Unlike User.role = ADMIN it grants
+/// nothing outside the group. Group admins are always members of the group.
+model GroupAdmin {
+  group     CommunityGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId   String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime       @default(now())
+
+  @@id([groupId, userId])
+  @@index([userId])
 }
 
 /// Community-facing profile; the display name is User.name. Created on first save.

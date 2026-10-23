@@ -2,7 +2,7 @@ import "server-only";
 import type { Prisma, ReactionKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/auth";
-import { getMemberGroupIds } from "./access";
+import { canManageGroup, getMemberGroupIds, managedGroupIds } from "./access";
 import { mediaUrl, type AuthorView, type CommentView, type PostView } from "./shared";
 
 type Viewer = Pick<SessionPayload, "userId" | "role">;
@@ -45,6 +45,7 @@ async function toViews(viewer: Viewer, rows: PostRow[]): Promise<PostView[]> {
     prisma.reaction.findMany({ where: { userId: viewer.userId, postId: { in: ids } }, select: { postId: true, kind: true } }),
     prisma.reaction.groupBy({ by: ["postId", "kind"], where: { postId: { in: ids } }, _count: true }),
   ]);
+  const managed = await managedGroupIds(viewer);
   const myByPost = new Map(mine.map((r) => [r.postId!, r.kind]));
   const top = new Map<string, { kind: ReactionKind; n: number }[]>();
   for (const k of kinds) {
@@ -69,7 +70,7 @@ async function toViews(viewer: Viewer, rows: PostRow[]): Promise<PostView[]> {
     createdAt: r.createdAt.toISOString(),
     edited: Boolean(r.editedAt),
     canEdit: r.authorId === viewer.userId,
-    canModerate: viewer.role === "ADMIN",
+    canModerate: managed === "all" || managed.has(r.groupId),
   }));
 }
 
@@ -132,6 +133,8 @@ export async function postViewById(viewer: Viewer, postId: string): Promise<Post
 
 /** A post's comments, oldest first, with replies nested under their comment. */
 export async function listComments(viewer: Viewer, postId: string): Promise<CommentView[]> {
+  const postGroup = await prisma.post.findUnique({ where: { id: postId }, select: { groupId: true } });
+  const canModerate = postGroup ? await canManageGroup(viewer, postGroup.groupId) : viewer.role === "ADMIN";
   const rows = await prisma.comment.findMany({
     where: { postId },
     orderBy: { createdAt: "asc" },
@@ -156,7 +159,7 @@ export async function listComments(viewer: Viewer, postId: string): Promise<Comm
       reactionCount: r._count.reactions,
       myReaction: myByComment.get(r.id) ?? null,
       deleted,
-      canDelete: !deleted && (r.authorId === viewer.userId || viewer.role === "ADMIN"),
+      canDelete: !deleted && (r.authorId === viewer.userId || canModerate),
       replies: [],
     });
   }

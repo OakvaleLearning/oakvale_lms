@@ -5,7 +5,8 @@ import { CalendarDays, CalendarPlus, Search, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
 import { isStorageConfigured } from "@/lib/storage";
-import { groupMemberWhere } from "@/lib/community/access";
+import { canManageGroup, groupMemberWhere } from "@/lib/community/access";
+import { GroupAdminToggle } from "@/components/community/GroupAdminToggle";
 import { AUTHOR_SELECT, listPinnedPosts, listPosts, toAuthor } from "@/lib/community/feed";
 import { getMe, loadCommunity } from "@/lib/community/viewer";
 import { listGroupEvents } from "@/lib/community/events";
@@ -63,6 +64,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/co
   const full = await prisma.communityGroup.findUniqueOrThrow({ where: { id: group.id } });
   const tab: Tab = TABS.some((t) => t.id === sp.tab) ? (sp.tab as Tab) : "feed";
   const isAdmin = session.role === "ADMIN";
+  const canManage = await canManageGroup(session, group.id);
   const memberCount = await prisma.user.count({ where: groupMemberWhere(full) });
 
   return (
@@ -110,9 +112,9 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/co
 
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0">
-          {tab === "feed" && <FeedTab session={session} groupId={group.id} groupName={group.name} />}
+          {tab === "feed" && <FeedTab session={session} groupId={group.id} groupName={group.name} canManage={canManage} />}
           {tab === "events" && <EventsTab groupId={group.id} userId={session.userId} isAdmin={isAdmin} />}
-          {tab === "members" && <MembersTab group={full} slug={slug} q={String(sp.q ?? "")} page={Number(sp.page) || 1} />}
+          {tab === "members" && <MembersTab group={full} slug={slug} q={String(sp.q ?? "")} page={Number(sp.page) || 1} canManage={canManage} />}
           {tab === "about" && (
             <section className="card p-6">
               <h2 className="text-sm font-semibold text-ink-950">About this group</h2>
@@ -150,7 +152,17 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/co
   );
 }
 
-async function FeedTab({ session, groupId, groupName }: { session: Awaited<ReturnType<typeof requireSession>>; groupId: string; groupName: string }) {
+async function FeedTab({
+  session,
+  groupId,
+  groupName,
+  canManage,
+}: {
+  session: Awaited<ReturnType<typeof requireSession>>;
+  groupId: string;
+  groupName: string;
+  canManage: boolean;
+}) {
   const [me, pinned, feed] = await Promise.all([
     getMe(session),
     listPinnedPosts(session, groupId),
@@ -164,7 +176,7 @@ async function FeedTab({ session, groupId, groupName }: { session: Awaited<Retur
       pinned={pinned}
       initialPosts={feed.posts}
       initialCursor={feed.nextCursor}
-      canAnnounce={session.role === "ADMIN"}
+      canAnnounce={canManage}
       uploadsEnabled={isStorageConfigured()}
     />
   );
@@ -245,11 +257,14 @@ async function MembersTab({
   slug,
   q,
   page,
+  canManage,
 }: {
   group: Parameters<typeof groupMemberWhere>[0];
   slug: string;
   q: string;
   page: number;
+  /** The viewer can appoint and remove this group's admins. */
+  canManage: boolean;
 }) {
   const search = q.trim().slice(0, 80);
   const where = {
@@ -278,6 +293,9 @@ async function MembersTab({
       select: { ...AUTHOR_SELECT, communityProfile: { select: { avatar: true, headline: true, location: true } } },
     }),
   ]);
+  const groupAdminIds = new Set(
+    (await prisma.groupAdmin.findMany({ where: { groupId: group.id, userId: { in: members.map((m) => m.id) } }, select: { userId: true } })).map((r) => r.userId)
+  );
   const pages = Math.max(1, Math.ceil(total / MEMBERS_PAGE));
   const pageHref = (p: number) => `/community/${slug}?tab=members${search ? `&q=${encodeURIComponent(search)}` : ""}${p > 1 ? `&page=${p}` : ""}`;
 
@@ -295,13 +313,16 @@ async function MembersTab({
         {members.map((m) => {
           const author = toAuthor(m);
           return (
-            <li key={m.id}>
-              <Link href={`/community/members/${m.id}`} className="card flex items-center gap-3 p-4 transition-shadow hover:shadow-raised">
+            <li key={m.id} className="card flex items-center gap-2 pr-4 transition-shadow hover:shadow-raised">
+              <Link href={`/community/members/${m.id}`} className="flex min-w-0 flex-1 items-center gap-3 p-4">
                 <Avatar name={author.name} src={author.avatar} team={author.team} />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
                     <span className="truncate text-sm font-semibold text-ink-950">{author.name}</span>
                     {author.team && <TeamBadge />}
+                    {groupAdminIds.has(m.id) && (
+                      <span className="shrink-0 rounded-full bg-primary-50 px-2 py-0.5 text-[11px] font-medium text-primary-700">Group admin</span>
+                    )}
                   </span>
                   {(author.headline || m.communityProfile?.location) && (
                     <span className="block truncate text-xs text-ink-500">
@@ -310,6 +331,9 @@ async function MembersTab({
                   )}
                 </span>
               </Link>
+              {canManage && !author.team && (
+                <GroupAdminToggle groupId={group.id} userId={m.id} name={author.name} isAdmin={groupAdminIds.has(m.id)} />
+              )}
             </li>
           );
         })}
