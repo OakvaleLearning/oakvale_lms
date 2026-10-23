@@ -70,12 +70,12 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/co
       <Breadcrumbs items={[{ label: "Community", href: "/community" }, { label: group.name }]} />
 
       <header className="card overflow-hidden">
-        {group.coverImage && (
-          <div className="relative h-32 bg-ink-100 sm:h-44">
-            {/* eslint-disable-next-line @next/next/no-img-element -- covers come from /media redirects */}
+        <div className="relative h-32 bg-white sm:h-44">
+          {group.coverImage && (
+            // eslint-disable-next-line @next/next/no-img-element -- covers come from /media redirects
             <img src={group.coverImage} alt="" className="absolute inset-0 size-full object-cover" />
-          </div>
-        )}
+          )}
+        </div>
         <div className="px-5 pb-0 pt-5 sm:px-6">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div className="min-w-0">
