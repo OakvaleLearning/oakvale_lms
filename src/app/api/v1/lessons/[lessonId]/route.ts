@@ -1,17 +1,25 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkLessonAccess, getOrderedLessons } from "@/lib/lms/access";
+import { documentKind } from "@/lib/lms/blocks";
+import { getBlockProgress } from "@/lib/lms/progress";
 import { getQuizForLearner } from "@/lib/lms/quiz";
 import { isStorageConfigured, presignDownload } from "@/lib/storage";
 import { jsonError, requireApiSession } from "@/lib/api/mobile";
 
 /**
- * One lesson for the mobile player. `content` says how to play it:
+ * One lesson for the mobile player. A lesson is a list of `parts`, played in
+ * order; each part's `content.kind` says how:
  * - media: stream `url` (presigned, ~2h) natively and resume at `startAt`
- * - quiz: questions without answers; submit to POST /api/lms/quiz/<id>
- * - web: SCORM/HTML; get a WebView URL from POST /api/v1/lessons/<id>/launch
+ * - quiz: questions without answers; submit to POST /api/lms/quiz/<lessonId>
+ * - web: SCORM/HTML; get a WebView URL from POST /api/v1/lessons/<lessonId>/launch
+ *   with `{ "blockId": "<part id>" }`
+ * - document: `url` (presigned) to show (`display` "pdf" | "image") or download
+ * - text: `markdown` to render
  * - unavailable: content not uploaded yet
- * Progress is reported to POST /api/lms/progress, as on the web.
+ * Progress is reported to POST /api/lms/progress with the part's `blockId`.
+ * `content` repeats the first part's content for lessons with a single part
+ * (older apps read it); lessons with several parts have `content.kind` "multipart".
  */
 export async function GET(_req: Request, ctx: RouteContext<"/api/v1/lessons/[lessonId]">) {
   const session = await requireApiSession();
@@ -27,11 +35,27 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/v1/lessons/[les
   const { lesson } = access;
   const course = lesson.module.course;
 
-  const [ordered, progress] = await Promise.all([
+  const [ordered, progress, partProgress] = await Promise.all([
     getOrderedLessons(course.id, session.role === "ADMIN"),
     prisma.lessonProgress.findUnique({ where: { userId_lessonId: { userId: session.userId, lessonId } } }),
+    getBlockProgress(session.userId, lessonId),
   ]);
   const index = ordered.findIndex((l) => l.id === lessonId);
+
+  const parts = await Promise.all(
+    lesson.blocks.map(async (block) => {
+      const done = partProgress.get(block.id);
+      return {
+        id: block.id,
+        type: block.type,
+        title: block.title,
+        required: block.required,
+        status: done?.status ?? "NOT_STARTED",
+        score: done?.score ?? null,
+        content: await partContent(block, lesson.id, session.userId, done?.positionSec ?? 0),
+      };
+    })
+  );
 
   return NextResponse.json({
     lesson: {
@@ -46,15 +70,19 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/v1/lessons/[les
       prevId: ordered[index - 1]?.id ?? null,
       nextId: ordered[index + 1]?.id ?? null,
     },
-    content: await lessonContent(lesson, session.userId, progress?.positionSec ?? 0),
+    parts,
+    content: parts.length === 1 ? parts[0].content : parts.length === 0 ? { kind: "unavailable" as const } : { kind: "multipart" as const },
   });
 }
 
-type Lesson = Extract<Awaited<ReturnType<typeof checkLessonAccess>>, { ok: true }>["lesson"];
+type Part = Extract<Awaited<ReturnType<typeof checkLessonAccess>>, { ok: true }>["lesson"]["blocks"][number];
 
-async function lessonContent(lesson: Lesson, userId: string, startAt: number) {
-  if (lesson.type === "QUIZ") {
-    const quiz = await getQuizForLearner(lesson.id, userId);
+async function partContent(block: Part, lessonId: string, userId: string, startAt: number) {
+  if (block.type === "TEXT") {
+    return block.body.trim() ? { kind: "text" as const, markdown: block.body } : { kind: "unavailable" as const };
+  }
+  if (block.type === "QUIZ") {
+    const quiz = await getQuizForLearner(lessonId, userId);
     if (!quiz || quiz.questions.length === 0) return { kind: "unavailable" as const };
     return {
       kind: "quiz" as const,
@@ -65,10 +93,20 @@ async function lessonContent(lesson: Lesson, userId: string, startAt: number) {
       passed: quiz.passed,
     };
   }
-  const asset = lesson.asset;
+  const asset = block.asset;
   if (!asset || asset.status !== "READY" || !isStorageConfigured()) return { kind: "unavailable" as const };
-  if (lesson.type === "VIDEO" || lesson.type === "AUDIO") {
+  if (block.type === "VIDEO" || block.type === "AUDIO") {
     return { kind: "media" as const, url: await presignDownload(asset.storageKey), mimeType: asset.mimeType, startAt };
+  }
+  if (block.type === "DOCUMENT") {
+    const display = documentKind(asset.fileName);
+    return {
+      kind: "document" as const,
+      display,
+      fileName: asset.fileName,
+      mimeType: asset.mimeType,
+      url: await presignDownload(asset.storageKey, display === "download" ? { downloadName: asset.fileName } : {}),
+    };
   }
   return { kind: "web" as const };
 }

@@ -4,6 +4,7 @@ import type { SessionPayload } from "@/lib/auth";
 import { getCompletedCourseIds, getCourseLock, getUnlockedCourseIds, type CourseLock } from "./access";
 import { getCourseProgress } from "./progress";
 import { absoluteCoverUrl } from "@/lib/storage";
+import type { LessonKind } from "./blocks";
 
 /** Learner home: enrolled programs → their unlocked courses with progress, plus "continue". */
 export async function getLearnerHome(userId: string) {
@@ -102,7 +103,7 @@ export async function getCourseBySlugs(session: SessionPayload, programSlug: str
 export interface OutlineLesson {
   id: string;
   title: string;
-  type: "SCORM" | "HTML" | "VIDEO" | "AUDIO" | "QUIZ";
+  type: LessonKind;
   durationSec: number | null;
   status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
   locked: boolean;

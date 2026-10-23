@@ -14,11 +14,16 @@ export async function POST(req: Request, ctx: RouteContext<"/api/v1/lessons/[les
   const { lessonId } = await ctx.params;
 
   const access = await checkLessonAccess(session, lessonId);
-  if (!access.ok || (access.lesson.type !== "SCORM" && access.lesson.type !== "HTML")) {
-    return jsonError("Not allowed", 403);
-  }
+  const web = access.ok ? access.lesson.blocks.filter((b) => b.type === "SCORM" || b.type === "HTML") : [];
+  if (!access.ok || web.length === 0) return jsonError("Not allowed", 403);
+
+  // Which web part to open: the one asked for, else the lesson's first.
+  const body = (await req.json().catch(() => null)) as { blockId?: unknown } | null;
+  const part = web.find((b) => b.id === body?.blockId) ?? web[0];
+
   const ticket = await createLessonTicket(session.userId, lessonId);
   const url = new URL("/m/launch", req.url);
   url.searchParams.set("ticket", ticket);
+  url.searchParams.set("block", part.id);
   return NextResponse.json({ url: url.toString() });
 }

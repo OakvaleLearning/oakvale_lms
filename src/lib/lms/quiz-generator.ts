@@ -2,7 +2,7 @@ import "server-only";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { backfillAssetText, needsTextBackfill } from "./packages";
+import { partsText } from "./lesson-material";
 import { tutorModel } from "./tutor";
 
 /**
@@ -32,9 +32,10 @@ export interface SourceLesson {
 }
 
 /**
- * Non-quiz lessons in the quiz's course, in course order, with how much text
- * each has. A quiz suggests the lessons since the previous quiz; a final
- * assessment suggests every lesson.
+ * The course's lessons that have material of their own (everything except
+ * lessons that are only a quiz), in course order, with how much text each has.
+ * A quiz suggests the lessons since the previous quiz, including the lesson it
+ * sits in; a final assessment suggests every lesson.
  */
 export async function listQuizSources(quizLessonId: string): Promise<{ kind: QuizKind; sources: SourceLesson[] }> {
   const quizLesson = await prisma.lesson.findUnique({
@@ -53,21 +54,17 @@ export async function listQuizSources(quizLessonId: string): Promise<{ kind: Qui
       description: true,
       tutorNotes: true,
       module: { select: { title: true } },
-      asset: true,
+      quiz: { select: { id: true } },
+      blocks: { orderBy: [{ order: "asc" }, { createdAt: "asc" }], include: { asset: true } },
     },
   });
 
-  // Packages extracted before (or by an older extractor) are read again, so the counts are real.
-  const text = new Map(
-    await Promise.all(
-      lessons.map(async (l) => [l.id, needsTextBackfill(l.type, l.asset) ? await backfillAssetText(l.asset!) : (l.asset?.textContent ?? "")] as const)
-    )
-  );
+  const text = new Map(await Promise.all(lessons.map(async (l) => [l.id, await partsText(l.blocks)] as const)));
 
   const at = lessons.findIndex((l) => l.id === quizLessonId);
-  const previousQuiz = lessons.slice(0, Math.max(at, 0)).findLastIndex((l) => l.type === "QUIZ");
-  const sinceLastQuiz = new Set(lessons.slice(previousQuiz + 1, Math.max(at, 0)).map((l) => l.id));
-  const beforeQuiz = new Set(lessons.slice(0, Math.max(at, 0)).map((l) => l.id));
+  const previousQuiz = at < 0 ? -1 : lessons.slice(0, at).findLastIndex((l) => l.quiz !== null);
+  const sinceLastQuiz = new Set(lessons.slice(previousQuiz + 1, at + 1).map((l) => l.id));
+  const beforeQuiz = new Set(lessons.slice(0, at + 1).map((l) => l.id));
   const content = lessons.filter((l) => l.type !== "QUIZ");
   const pick =
     kind === "EXAM"
@@ -94,11 +91,14 @@ async function gatherMaterial(courseId: string, lessonIds: string[]): Promise<st
   const lessons = await prisma.lesson.findMany({
     where: { id: { in: lessonIds }, module: { courseId }, type: { not: "QUIZ" } },
     orderBy: [{ module: { order: "asc" } }, { order: "asc" }],
-    include: { asset: true, module: { select: { title: true } } },
+    include: {
+      blocks: { orderBy: [{ order: "asc" }, { createdAt: "asc" }], include: { asset: true } },
+      module: { select: { title: true } },
+    },
   });
   const parts = await Promise.all(
     lessons.map(async (l) => {
-      const text = needsTextBackfill(l.type, l.asset) ? await backfillAssetText(l.asset!) : (l.asset?.textContent ?? "");
+      const text = await partsText(l.blocks);
       const body = [l.description, l.tutorNotes, text].filter(Boolean).join("\n\n");
       const attr = (v: string) => v.replace(/"/g, "'");
       return body ? `<lesson module="${attr(l.module.title)}" title="${attr(l.title)}">\n${body}\n</lesson>` : "";

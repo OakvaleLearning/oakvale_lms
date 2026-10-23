@@ -62,13 +62,12 @@ export async function getCertificateProgress(userId: string, courseId: string): 
   const lessons = await prisma.lesson.findMany({
     where: { published: true, module: { courseId } },
     select: {
-      type: true,
       quiz: { select: { _count: { select: { questions: true } } } },
       progress: { where: { userId }, select: { status: true, score: true } },
     },
   });
-  // A quiz with no questions can't be taken, so it doesn't count.
-  const quizzes = lessons.filter((l) => l.type === "QUIZ" && (l.quiz?._count.questions ?? 0) > 0);
+  // A quiz with no questions can't be taken, so it doesn't count. (A lesson's score is its quiz's score.)
+  const quizzes = lessons.filter((l) => (l.quiz?._count.questions ?? 0) > 0);
   const lessonsDone = lessons.filter((l) => l.progress[0]?.status === "COMPLETED").length;
   const score = quizzes.length
     ? Math.round(quizzes.reduce((sum, l) => sum + (l.progress[0]?.score ?? 0), 0) / quizzes.length)

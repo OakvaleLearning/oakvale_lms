@@ -168,3 +168,11 @@
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
+
+/* Written lesson parts: the tutor's markdown styles, at reading size. */
+.lesson-md { font-size: 1rem; line-height: 1.75; }
+.lesson-md > * + * { margin-top: 1em; }
+.lesson-md :is(h1, h2) { font-size: 1.375rem; margin-top: 1.5em; }
+.lesson-md :is(h3, h4) { font-size: 1.0625rem; margin-top: 1.25em; }
+.lesson-md > :first-child { margin-top: 0; }
+.lesson-md img { max-width: 100%; height: auto; border-radius: 0.75rem; }

@@ -50,9 +50,11 @@ export async function saveScormState(
     create: { userId, lessonId, cmi: json },
   });
   const { completed, score } = summarizeCmi(version, cmi);
+  const part = await prisma.lessonBlock.findFirst({ where: { lessonId, type: "SCORM" }, select: { id: true } });
   await recordProgress(userId, lessonId, {
     completed,
     score: score === undefined ? undefined : Math.min(100, Math.max(0, score)),
+    blockId: part?.id,
   });
 }
 
