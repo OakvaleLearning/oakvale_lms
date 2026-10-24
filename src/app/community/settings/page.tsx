@@ -37,7 +37,7 @@ export default async function CommunitySettings({ searchParams }: PageProps<"/co
 
         <div className="border-t border-line pt-6">
           <ActionForm action={saveProfile} submitLabel="Save profile">
-            <Field label="Name" hint="Your name comes from your account.">
+            <Field label="Name" hint="Change your name and contact details on your profile page.">
               <Input value={session.name} disabled readOnly />
             </Field>
             <Field label="Headline" optional hint="e.g. “Care assistant in Abuja” or “Studying Childcare & Early Years”">

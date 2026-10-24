@@ -37,8 +37,9 @@ export async function createCommunityUpload(
   target: { purpose: "post" | "event"; groupId: string } | { purpose: "avatar" },
   file: { type: string; size: number }
 ): Promise<ActionResult<{ uploadUrl: string; key: string; contentType: string }>> {
-  const session = await member();
-  if (!session) return fail(NOT_MEMBER);
+  // Everyone can set a profile photo from their account page, community member or not.
+  const session = target.purpose === "avatar" ? await getSession() : await member();
+  if (!session) return fail(target.purpose === "avatar" ? "Please log in again." : NOT_MEMBER);
   if (!isStorageConfigured()) return fail("Image uploads aren't available yet.");
 
   let prefix: string;

@@ -2,7 +2,7 @@ import "server-only";
 import { SITE } from "@/content/site";
 import { formatNaira } from "@/lib/utils";
 import { sendEmail } from "@/lib/email";
-import { RESET_TOKEN_TTL_MINUTES, VERIFY_TOKEN_TTL_HOURS } from "@/lib/auth";
+import { ADMIN_INVITE_TTL_HOURS, RESET_TOKEN_TTL_MINUTES, VERIFY_TOKEN_TTL_HOURS } from "@/lib/auth";
 import { isPrelaunch } from "@/lib/launch";
 import { TEAM, appUrl, button, enrolmentConfirmedEmail, escape, layout, p } from "@/lib/email-templates";
 
@@ -152,6 +152,41 @@ ${TEAM}`;
     to: user.email,
     subject: `Reset your ${SITE.name} password`,
     html: layout("Reset your password", bodyHtml),
+    text,
+  });
+}
+
+/** Sent when someone is added to the admin team, with a link to set their password. */
+export async function sendAdminInviteEmail(
+  user: { name: string; email: string },
+  invitedBy: string,
+  token: string
+): Promise<boolean> {
+  const link = `${appUrl()}/reset-password?token=${encodeURIComponent(token)}`;
+  if (process.env.NODE_ENV !== "production") {
+    console.info(`[email] admin invite link for ${user.email}: ${link}`);
+  }
+
+  const bodyHtml =
+    p(`Dear ${escape(user.name)},`) +
+    p(`${escape(invitedBy)} has added you to the ${SITE.name} admin team. Click the button below to choose your password and sign in.`) +
+    button(link, "Set my password") +
+    p(`This link expires in <strong>${ADMIN_INVITE_TTL_HOURS} hours</strong> and can only be used once. After that, use “Forgot password” on the login page.`) +
+    p(`Warm regards,<br/>${TEAM}`);
+
+  const text = `Dear ${user.name},
+
+${invitedBy} has added you to the ${SITE.name} admin team. Choose your password and sign in here: ${link}
+
+This link expires in ${ADMIN_INVITE_TTL_HOURS} hours and can only be used once. After that, use "Forgot password" on the login page.
+
+Warm regards,
+${TEAM}`;
+
+  return sendEmail({
+    to: user.email,
+    subject: `You've been added to the ${SITE.name} admin team`,
+    html: layout("Welcome to the team", bodyHtml),
     text,
   });
 }

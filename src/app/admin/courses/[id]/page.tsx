@@ -21,7 +21,7 @@ import {
   Select,
   Switch,
   Textarea,
-  TitleSlugFields,
+  TitleField,
 } from "@/components/admin/forms";
 import { cardControlsClass, cardListClass, cardRowClass } from "@/components/admin/cardList";
 import { IssueEligibleButton } from "@/components/admin/IssueEligibleButton";
@@ -223,7 +223,7 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
         <aside className="space-y-6 lg:sticky lg:top-8">
           <Panel title="Course settings">
             <ActionForm action={updateCourse.bind(null, course.id)}>
-              <TitleSlugFields defaultTitle={course.title} defaultSlug={course.slug} stacked />
+              <TitleField defaultTitle={course.title} />
               <Field label="Description" optional>
                 <Textarea name="description" rows={4} defaultValue={course.description} />
               </Field>

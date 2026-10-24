@@ -18,7 +18,7 @@ import {
   Panel,
   Switch,
   Textarea,
-  TitleSlugFields,
+  TitleField,
 } from "@/components/admin/forms";
 import { cardControlsClass, cardListClass, cardRowClass } from "@/components/admin/cardList";
 import {
@@ -66,7 +66,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
             <StatusBadge status={program.published ? "PUBLISHED" : "DRAFT"} />
           </span>
         }
-        description={`/${program.slug} · ${program.courses.length} ${program.courses.length === 1 ? "course" : "courses"} · ${
+        description={`${program.courses.length} ${program.courses.length === 1 ? "course" : "courses"} · ${
           program.tiers.length
         } ${program.tiers.length === 1 ? "tier" : "tiers"}`}
         actions={
@@ -100,7 +100,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
                 }
               >
                 <ActionForm action={createCourse.bind(null, program.id)} submitLabel="Create course" footerClassName="justify-end">
-                  <TitleSlugFields />
+                  <TitleField />
                   <Field label="Description" optional>
                     <Textarea name="description" rows={3} />
                   </Field>
@@ -220,19 +220,13 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
                 })}
               </div>
             )}
-            <p className="mt-4 text-xs leading-relaxed text-ink-500">
-              The marketing site links to{" "}
-              <code className="rounded bg-ink-50 px-1 py-0.5 text-ink-700">
-                /enroll?track={program.slug}&amp;tier=&lt;tier link name&gt;
-              </code>
-            </p>
           </Panel>
         </div>
 
         <aside className="space-y-6 lg:sticky lg:top-8">
           <Panel title="Programme details">
             <ActionForm action={updateProgram.bind(null, program.id)}>
-              <TitleSlugFields defaultTitle={program.title} defaultSlug={program.slug} stacked />
+              <TitleField defaultTitle={program.title} />
               <Field label="Description" optional>
                 <Textarea name="description" rows={4} defaultValue={program.description} />
               </Field>
@@ -261,19 +255,14 @@ function TierFields({
 }: {
   action: Parameters<typeof ActionForm>[0]["action"];
   courses: { id: string; title: string }[];
-  tier?: { name: string; slug: string; description: string; price: number; published: boolean; included: Set<string> };
+  tier?: { name: string; description: string; price: number; published: boolean; included: Set<string> };
   submitLabel?: string;
 }) {
   return (
     <ActionForm action={action} submitLabel={submitLabel} resetOnSuccess={!tier} footerClassName={tier ? undefined : "justify-end"}>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Name">
-          <Input name="name" required defaultValue={tier?.name} placeholder="e.g. Foundation" />
-        </Field>
-        <Field label="Link name" hint="e.g. foundation">
-          <Input name="slug" required defaultValue={tier?.slug} />
-        </Field>
-      </div>
+      <Field label="Name">
+        <Input name="name" required defaultValue={tier?.name} placeholder="e.g. Foundation" />
+      </Field>
       <Field label="Price">
         <span className="flex rounded-lg shadow-card focus-within:ring-3 focus-within:ring-primary-100">
           <span className="grid place-items-center rounded-l-lg border border-r-0 border-line bg-ink-50 px-3 text-sm text-ink-500">₦</span>

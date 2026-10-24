@@ -19,6 +19,8 @@ import {
   Mail,
   Award,
   UsersRound,
+  UserRound,
+  ShieldCheck,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/utils";
@@ -27,6 +29,7 @@ import { SITE } from "@/content/site";
 import { EASE, PageTransition } from "@/components/motion";
 import { SUPPORT_READ_EVENT } from "@/components/support/SupportChat";
 import { COMMUNITY_READ_EVENT } from "@/components/community/NotificationsRead";
+import { Avatar } from "@/components/community/Avatar";
 
 interface NavItem {
   label: string;
@@ -45,6 +48,7 @@ const NAV: Record<"learner" | "admin", { section: string; items: NavItem[] }> = 
       { label: "Certificates", href: "/learn/certificates", icon: Award },
       { label: "Programmes", href: "/enroll", icon: ShoppingBag },
       { label: "Support", href: "/support", icon: LifeBuoy, badge: "support" },
+      { label: "Profile", href: "/account", icon: UserRound },
     ],
   },
   admin: {
@@ -58,6 +62,7 @@ const NAV: Record<"learner" | "admin", { section: string; items: NavItem[] }> = 
       { label: "Community", href: "/admin/community", icon: UsersRound },
       { label: "Support", href: "/admin/support", icon: MessagesSquare, badge: "support" },
       { label: "Emails", href: "/admin/emails", icon: Mail },
+      { label: "Team", href: "/admin/team", icon: ShieldCheck },
     ],
   },
 };
@@ -69,7 +74,7 @@ export function DashboardShell({
   children,
 }: {
   variant: "learner" | "admin";
-  user: { name: string; email: string; role: string };
+  user: { name: string; email: string; role: string; avatar?: string | null };
   title: string;
   children: React.ReactNode;
 }) {
@@ -86,13 +91,6 @@ export function DashboardShell({
     router.push("/login");
     router.refresh();
   }
-
-  const initials = user.name
-    .split(" ")
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
 
   // Rendered twice (desktop rail + mobile drawer); `scope` keeps their sliding indicators separate.
   const sidebar = (scope: string) => (
@@ -155,13 +153,18 @@ export function DashboardShell({
           <ArrowUpRight className="size-4 text-ink-400" />
         </a>
         <div className="flex items-center gap-3 rounded-xl border border-line bg-white p-2.5 shadow-card">
-          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary-600 text-[11px] font-semibold tracking-wide text-white">
-            {initials}
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium text-ink-900">{user.name}</div>
-            <div className="truncate text-xs text-ink-500">{user.email}</div>
-          </div>
+          <Link
+            href="/account"
+            onClick={() => setOpen(false)}
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-lg"
+            title="Edit your profile"
+          >
+            <Avatar name={user.name} src={user.avatar ?? null} size="sm" />
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-medium text-ink-900">{user.name}</div>
+              <div className="truncate text-xs text-ink-500">{user.email}</div>
+            </div>
+          </Link>
           <button
             onClick={logout}
             className="grid size-8 shrink-0 place-items-center rounded-md text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-800"

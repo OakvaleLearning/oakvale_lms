@@ -6,12 +6,13 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { removeAssetFiles } from "@/lib/lms/packages";
+import { groupSlugTaken } from "@/lib/community/access";
+import { uniqueSlug } from "@/lib/utils";
 import {
   courseSchema,
   lessonCreateSchema,
   lessonUpdateSchema,
   programSchema,
-  RESERVED_GROUP_SLUGS,
   tierSchema,
 } from "@/lib/validation";
 
@@ -50,21 +51,13 @@ async function createProgramGroup(program: { id: string; slug: string; title: st
     programId: program.id,
     order: program.order + 1,
   };
-  for (const slug of [program.slug, `${program.slug}-community`]) {
-    if (RESERVED_GROUP_SLUGS.includes(slug)) continue;
-    try {
-      await prisma.communityGroup.create({ data: { ...data, slug } });
-      return;
-    } catch (err) {
-      if (!isUniqueError(err)) throw err;
-    }
-  }
+  const slug = await uniqueSlug(program.slug, groupSlugTaken, "group");
+  await prisma.communityGroup.create({ data: { ...data, slug } });
 }
 
 function parseProgram(fd: FormData) {
   return programSchema.safeParse({
     title: text(fd, "title"),
-    slug: text(fd, "slug"),
     description: text(fd, "description"),
     published: bool(fd, "published"),
   });
@@ -77,13 +70,18 @@ export async function createProgram(_prev: ActionState, fd: FormData): Promise<A
   let id: string;
   try {
     const order = await nextOrder(prisma.program.aggregate({ _max: { order: true } }));
+    const slug = await uniqueSlug(
+      parsed.data.title,
+      async (s) => Boolean(await prisma.program.findUnique({ where: { slug: s }, select: { id: true } })),
+      "programme"
+    );
     const program = await prisma.program.create({
-      data: { ...parsed.data, order },
+      data: { ...parsed.data, slug, order },
     });
     id = program.id;
     await createProgramGroup(program);
   } catch (err) {
-    if (isUniqueError(err)) return { error: "A programme with that slug already exists." };
+    if (isUniqueError(err)) return { error: "Another programme was just saved with the same name. Try again." };
     throw err;
   }
   refresh();
@@ -94,15 +92,10 @@ export async function updateProgram(id: string, _prev: ActionState, fd: FormData
   await requireAdmin();
   const parsed = parseProgram(fd);
   if (!parsed.success) return { error: firstIssue(parsed.error) };
-  try {
-    await prisma.program.update({
-      where: { id },
-      data: parsed.data,
-    });
-  } catch (err) {
-    if (isUniqueError(err)) return { error: "A programme with that slug already exists." };
-    throw err;
-  }
+  await prisma.program.update({
+    where: { id },
+    data: parsed.data,
+  });
   refresh();
   return { ok: true };
 }
@@ -130,7 +123,6 @@ export async function deleteProgram(id: string): Promise<ActionState> {
 function parseTier(fd: FormData) {
   return tierSchema.safeParse({
     name: text(fd, "name"),
-    slug: text(fd, "slug"),
     description: text(fd, "description"),
     priceNaira: text(fd, "priceNaira"),
     published: bool(fd, "published"),
@@ -152,9 +144,16 @@ export async function createTier(programId: string, _prev: ActionState, fd: Form
   try {
     const order = await nextOrder(prisma.tier.aggregate({ where: { programId }, _max: { order: true } }));
     const courses = await ownCourseIds(programId, courseIds);
+    const slug = await uniqueSlug(
+      data.name,
+      async (s) =>
+        Boolean(await prisma.tier.findUnique({ where: { programId_slug: { programId, slug: s } }, select: { id: true } })),
+      "tier"
+    );
     await prisma.tier.create({
       data: {
         ...data,
+        slug,
         programId,
         order,
         price: priceNaira * 100,
@@ -162,7 +161,7 @@ export async function createTier(programId: string, _prev: ActionState, fd: Form
       },
     });
   } catch (err) {
-    if (isUniqueError(err)) return { error: "This programme already has a tier with that slug." };
+    if (isUniqueError(err)) return { error: "Another tier was just saved with the same name. Try again." };
     throw err;
   }
   refresh();
@@ -176,18 +175,13 @@ export async function updateTier(id: string, _prev: ActionState, fd: FormData): 
   const { priceNaira, courseIds, ...data } = parsed.data;
   const tier = await prisma.tier.findUniqueOrThrow({ where: { id }, select: { programId: true } });
   const courses = await ownCourseIds(tier.programId, courseIds);
-  try {
-    await prisma.$transaction([
-      prisma.tierCourse.deleteMany({ where: { tierId: id } }),
-      prisma.tier.update({
-        where: { id },
-        data: { ...data, price: priceNaira * 100, courses: { create: courses.map((courseId) => ({ courseId })) } },
-      }),
-    ]);
-  } catch (err) {
-    if (isUniqueError(err)) return { error: "This programme already has a tier with that slug." };
-    throw err;
-  }
+  await prisma.$transaction([
+    prisma.tierCourse.deleteMany({ where: { tierId: id } }),
+    prisma.tier.update({
+      where: { id },
+      data: { ...data, price: priceNaira * 100, courses: { create: courses.map((courseId) => ({ courseId })) } },
+    }),
+  ]);
   refresh();
   return { ok: true };
 }
@@ -209,7 +203,6 @@ export async function deleteTier(id: string): Promise<ActionState> {
 function parseCourse(fd: FormData) {
   return courseSchema.safeParse({
     title: text(fd, "title"),
-    slug: text(fd, "slug"),
     description: text(fd, "description"),
     published: bool(fd, "published"),
     sequential: bool(fd, "sequential"),
@@ -228,12 +221,18 @@ export async function createCourse(programId: string, _prev: ActionState, fd: Fo
     const prereq = prerequisiteId
       ? await prisma.course.findFirst({ where: { id: prerequisiteId, programId }, select: { id: true } })
       : null;
+    const slug = await uniqueSlug(
+      data.title,
+      async (s) =>
+        Boolean(await prisma.course.findUnique({ where: { programId_slug: { programId, slug: s } }, select: { id: true } })),
+      "course"
+    );
     const course = await prisma.course.create({
-      data: { ...data, programId, order, prerequisiteId: prereq?.id ?? null },
+      data: { ...data, slug, programId, order, prerequisiteId: prereq?.id ?? null },
     });
     id = course.id;
   } catch (err) {
-    if (isUniqueError(err)) return { error: "This programme already has a course with that slug." };
+    if (isUniqueError(err)) return { error: "Another course was just saved with the same name. Try again." };
     throw err;
   }
   refresh();
@@ -263,15 +262,10 @@ export async function updateCourse(id: string, _prev: ActionState, fd: FormData)
     prereq = prerequisiteId;
   }
 
-  try {
-    await prisma.course.update({
-      where: { id },
-      data: { ...data, prerequisiteId: prereq },
-    });
-  } catch (err) {
-    if (isUniqueError(err)) return { error: "This programme already has a course with that slug." };
-    throw err;
-  }
+  await prisma.course.update({
+    where: { id },
+    data: { ...data, prerequisiteId: prereq },
+  });
   refresh();
   return { ok: true };
 }

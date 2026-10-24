@@ -122,51 +122,12 @@ export function Checkbox({ label, ...props }: { label: string } & React.Componen
   );
 }
 
-/** Slug input that follows the title until edited by hand. */
-export function TitleSlugFields({
-  defaultTitle = "",
-  defaultSlug = "",
-  titleLabel = "Title",
-  stacked = false,
-}: {
-  defaultTitle?: string;
-  defaultSlug?: string;
-  titleLabel?: string;
-  /** One field per row, for narrow columns. */
-  stacked?: boolean;
-}) {
-  const [slug, setSlug] = useState(defaultSlug);
-  const [touched, setTouched] = useState(Boolean(defaultSlug));
-  const slugify = (s: string) =>
-    s.toLowerCase().trim().replace(/['"]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+/** Title input; the URL slug is assigned on the server. */
+export function TitleField({ defaultTitle = "", titleLabel = "Title" }: { defaultTitle?: string; titleLabel?: string }) {
   return (
-    <div className={cn("grid gap-4", !stacked && "sm:grid-cols-2")}>
-      <Field label={titleLabel}>
-        <Input
-          name="title"
-          required
-          defaultValue={defaultTitle}
-          onChange={(e) => !touched && setSlug(slugify(e.target.value))}
-        />
-      </Field>
-      <Field label="Link name" hint="Lowercase letters, numbers and hyphens">
-        <span className="flex rounded-lg shadow-card focus-within:ring-3 focus-within:ring-primary-100">
-          <span className="grid place-items-center rounded-l-lg border border-r-0 border-line bg-ink-50 px-2.5 text-sm text-ink-400">
-            /
-          </span>
-          <Input
-            name="slug"
-            required
-            value={slug}
-            onChange={(e) => {
-              setTouched(true);
-              setSlug(e.target.value);
-            }}
-            className="rounded-l-none shadow-none focus:ring-0"
-          />
-        </span>
-      </Field>
-    </div>
+    <Field label={titleLabel}>
+      <Input name="title" required defaultValue={defaultTitle} />
+    </Field>
   );
 }
 

@@ -3,6 +3,7 @@ import { cache } from "react";
 import type { CommunityGroup, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isEmailVerified, type SessionPayload } from "@/lib/auth";
+import { RESERVED_GROUP_SLUGS } from "@/lib/validation";
 
 /**
  * Community membership — the single place that decides who is in which group.
@@ -89,4 +90,10 @@ export async function sharesGroup(viewer: Viewer, otherUserId: string): Promise<
   const mine = new Set(await getMemberGroupIds(viewer));
   const theirs = await getMemberGroupIds({ userId: otherUserId, role: other.role });
   return theirs.some((id) => mine.has(id));
+}
+
+/** Whether a group slug is reserved for a /community page or already used. */
+export async function groupSlugTaken(slug: string): Promise<boolean> {
+  if (RESERVED_GROUP_SLUGS.includes(slug)) return true;
+  return Boolean(await prisma.communityGroup.findUnique({ where: { slug }, select: { id: true } }));
 }

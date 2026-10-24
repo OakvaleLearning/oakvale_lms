@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/auth";
+import { getShellUser } from "@/lib/account";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
@@ -6,7 +7,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
     <DashboardShell
       variant="admin"
-      user={{ name: session.name, email: session.email, role: session.role }}
+      user={await getShellUser(session)}
       title="Admin"
     >
       {children}

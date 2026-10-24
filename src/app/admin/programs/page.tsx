@@ -4,7 +4,7 @@ import { ArrowRight, Layers, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { EmptyState, PageHeader, StatusBadge } from "@/components/dashboard/ui";
-import { ActionForm, Dialog, Field, MoveButtons, Textarea, TitleSlugFields } from "@/components/admin/forms";
+import { ActionForm, Dialog, Field, MoveButtons, Textarea, TitleField } from "@/components/admin/forms";
 import { createProgram, moveItem } from "../actions";
 
 export const metadata: Metadata = { title: "Programmes" };
@@ -21,7 +21,7 @@ function NewProgrammeDialog() {
       }
     >
       <ActionForm action={createProgram} submitLabel="Create programme" footerClassName="justify-end">
-        <TitleSlugFields />
+        <TitleField />
         <Field label="Description" optional>
           <Textarea name="description" rows={3} placeholder="What learners will gain from this programme" />
         </Field>
@@ -79,7 +79,6 @@ export default async function ProgramsPage() {
                   </div>
                   <div className="flex flex-1 flex-col p-5">
                     <h2 className="font-semibold leading-snug text-ink-950">{p.title}</h2>
-                    <p className="mt-0.5 text-xs text-ink-400">/{p.slug}</p>
                     <dl className="mt-5 grid grid-cols-3 gap-2 border-t border-line pt-4 text-center">
                       {[
                         ["Courses", p._count.courses],

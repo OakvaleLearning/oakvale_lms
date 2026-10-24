@@ -6,7 +6,7 @@ import { requireAdmin } from "@/lib/auth";
 import { groupMemberWhere } from "@/lib/community/access";
 import { ButtonLink } from "@/components/ui/Button";
 import { Breadcrumbs, PageHeader } from "@/components/dashboard/ui";
-import { ActionForm, Field, Panel, Textarea, TitleSlugFields } from "@/components/admin/forms";
+import { ActionForm, Field, Panel, Textarea, TitleField } from "@/components/admin/forms";
 import { AudienceFields } from "@/components/admin/AudienceFields";
 import { CoverImageField } from "@/components/admin/CoverImageField";
 import { setGroupArchived, updateGroup } from "../../actions";
@@ -50,7 +50,7 @@ export default async function AdminGroupPage({ params }: PageProps<"/admin/commu
 
       <Panel title="Details">
         <ActionForm action={updateGroup.bind(null, group.id)} submitLabel="Save changes">
-          <TitleSlugFields titleLabel="Name" defaultTitle={group.name} defaultSlug={group.slug} />
+          <TitleField titleLabel="Name" defaultTitle={group.name} />
           <AudienceFields programs={programs} defaults={group} />
           <Field label="Description" optional>
             <Textarea name="description" rows={4} defaultValue={group.description} />

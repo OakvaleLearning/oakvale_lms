@@ -8,7 +8,7 @@ import { communityWeekStats } from "@/lib/community/events";
 import { cn, formatDate } from "@/lib/utils";
 import { ButtonLink } from "@/components/ui/Button";
 import { PageHeader, StatCard } from "@/components/dashboard/ui";
-import { ActionForm, Dialog, Field, MoveButtons, Panel, Textarea, TitleSlugFields } from "@/components/admin/forms";
+import { ActionForm, Dialog, Field, MoveButtons, Panel, Textarea, TitleField } from "@/components/admin/forms";
 import { AudienceFields } from "@/components/admin/AudienceFields";
 import { GroupThumb } from "@/components/community/Sidebar";
 import { createGroup, moveGroup, resolveReport } from "./actions";
@@ -69,7 +69,7 @@ export default async function AdminCommunityPage() {
               }
             >
               <ActionForm action={createGroup} submitLabel="Create group" footerClassName="justify-end">
-                <TitleSlugFields titleLabel="Name" />
+                <TitleField titleLabel="Name" />
                 <AudienceFields programs={programs} />
                 <Field label="Description" optional>
                   <Textarea name="description" rows={3} placeholder="What this group is for" />

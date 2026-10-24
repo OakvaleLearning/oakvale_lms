@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth";
+import { getShellUser } from "@/lib/account";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 
 export default async function SupportLayout({ children }: LayoutProps<"/support">) {
@@ -10,7 +11,7 @@ export default async function SupportLayout({ children }: LayoutProps<"/support"
   return (
     <DashboardShell
       variant="learner"
-      user={{ name: session.name, email: session.email, role: session.role }}
+      user={await getShellUser(session)}
       title="Support"
     >
       {children}

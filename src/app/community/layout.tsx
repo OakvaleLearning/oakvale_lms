@@ -1,4 +1,5 @@
 import { requireSession } from "@/lib/auth";
+import { getShellUser } from "@/lib/account";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 
 export default async function CommunityLayout({ children }: LayoutProps<"/community">) {
@@ -6,7 +7,7 @@ export default async function CommunityLayout({ children }: LayoutProps<"/commun
   return (
     <DashboardShell
       variant={session.role === "ADMIN" ? "admin" : "learner"}
-      user={{ name: session.name, email: session.email, role: session.role }}
+      user={await getShellUser(session)}
       title="Community"
     >
       {children}

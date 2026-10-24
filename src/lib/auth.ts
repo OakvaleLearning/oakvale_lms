@@ -17,6 +17,8 @@ const TICKET_MAX_AGE = 120;
 export const RESET_TOKEN_TTL_MINUTES = 60;
 /** How long the link in the sign-up email stays valid. */
 export const VERIFY_TOKEN_TTL_HOURS = 24;
+/** How long the set-password link in an admin invite stays valid. */
+export const ADMIN_INVITE_TTL_HOURS = 72;
 
 function getSecret() {
   const secret = process.env.AUTH_SECRET;
@@ -88,13 +90,17 @@ async function verifySessionToken(token: string): Promise<SessionPayload | null>
 /**
  * Reads and verifies the session: an `Authorization: Bearer` token (mobile
  * app) or the session cookie (web). Returns null if absent/invalid.
+ * The role comes from the database, not the token, so granting or removing
+ * admin access applies on the next request. Cached per request.
  */
-export async function getSession(): Promise<SessionPayload | null> {
+export const getSession = cache(async (): Promise<SessionPayload | null> => {
   const auth = (await headers()).get("authorization");
-  if (auth?.startsWith("Bearer ")) return verifySessionToken(auth.slice(7).trim());
-  const token = (await cookies()).get(COOKIE_NAME)?.value;
-  return token ? verifySessionToken(token) : null;
-}
+  const token = auth?.startsWith("Bearer ") ? auth.slice(7).trim() : (await cookies()).get(COOKIE_NAME)?.value;
+  const session = token ? await verifySessionToken(token) : null;
+  if (!session) return null;
+  const user = await prisma.user.findUnique({ where: { id: session.userId }, select: { role: true } });
+  return user ? { ...session, role: user.role } : null;
+});
 
 /** A bearer token for the mobile app. */
 export function createMobileToken(payload: SessionPayload): Promise<string> {
@@ -161,9 +167,12 @@ export function hashResetToken(token: string): string {
  * Issue a single-use reset token for a user. Any earlier unused tokens are
  * invalidated so only the most recent emailed link works.
  */
-export async function createPasswordResetToken(userId: string): Promise<string> {
+export async function createPasswordResetToken(
+  userId: string,
+  ttlMinutes = RESET_TOKEN_TTL_MINUTES
+): Promise<string> {
   const token = randomBytes(32).toString("base64url");
-  const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MINUTES * 60 * 1000);
+  const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
 
   await prisma.$transaction([
     prisma.passwordResetToken.updateMany({

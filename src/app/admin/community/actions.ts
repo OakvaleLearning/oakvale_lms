@@ -5,8 +5,10 @@ import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { groupSlugTaken } from "@/lib/community/access";
 import { notifyGroup } from "@/lib/community/notifications";
 import { parseEventTime } from "@/lib/community/shared";
+import { uniqueSlug } from "@/lib/utils";
 import { communityEventSchema, communityGroupSchema } from "@/lib/validation";
 
 /** Admin: community groups, events and the report queue. */
@@ -30,7 +32,6 @@ function refresh() {
 function parseGroup(fd: FormData) {
   return communityGroupSchema.safeParse({
     name: text(fd, "title"),
-    slug: text(fd, "slug"),
     description: text(fd, "description"),
     audience: text(fd, "audience"),
     programId: optional(fd, "programId"),
@@ -50,16 +51,17 @@ export async function createGroup(_prev: State, fd: FormData): Promise<State> {
   await requireAdmin();
   const parsed = parseGroup(fd);
   if (!parsed.success) return { error: firstIssue(parsed.error) };
-  const { name, slug, description } = parsed.data;
+  const { name, description } = parsed.data;
   let id: string;
   try {
+    const slug = await uniqueSlug(name, groupSlugTaken, "group");
     const max = await prisma.communityGroup.aggregate({ _max: { order: true } });
     const group = await prisma.communityGroup.create({
       data: { name, slug, description, ...audienceData(parsed.data), order: (max._max.order ?? -1) + 1 },
     });
     id = group.id;
   } catch (err) {
-    if (isUniqueError(err)) return { error: "A group with that slug already exists." };
+    if (isUniqueError(err)) return { error: "Another group was just saved with the same name. Try again." };
     throw err;
   }
   refresh();
@@ -70,13 +72,8 @@ export async function updateGroup(id: string, _prev: State, fd: FormData): Promi
   await requireAdmin();
   const parsed = parseGroup(fd);
   if (!parsed.success) return { error: firstIssue(parsed.error) };
-  const { name, slug, description } = parsed.data;
-  try {
-    await prisma.communityGroup.update({ where: { id }, data: { name, slug, description, ...audienceData(parsed.data) } });
-  } catch (err) {
-    if (isUniqueError(err)) return { error: "A group with that slug already exists." };
-    throw err;
-  }
+  const { name, description } = parsed.data;
+  await prisma.communityGroup.update({ where: { id }, data: { name, description, ...audienceData(parsed.data) } });
   refresh();
   return { ok: true };
 }

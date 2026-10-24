@@ -48,6 +48,21 @@ export function slugify(input: string): string {
     .slice(0, 80);
 }
 
+/** Slugify `input`, appending -2, -3… until `taken(slug)` is false. */
+export async function uniqueSlug(
+  input: string,
+  taken: (slug: string) => Promise<boolean>,
+  fallback = "item"
+): Promise<string> {
+  let base = slugify(input).slice(0, 55).replace(/-+$/, "");
+  if (base.length < 2) base = fallback;
+  for (let n = 1; n <= 50; n++) {
+    const slug = n === 1 ? base : `${base}-${n}`;
+    if (!(await taken(slug))) return slug;
+  }
+  return `${base}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 /**
  * Normalise a phone number to E.164-ish form for WhatsApp links. Local
  * Nigerian numbers ("0810 818 9514") become "+2348108189514"; numbers already

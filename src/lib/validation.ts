@@ -43,6 +43,16 @@ export const resetPasswordSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters").max(200),
 });
 
+export const accountSchema = z.object({
+  name: z.string().trim().min(2, "Please enter your name").max(120),
+  phone: phoneSchema.optional(),
+});
+
+export const adminInviteSchema = z.object({
+  name: z.string().trim().min(2, "Enter their name").max(120),
+  email: z.string().trim().toLowerCase().email("Enter a valid email").max(200),
+});
+
 export type SignupInput = z.infer<typeof signupSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
@@ -52,23 +62,14 @@ export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
  * Admin — catalogue
  * ------------------------------------------------------------------ */
 
-export const slugSchema = z
-  .string()
-  .trim()
-  .min(2, "Slug is too short")
-  .max(60)
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers and hyphens only");
-
 export const programSchema = z.object({
   title: z.string().trim().min(2, "Title is too short").max(160),
-  slug: slugSchema,
   description: z.string().trim().max(2000).default(""),
   published: z.boolean().default(false),
 });
 
 export const tierSchema = z.object({
   name: z.string().trim().min(2, "Name is too short").max(80),
-  slug: slugSchema,
   description: z.string().trim().max(1000).default(""),
   priceNaira: z.coerce.number().int("Whole Naira only").min(0).max(100_000_000),
   published: z.boolean().default(true),
@@ -77,7 +78,6 @@ export const tierSchema = z.object({
 
 export const courseSchema = z.object({
   title: z.string().trim().min(2, "Title is too short").max(160),
-  slug: slugSchema,
   description: z.string().trim().max(4000).default(""),
   published: z.boolean().default(false),
   sequential: z.boolean().default(false),
@@ -164,13 +164,11 @@ export const communityProfileSchema = z.object({
 export const communityGroupSchema = z
   .object({
     name: z.string().trim().min(2, "Name is too short").max(80),
-    slug: slugSchema,
     description: z.string().trim().max(1000).default(""),
     audience: z.enum(GROUP_AUDIENCES),
     programId: z.string().max(40).optional(),
     tierId: z.string().max(40).optional(),
   })
-  .refine((g) => !RESERVED_GROUP_SLUGS.includes(g.slug), { message: "That slug is reserved. Choose another", path: ["slug"] })
   .refine((g) => g.audience !== "PROGRAM" || g.programId, { message: "Choose the programme", path: ["programId"] })
   .refine((g) => g.audience !== "TIER" || g.tierId, { message: "Choose the tier", path: ["tierId"] });
 
