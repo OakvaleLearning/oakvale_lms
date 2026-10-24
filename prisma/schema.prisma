@@ -44,6 +44,7 @@ model User {
   enrollments       Enrollment[]
   payments          Payment[]
   progress          LessonProgress[]
+  blockProgress     BlockProgress[]
   scormStates       ScormState[]
   quizAttempts      QuizAttempt[]
   tutorThreads      TutorThread[]
@@ -52,6 +53,7 @@ model User {
   emailDeliveries   EmailDelivery[]
   certificates      Certificate[]
   communityProfile  CommunityProfile?
+  groupAdminOf      GroupAdmin[]
   posts             Post[]
   comments          Comment[]
   reactions         Reaction[]
@@ -208,12 +210,28 @@ enum QuizKind {
   EXAM
 }
 
+/// What a lesson mainly is. A lesson with a single part takes that part's type;
+/// a lesson with several parts (or none yet) is MIXED.
 enum LessonType {
   SCORM
   HTML
   VIDEO
   AUDIO
   QUIZ
+  DOCUMENT
+  TEXT
+  MIXED
+}
+
+/// The kinds of part a lesson can be built from.
+enum BlockType {
+  VIDEO
+  AUDIO
+  SCORM
+  HTML
+  DOCUMENT // PDF, Word, PowerPoint, Excel or an image
+  TEXT // written content (Markdown) typed in the editor
+  QUIZ // marks where the lesson's quiz sits
 }
 
 model Lesson {
@@ -221,6 +239,7 @@ model Lesson {
   module       Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   moduleId     String
   title        String
+  // Derived from the lesson's parts (see lessonTypeFor); never edited directly.
   type         LessonType
   // Optional notes shown under the player.
   description  String           @default("")
@@ -228,16 +247,47 @@ model Lesson {
   tutorNotes   String           @default("")
   order        Int              @default(0)
   published    Boolean          @default(true)
+  // Sum of the parts' durations.
   durationSec  Int?
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
-  asset        ContentAsset?
+  // The lesson's content, in the order learners meet it.
+  blocks       LessonBlock[]
+  assets       ContentAsset[]
+  // At most one quiz per lesson; a QUIZ part says where it appears.
   quiz         Quiz?
   progress     LessonProgress[]
   scormStates  ScormState[]
   tutorThreads TutorThread[]
 
   @@index([moduleId, order])
+}
+
+/// One part of a lesson: a video, a document, some text, a quiz…
+/// A lesson holds at most one SCORM part and one QUIZ part, because SCORM
+/// state and quiz attempts are kept per lesson.
+model LessonBlock {
+  id          String          @id @default(cuid())
+  lesson      Lesson          @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId    String
+  type        BlockType
+  // Optional heading shown above the part.
+  title       String          @default("")
+  order       Int             @default(0)
+  // Learners must complete required parts for the lesson to count as done.
+  required    Boolean         @default(true)
+  // TEXT parts: the written content, as Markdown.
+  body        String          @default("")
+  // DOCUMENT parts: whether learners get Download / Open-in-new-tab buttons.
+  // Either way the file is viewable in the lesson.
+  allowDownload Boolean       @default(true)
+  durationSec Int?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  asset       ContentAsset?
+  progress    BlockProgress[]
+
+  @@index([lessonId, order])
 }
 
 enum AssetStatus {
@@ -247,11 +297,14 @@ enum AssetStatus {
   FAILED
 }
 
-/// The uploaded file behind a SCORM / HTML / VIDEO / AUDIO lesson, stored in R2.
+/// The uploaded file behind a VIDEO / AUDIO / SCORM / HTML / DOCUMENT part, stored in R2.
 model ContentAsset {
   id           String      @id @default(cuid())
+  block        LessonBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  blockId      String      @unique
+  // The block's lesson, kept here so access checks need no join.
   lesson       Lesson      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  lessonId     String      @unique
+  lessonId     String
   // R2 key of the uploaded file. Unpacked SCORM/HTML packages live under
   // "content/<assetId>/" and are served by the same-origin content route.
   storageKey   String
@@ -269,6 +322,8 @@ model ContentAsset {
   error        String?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
+
+  @@index([lessonId])
 }
 
 model Quiz {
@@ -412,6 +467,26 @@ model LessonProgress {
   @@id([userId, lessonId])
   @@index([lessonId])
   @@index([userId, updatedAt])
+}
+
+/// A learner's progress through one part of a lesson. The lesson is complete
+/// once every required part is (see recordProgress).
+model BlockProgress {
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  block       LessonBlock    @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  blockId     String
+  status      ProgressStatus @default(IN_PROGRESS)
+  // Resume point for video/audio, in seconds.
+  positionSec Int?
+  // Best quiz / SCORM score, percent.
+  score       Int?
+  completedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@id([userId, blockId])
+  @@index([blockId])
 }
 
 /// The SCORM runtime data model (cmi.*) for a learner's attempt, so a package
@@ -639,8 +714,23 @@ model CommunityGroup {
   updatedAt   DateTime         @updatedAt
   posts       Post[]
   events      CommunityEvent[]
+  admins      GroupAdmin[]
 
   @@index([archived, order])
+}
+
+/// A member who moderates one group (announce, pin, lock, remove posts and
+/// comments, appoint other group admins). Unlike User.role = ADMIN it grants
+/// nothing outside the group. Group admins are always members of the group.
+model GroupAdmin {
+  group     CommunityGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId   String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime       @default(now())
+
+  @@id([groupId, userId])
+  @@index([userId])
 }
 
 /// Community-facing profile; the display name is User.name. Created on first save.

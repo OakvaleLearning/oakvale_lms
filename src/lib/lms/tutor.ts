@@ -3,7 +3,7 @@ import { openai } from "@ai-sdk/openai";
 import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/auth";
 import type { LessonAccess } from "./access";
-import { backfillAssetText, needsTextBackfill } from "./packages";
+import { partsText } from "./lesson-material";
 import type { QuizOption } from "./quiz";
 
 /**
@@ -105,13 +105,10 @@ export async function buildTutorSystemPrompt(session: SessionPayload, lesson: Ac
       orderBy: { order: "asc" },
       select: { title: true },
     }),
-    lesson.type === "QUIZ" ? describeQuizResults(session.userId, lesson.id) : Promise.resolve(""),
+    lesson.quiz ? describeQuizResults(session.userId, lesson.id) : Promise.resolve(""),
   ]);
 
-  let packageText = lesson.asset?.textContent ?? null;
-  if (lesson.asset && needsTextBackfill(lesson.type, lesson.asset)) {
-    packageText = await backfillAssetText(lesson.asset);
-  }
+  const packageText = await partsText(lesson.blocks);
 
   const material = [
     lesson.description && `Lesson notes:\n${lesson.description}`,
@@ -144,17 +141,23 @@ ${material || "No written material is available for this lesson yet. Use the tit
 </lesson_material>`;
 }
 
-/** The learner's latest attempt, for explaining mistakes after a finished quiz. */
+/**
+ * The learner's latest attempt, for explaining mistakes. Only once the quiz is
+ * finished (passed, or out of attempts), when its answers are revealed anyway.
+ */
 async function describeQuizResults(userId: string, lessonId: string): Promise<string> {
   const quiz = await prisma.quiz.findUnique({
     where: { lessonId },
     include: {
       questions: { orderBy: { order: "asc" } },
-      attempts: { where: { userId }, orderBy: { createdAt: "desc" }, take: 1 },
+      attempts: { where: { userId }, orderBy: { createdAt: "desc" } },
     },
   });
   const attempt = quiz?.attempts[0];
   if (!quiz || !attempt) return "";
+  const finished =
+    quiz.attempts.some((a) => a.passed) || (quiz.maxAttempts !== null && quiz.attempts.length >= quiz.maxAttempts);
+  if (!finished) return "";
 
   const answers = attempt.answers as Record<string, string[]>;
   const lines = quiz.questions.map((q, i) => {

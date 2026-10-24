@@ -1,11 +1,12 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession, type SessionPayload } from "@/lib/auth";
 import { HOUR, rateLimit } from "@/lib/rate-limit";
-import { deletePrefix, ensureUploadCors, isStorageConfigured, presignUpload } from "@/lib/storage";
-import { getMemberGroupIds, isGroupMember } from "@/lib/community/access";
+import { COVER_PREFIX, coverKey, coverPath, deletePrefix, ensureUploadCors, isStorageConfigured, presignUpload } from "@/lib/storage";
+import { canManageGroup, getMemberGroupIds, groupMemberWhere, isGroupMember } from "@/lib/community/access";
 import { postViewById } from "@/lib/community/feed";
 import { markNotificationsRead, notifyComment, notifyGroup } from "@/lib/community/notifications";
 import { avatarPrefix, postImagePrefix, type ActionResult, type PostView, type ReactionKind } from "@/lib/community/shared";
@@ -83,9 +84,9 @@ export async function createPost(input: {
 
   if (!(await isGroupMember(session, groupId))) return fail(NOT_MEMBER);
   if (images.some((k) => !k.startsWith(postImagePrefix(groupId)) || k.includes(".."))) return fail("Invalid image.");
-  if (announcement && session.role !== "ADMIN") return fail("Only the Oakvale team can post announcements.");
+  if (announcement && !(await canManageGroup(session, groupId))) return fail("Only group admins can post announcements.");
 
-  if (session.role !== "ADMIN") {
+  if (!(await canManageGroup(session, groupId))) {
     const limited = await rateLimit(`community:post:${session.userId}`, 10, HOUR);
     if (!limited.ok) return fail("You've posted a lot in the last hour. Please try again a little later.");
   }
@@ -102,7 +103,7 @@ async function ownPostOrModerator(session: SessionPayload, postId: string) {
   const post = await prisma.post.findUnique({ where: { id: postId } });
   if (!post || post.deletedAt) return null;
   if (!(await isGroupMember(session, post.groupId))) return null;
-  return { post, isAuthor: post.authorId === session.userId, isAdmin: session.role === "ADMIN" };
+  return { post, isAuthor: post.authorId === session.userId, isAdmin: await canManageGroup(session, post.groupId) };
 }
 
 export async function updatePost(postId: string, body: string): Promise<ActionResult<{ post: PostView }>> {
@@ -127,10 +128,12 @@ export async function deletePost(postId: string): Promise<ActionResult> {
   return { ok: true };
 }
 
-/** Admin: pin to the top of the group, or close comments. */
+/** Group admin: pin to the top of the group, or close comments. */
 export async function setPostFlag(postId: string, flag: "pinned" | "locked", on: boolean): Promise<ActionResult<{ post: PostView }>> {
   const session = await getSession();
-  if (session?.role !== "ADMIN") return fail("Only the Oakvale team can do that.");
+  if (!session) return fail("Please log in again.");
+  const target = await prisma.post.findUnique({ where: { id: postId }, select: { groupId: true, deletedAt: true } });
+  if (!target || target.deletedAt || !(await canManageGroup(session, target.groupId))) return fail("Only group admins can do that.");
   const field = flag === "pinned" ? "pinnedAt" : "lockedAt";
   await prisma.post.update({ where: { id: postId }, data: { [field]: on ? new Date() : null } });
   return { ok: true, post: await postViewById(session, postId) };
@@ -148,7 +151,7 @@ export async function addComment(postId: string, input: { body: string; parentId
 
   const post = await prisma.post.findUnique({ where: { id: postId }, include: { group: { select: { slug: true } } } });
   if (!post || post.deletedAt || !(await isGroupMember(session, post.groupId))) return fail("This post isn't available.");
-  if (post.lockedAt && session.role !== "ADMIN") return fail("Comments are closed on this post.");
+  if (post.lockedAt && !(await canManageGroup(session, post.groupId))) return fail("Comments are closed on this post.");
 
   // Replies attach to the top-level comment, so threads stay one level deep.
   let parent: { id: string; authorId: string } | null = null;
@@ -186,7 +189,7 @@ export async function deleteComment(commentId: string): Promise<ActionResult> {
   if (!session) return fail("Please log in again.");
   const comment = await prisma.comment.findUnique({ where: { id: commentId }, include: { post: { select: { groupId: true } } } });
   if (!comment || comment.deletedAt) return fail("That comment isn't available.");
-  if (comment.authorId !== session.userId && session.role !== "ADMIN") return fail("You can't delete this comment.");
+  if (comment.authorId !== session.userId && !(await canManageGroup(session, comment.post.groupId))) return fail("You can't delete this comment.");
   if (!(await isGroupMember(session, comment.post.groupId))) return fail(NOT_MEMBER);
 
   await prisma.$transaction([
@@ -325,4 +328,84 @@ export async function report(target: { postId: string } | { commentId: string },
 export async function markAllNotificationsRead(): Promise<void> {
   const session = await getSession();
   if (session) await markNotificationsRead(session.userId);
+}
+
+/* ------------------------------------------------------------------ *
+ * Group admins
+ * ------------------------------------------------------------------ */
+
+/**
+ * Make a member of this group an admin of it, or take that away. Allowed for
+ * site admins and the group's own admins. Site admins already moderate every
+ * group, so they can't be listed.
+ */
+export async function setGroupAdmin(groupId: string, userId: string, on: boolean): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return fail("Please log in again.");
+  if (!(await canManageGroup(session, groupId))) return fail("Only group admins can do that.");
+
+  const group = await prisma.communityGroup.findUnique({ where: { id: groupId }, select: { id: true, slug: true, audience: true, programId: true, tierId: true } });
+  if (!group) return fail("That group isn't available.");
+
+  if (on) {
+    // Only people already in the group can be made its admin.
+    const target = await prisma.user.findFirst({ where: { AND: [{ id: userId }, groupMemberWhere(group)] }, select: { id: true, role: true } });
+    if (!target) return fail("Only members of this group can be made admins.");
+    if (target.role === "ADMIN") return fail("They're already part of the Oakvale team, who can manage every group.");
+    await prisma.groupAdmin.upsert({ where: { groupId_userId: { groupId, userId } }, create: { groupId, userId }, update: {} });
+  } else {
+    await prisma.groupAdmin.deleteMany({ where: { groupId, userId } });
+  }
+  revalidatePath(`/community/${group.slug}`);
+  return { ok: true };
+}
+
+/* ------------------------------------------------------------------ *
+ * Group cover photo (the banner), changeable by the group's admins
+ * ------------------------------------------------------------------ */
+
+const groupCoverPrefix = (groupId: string) => `${COVER_PREFIX}groups/${groupId}/`;
+
+/** Step 1: a presigned PUT URL for the browser to upload the banner image to. */
+export async function createGroupCoverUpload(
+  groupId: string,
+  file: { type: string; size: number }
+): Promise<ActionResult<{ uploadUrl: string; key: string; contentType: string }>> {
+  const session = await getSession();
+  if (!session) return fail("Please log in again.");
+  if (!(await canManageGroup(session, groupId))) return fail("Only group admins can change the photo.");
+  if (!isStorageConfigured()) return fail("Image uploads aren't available yet.");
+
+  const ext = IMAGE_TYPES[String(file.type)];
+  if (!ext) return fail("Please choose a JPG, PNG or WebP image.");
+  if (!(file.size > 0) || file.size > MAX_IMAGE_BYTES) return fail("That image is too large (max 5 MB).");
+
+  const limited = await rateLimit(`community:cover:${session.userId}`, 20, HOUR);
+  if (!limited.ok) return fail("You've changed the photo a lot recently. Please try again later.");
+
+  const corsError = await ensureUploadCors(new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3001").origin);
+  if (corsError) return fail(corsError);
+
+  const key = `${groupCoverPrefix(groupId)}${randomUUID()}.${ext}`;
+  return { ok: true, key, contentType: file.type, uploadUrl: await presignUpload(key, file.type) };
+}
+
+/** Step 2 (or removal with key = null): save the banner and delete the previous upload. */
+export async function saveGroupCover(groupId: string, key: string | null): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return fail("Please log in again.");
+  if (!(await canManageGroup(session, groupId))) return fail("Only group admins can change the photo.");
+  if (key !== null && (!key.startsWith(groupCoverPrefix(groupId)) || key.includes(".."))) return fail("Invalid upload.");
+
+  const current = await prisma.communityGroup.findUnique({ where: { id: groupId }, select: { coverImage: true, slug: true } });
+  if (!current) return fail("That group isn't available.");
+
+  await prisma.communityGroup.update({ where: { id: groupId }, data: { coverImage: key ? coverPath(key) : null } });
+  const old = coverKey(current.coverImage);
+  if (old && old !== key) await deletePrefix(old).catch((err) => console.error("[community] cover cleanup failed:", err));
+
+  revalidatePath(`/community/${current.slug}`);
+  revalidatePath("/community", "layout");
+  revalidatePath(`/admin/community/groups/${groupId}`);
+  return { ok: true };
 }

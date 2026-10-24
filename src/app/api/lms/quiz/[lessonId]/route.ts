@@ -15,7 +15,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/lms/quiz/[lesso
   const { lessonId } = await ctx.params;
 
   const access = await checkLessonAccess(session, lessonId);
-  if (!access.ok || access.lesson.type !== "QUIZ") {
+  if (!access.ok || !access.lesson.blocks.some((b) => b.type === "QUIZ")) {
     return NextResponse.json({ error: "Not allowed" }, { status: 403 });
   }
 

@@ -8,6 +8,7 @@ import { LESSON_TYPE_LABEL, LessonIcon } from "@/components/learn/LessonIcon";
 import { formatDuration } from "@/components/learn/CourseOutline";
 import { CoverImageField } from "@/components/admin/CoverImageField";
 import { LessonTypePicker } from "@/components/admin/LessonTypePicker";
+import { lessonReadiness } from "@/lib/lms/readiness";
 import { buttonClass } from "@/components/ui/Button";
 import {
   ActionForm,
@@ -48,7 +49,10 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
         include: {
           lessons: {
             orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-            include: { asset: { select: { status: true } }, quiz: { select: { kind: true, _count: { select: { questions: true } } } } },
+            include: {
+              blocks: { orderBy: [{ order: "asc" }, { createdAt: "asc" }], select: { type: true, body: true, asset: { select: { status: true } } } },
+              quiz: { select: { kind: true, _count: { select: { questions: true } } } },
+            },
           },
         },
       },
@@ -164,7 +168,11 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
                           <span className="min-w-0 flex-1">
                             <span className="block text-sm font-medium text-ink-900 sm:truncate">{l.title}</span>
                             <span className="block text-xs text-ink-500">
-                              {l.quiz?.kind === "EXAM" ? "Final assessment · shown after all lessons" : LESSON_TYPE_LABEL[l.type]}
+                              {l.quiz?.kind === "EXAM"
+                                ? "Final assessment · shown after all lessons"
+                                : l.type === "MIXED" && l.blocks.length > 0
+                                  ? `Multi-part · ${l.blocks.length} ${l.blocks.length === 1 ? "part" : "parts"}`
+                                  : LESSON_TYPE_LABEL[l.type]}
                               {duration && ` · ${duration}`}
                             </span>
                           </span>
@@ -184,7 +192,7 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
               <footer className="border-t border-line px-3 py-2">
                 <Dialog
                   title="Add a lesson"
-                  description={`To “${m.title}”. You'll upload its content next.`}
+                  description={`To “${m.title}”. You'll add its content next.`}
                   triggerVariant="ghost"
                   trigger={
                     <>
@@ -320,18 +328,31 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
 function LessonState({
   lesson,
 }: {
-  lesson: { type: string; published: boolean; asset: { status: string } | null; quiz: { _count: { questions: number } } | null };
+  lesson: {
+    published: boolean;
+    blocks: { type: string; body: string; asset: { status: string } | null }[];
+    quiz: { _count: { questions: number } } | null;
+  };
 }) {
   if (!lesson.published) return <StatusBadge status="DRAFT" />;
-  if (lesson.type === "QUIZ") {
-    const n = lesson.quiz?._count.questions ?? 0;
-    return n ? (
-      <span className="text-xs text-ink-500">
-        {n} {n === 1 ? "question" : "questions"}
+  const questions = lesson.quiz?._count.questions ?? 0;
+  const { total, ready, problem } = lessonReadiness(lesson.blocks, questions);
+  if (total === 0) return <StatusBadge status="EMPTY" />;
+  if (problem === "FAILED" || problem === "PROCESSING" || problem === "UPLOADING") return <StatusBadge status={problem} />;
+  if (problem) {
+    return (
+      <span className="text-xs text-amber-700">
+        {ready} of {total} {total === 1 ? "part" : "parts"} ready
       </span>
-    ) : (
-      <StatusBadge status="EMPTY" />
     );
   }
-  return <StatusBadge status={lesson.asset?.status ?? "EMPTY"} />;
+  // Everything is ready: say what's in it.
+  if (total === 1 && lesson.blocks[0].type === "QUIZ") {
+    return (
+      <span className="text-xs text-ink-500">
+        {questions} {questions === 1 ? "question" : "questions"}
+      </span>
+    );
+  }
+  return total === 1 ? <StatusBadge status="READY" /> : <span className="text-xs text-ink-500">{total} parts ready</span>;
 }

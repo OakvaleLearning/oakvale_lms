@@ -95,11 +95,20 @@ export function presignUpload(key: string, contentType: string) {
   );
 }
 
-/** Presigned GET URL (supports range requests, so media can seek). Valid ~1 hour. */
-export function presignDownload(key: string) {
-  return getSignedUrl(newClient(), new GetObjectCommand({ Bucket: bucket(), Key: key }), {
-    expiresIn: SIGNED_URL_TTL,
-  });
+/**
+ * Presigned GET URL (supports range requests, so media can seek). Valid ~1 hour.
+ * With `downloadName`, the browser saves the file under that name instead of
+ * opening it.
+ */
+export function presignDownload(key: string, opts: { downloadName?: string } = {}) {
+  const disposition = opts.downloadName
+    ? `attachment; filename="${opts.downloadName.replace(/[^\w.\- ]+/g, "_").slice(0, 150)}"`
+    : undefined;
+  return getSignedUrl(
+    newClient(),
+    new GetObjectCommand({ Bucket: bucket(), Key: key, ResponseContentDisposition: disposition }),
+    { expiresIn: SIGNED_URL_TTL }
+  );
 }
 
 /**

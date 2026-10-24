@@ -107,7 +107,8 @@ function loadLesson(lessonId: string) {
   return prisma.lesson.findUnique({
     where: { id: lessonId },
     include: {
-      asset: true,
+      // The lesson's parts, in the order learners meet them.
+      blocks: { orderBy: [{ order: "asc" }, { createdAt: "asc" }], include: { asset: true } },
       quiz: { select: { kind: true } },
       module: {
         include: {

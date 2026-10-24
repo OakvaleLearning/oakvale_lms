@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth";
+import { canManageGroup } from "@/lib/community/access";
 import { getPost, listComments } from "@/lib/community/feed";
 import { getMe } from "@/lib/community/viewer";
 import { Breadcrumbs } from "@/components/dashboard/ui";
@@ -28,7 +29,7 @@ export default async function PostPage({ params }: PageProps<"/community/[group]
         ]}
       />
       <PostCard post={post} detail />
-      <CommentThread postId={post.id} comments={comments} me={me} locked={post.locked} isAdmin={session.role === "ADMIN"} />
+      <CommentThread postId={post.id} comments={comments} me={me} locked={post.locked} isAdmin={await canManageGroup(session, post.group.id)} />
     </div>
   );
 }

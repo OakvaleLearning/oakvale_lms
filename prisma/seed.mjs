@@ -108,6 +108,7 @@ async function seedProgram(def, order) {
             title: "Check your understanding",
             type: "QUIZ",
             order: 0,
+            blocks: { create: { type: "QUIZ", order: 0 } },
             quiz: {
               create: {
                 passMark: 50,

@@ -4,6 +4,7 @@ import { XMLParser } from "fast-xml-parser";
 import { prisma } from "@/lib/prisma";
 import { deletePrefix, getObjectBytes, isStorageConfigured, mimeFromPath, putObject } from "@/lib/storage";
 import { extractPackageText, TEXT_VERSION } from "@/lib/lms/lesson-text";
+import { syncLesson } from "@/lib/lms/lesson-parts";
 
 /**
  * Unpacking uploaded SCORM / HTML packages.
@@ -22,10 +23,15 @@ export const contentPrefix = (assetId: string) => `content/${assetId}/`;
 
 class PackageError extends Error {}
 
-export async function ingestPackage(assetId: string): Promise<void> {
+/**
+ * Unpack an uploaded package. With `detect`, a .zip put in a web page part is
+ * checked for imsmanifest.xml: if it has one, the part becomes a SCORM part
+ * (unless the lesson already has one).
+ */
+export async function ingestPackage(assetId: string, opts: { detect?: boolean } = {}): Promise<void> {
   const asset = await prisma.contentAsset.findUniqueOrThrow({
     where: { id: assetId },
-    include: { lesson: { select: { type: true } } },
+    include: { block: { select: { id: true, type: true } } },
   });
   await prisma.contentAsset.update({ where: { id: assetId }, data: { status: "PROCESSING", error: null } });
 
@@ -43,7 +49,17 @@ export async function ingestPackage(assetId: string): Promise<void> {
     }
 
     const files = unzip(bytes);
-    if (asset.lesson.type === "SCORM") {
+    let isScorm = asset.block.type === "SCORM";
+    if (!isScorm && opts.detect && Object.keys(files).some((p) => /(^|\/)imsmanifest\.xml$/i.test(p))) {
+      const other = await prisma.lessonBlock.count({
+        where: { lessonId: asset.lessonId, type: "SCORM", id: { not: asset.block.id } },
+      });
+      if (other) throw new PackageError("This is a SCORM package, and the lesson already has one. A lesson can hold one SCORM package.");
+      await prisma.lessonBlock.update({ where: { id: asset.block.id }, data: { type: "SCORM" } });
+      await syncLesson(asset.lessonId);
+      isScorm = true;
+    }
+    if (isScorm) {
       const manifestPath = shallowest(Object.keys(files), (p) => /(^|\/)imsmanifest\.xml$/i.test(p));
       if (!manifestPath) throw new PackageError("No imsmanifest.xml found. Is this a SCORM package?");
       const base = manifestPath.slice(0, manifestPath.lastIndexOf("/") + 1);
@@ -121,14 +137,14 @@ export async function backfillAssetText(asset: {
 
 /** Whether an asset's stored text is missing or came from an older extractor. */
 export function needsTextBackfill(
-  lessonType: string,
+  partType: string,
   asset: { status: string; textContent: string | null; textVersion: number } | null
 ): boolean {
   return (
     !!asset &&
     isStorageConfigured() &&
     asset.status === "READY" &&
-    (lessonType === "SCORM" || lessonType === "HTML") &&
+    (partType === "SCORM" || partType === "HTML") &&
     (asset.textContent === null || asset.textVersion < TEXT_VERSION)
   );
 }

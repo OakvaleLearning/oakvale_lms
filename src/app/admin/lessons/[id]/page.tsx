@@ -1,20 +1,25 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronDown, Eye, Plus } from "lucide-react";
+import { Eye } from "lucide-react";
+import type { ContentAsset, LessonBlock } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { isStorageConfigured } from "@/lib/storage";
 import { listQuizSources } from "@/lib/lms/quiz-generator";
+import { BLOCK_LABEL, isFileBlock, type BlockKind } from "@/lib/lms/blocks";
+import { lessonReadiness, partStatus } from "@/lib/lms/readiness";
 import { LESSON_TYPE_LABEL, LessonIcon } from "@/components/learn/LessonIcon";
-import { ActionForm, DeleteButton, Field, Input, MoveButtons, Panel, Select, Switch, Textarea } from "@/components/admin/forms";
+import { ActionForm, DeleteButton, Field, Input, Panel, Switch, Textarea } from "@/components/admin/forms";
 import { UploadField } from "@/components/admin/UploadField";
-import { QuestionEditor, type EditableQuestion } from "@/components/admin/QuestionEditor";
-import { QuizGenerator } from "@/components/admin/QuizGenerator";
+import { TextPartEditor } from "@/components/admin/TextPartEditor";
+import { DocumentAccess } from "@/components/admin/DocumentAccess";
+import { LessonBuilder, type BuilderPart } from "@/components/admin/LessonBuilder";
+import type { EditableQuestion } from "@/components/admin/QuestionEditor";
 import { Breadcrumbs, PageHeader, StatusBadge } from "@/components/dashboard/ui";
 import { formatDuration } from "@/components/learn/CourseOutline";
 import { buttonClass } from "@/components/ui/Button";
-import { deleteLesson, moveItem, updateLesson } from "../../actions";
-import { deleteQuestion, updateQuizSettings } from "./actions";
+import { deleteLesson, updateLesson } from "../../actions";
+import { QuizPartEditor } from "./QuizPartEditor";
 
 // Unpacking a large SCORM package runs inside this page's server action.
 export const maxDuration = 300;
@@ -25,21 +30,46 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
   const lesson = await prisma.lesson.findUnique({
     where: { id },
     include: {
-      asset: true,
+      blocks: { orderBy: [{ order: "asc" }, { createdAt: "asc" }], include: { asset: true } },
       quiz: { include: { questions: { orderBy: [{ order: "asc" }, { id: "asc" }] } } },
       module: { include: { course: { include: { program: { select: { id: true, slug: true, title: true } } } } } },
     },
   });
   if (!lesson) notFound();
+
   const course = lesson.module.course;
-  const isMedia = lesson.type === "VIDEO" || lesson.type === "AUDIO";
   const questions = lesson.quiz?.questions ?? [];
-  const contentStatus =
-    lesson.type === "QUIZ" ? (questions.length ? "READY" : "EMPTY") : (lesson.asset?.status ?? "EMPTY");
-  const duration = formatDuration(lesson.durationSec);
-  const quizSources = lesson.type === "QUIZ" ? await listQuizSources(lesson.id) : null;
   const isExam = lesson.quiz?.kind === "EXAM";
-  const typeLabel = isExam ? "Final assessment" : LESSON_TYPE_LABEL[lesson.type];
+  const storageReady = isStorageConfigured();
+  const quizSources = lesson.blocks.some((b) => b.type === "QUIZ") ? await listQuizSources(lesson.id) : null;
+  const readiness = lessonReadiness(lesson.blocks, questions.length);
+  const duration = formatDuration(lesson.durationSec);
+  const typeLabel = isExam ? "Final assessment" : lesson.type === "MIXED" ? "Multi-part lesson" : `${LESSON_TYPE_LABEL[lesson.type]} lesson`;
+
+  const parts: BuilderPart[] = lesson.blocks.map((block) => {
+    const type = block.type as BlockKind;
+    const status = partStatus(block, questions.length);
+    return {
+      id: block.id,
+      type,
+      title: block.title,
+      required: block.required,
+      durationMin: block.durationSec ? Math.max(1, Math.round(block.durationSec / 60)) : null,
+      status,
+      summary: summarize(block, questions.length, lesson.quiz?.passMark),
+      editor: (
+        <PartEditor
+          block={block}
+          lessonId={lesson.id}
+          storageReady={storageReady}
+          questions={questions as unknown as EditableQuestion[]}
+          quiz={lesson.quiz}
+          quizSources={quizSources}
+          canBeExam={lesson.blocks.length === 1}
+        />
+      ),
+    };
+  });
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -54,7 +84,7 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
       <PageHeader
         eyebrow={
           <span className="inline-flex items-center gap-1.5">
-            <LessonIcon type={lesson.type} className="size-3.5" /> {isExam ? typeLabel : `${typeLabel} lesson`}
+            <LessonIcon type={lesson.type} className="size-3.5" /> {typeLabel}
           </span>
         }
         title={
@@ -70,7 +100,7 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
               href={`/learn/${course.program.slug}/${course.slug}/${lesson.id}`}
               className={buttonClass({ variant: "outline", size: "sm" })}
             >
-              <Eye className="size-4" /> Preview
+              <Eye className="size-4" /> Preview as learner
             </Link>
             <DeleteButton
               onDelete={deleteLesson.bind(null, lesson.id)}
@@ -82,127 +112,17 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
       />
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="min-w-0 space-y-6">
-          {quizSources && (
-            <Panel
-              title="Generate with AI"
-              description="Draft questions, answers and explanations from this course's lessons. You can edit every question afterwards."
-            >
-              <QuizGenerator
-                key={quizSources.kind}
-                lessonId={lesson.id}
-                kind={quizSources.kind}
-                sources={quizSources.sources}
-                existingCount={questions.length}
-              />
-            </Panel>
-          )}
-          {lesson.type === "QUIZ" ? (
-            <Panel
-              title={`Questions (${questions.length})`}
-              description="Learners answer every question; the score is the share of points earned."
-            >
-              <div className="space-y-3">
-                {questions.map((q, i) => (
-                  <details key={q.id} className="group rounded-xl border border-line bg-white open:shadow-card">
-                    <summary className="flex cursor-pointer list-none items-center gap-2 py-2 pl-2 pr-3 [&::-webkit-details-marker]:hidden">
-                      <MoveButtons onMove={moveItem.bind(null, "question", q.id)} />
-                      <span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary-50 text-xs font-semibold text-primary-700">
-                        {i + 1}
-                      </span>
-                      <span className="min-w-0 flex-1 truncate text-sm text-ink-900">{q.prompt}</span>
-                      <span className="hidden shrink-0 text-xs text-ink-500 sm:inline">{QUESTION_TYPE[q.type]}</span>
-                      <ChevronDown className="size-4 shrink-0 text-ink-400 transition-transform group-open:rotate-180" />
-                    </summary>
-                    <div className="border-t border-line p-4 sm:p-5">
-                      <QuestionEditor lessonId={lesson.id} question={q as unknown as EditableQuestion} />
-                      <div className="mt-4 flex justify-end border-t border-line pt-3">
-                        <DeleteButton
-                          onDelete={deleteQuestion.bind(null, lesson.id, q.id)}
-                          confirmText="Delete this question?"
-                          label="Delete question"
-                        />
-                      </div>
-                    </div>
-                  </details>
-                ))}
-                <details
-                  className="group rounded-xl border border-dashed border-ink-200 bg-canvas/50 open:border-solid open:bg-white"
-                  open={questions.length === 0}
-                >
-                  <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-medium text-primary-700 [&::-webkit-details-marker]:hidden">
-                    <Plus className="size-4" /> Add a question
-                  </summary>
-                  <div className="border-t border-line p-4 sm:p-5">
-                    <QuestionEditor lessonId={lesson.id} />
-                  </div>
-                </details>
-              </div>
-            </Panel>
-          ) : (
-            <Panel title="Content" description={CONTENT_HINT[lesson.type]}>
-              {isStorageConfigured() ? (
-                <UploadField
-                  lessonId={lesson.id}
-                  kind={lesson.type}
-                  asset={
-                    lesson.asset && {
-                      fileName: lesson.asset.fileName,
-                      status: lesson.asset.status,
-                      error: lesson.asset.error,
-                      sizeBytes: lesson.asset.sizeBytes,
-                      scormVersion: lesson.asset.scormVersion,
-                    }
-                  }
-                />
-              ) : (
-                <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  File uploads need the AWS S3 bucket connected to this Vercel project (<code>S3_BUCKET_NAME</code>,{" "}
-                  <code>AWS_REGION</code>, <code>AWS_ROLE_ARN</code>).
-                </p>
-              )}
-            </Panel>
-          )}
+        <section className="min-w-0" aria-label="Lesson content">
+          <div className="mb-3">
+            <h2 className="text-[15px] font-semibold text-ink-950">Lesson content</h2>
+            <p className="mt-0.5 text-xs text-ink-500">
+              Learners work through these parts from top to bottom. Drag to reorder, or drop files anywhere here to add them.
+            </p>
+          </div>
+          <LessonBuilder lessonId={lesson.id} parts={parts} locked={isExam} />
+        </section>
 
-          <Panel title="Lesson details">
-            <ActionForm action={updateLesson.bind(null, lesson.id)}>
-              <div className={isMedia ? undefined : "grid gap-4 sm:grid-cols-[minmax(0,1fr)_180px]"}>
-                <Field label="Title">
-                  <Input name="title" required defaultValue={lesson.title} />
-                </Field>
-                {!isMedia && (
-                  <Field label="Duration (minutes)" optional>
-                    <Input
-                      name="durationMin"
-                      type="number"
-                      min={0}
-                      step={1}
-                      defaultValue={lesson.durationSec ? Math.round(lesson.durationSec / 60) : ""}
-                    />
-                  </Field>
-                )}
-              </div>
-              <Field label="Notes for learners" hint="Shown under the lesson." optional>
-                <Textarea name="description" rows={4} defaultValue={lesson.description} />
-              </Field>
-              <Field
-                label="Tutor notes"
-                hint="Extra material for the AI tutor; learners don't see it. Paste a transcript or key points, especially for video and audio lessons."
-                optional
-              >
-                <Textarea name="tutorNotes" rows={6} defaultValue={lesson.tutorNotes} />
-              </Field>
-              <Switch
-                name="published"
-                label="Visible to learners"
-                description="Draft lessons are hidden from the course"
-                defaultChecked={lesson.published}
-              />
-            </ActionForm>
-          </Panel>
-        </div>
-
-        <aside className="space-y-6 lg:sticky lg:top-8">
+        <aside className="space-y-6">
           <Panel title="At a glance">
             <dl className="space-y-3 text-sm">
               <div className="flex items-center justify-between gap-3">
@@ -214,12 +134,19 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
               <div className="flex items-center justify-between gap-3">
                 <dt className="text-ink-500">Content</dt>
                 <dd>
-                  {lesson.type === "QUIZ" && questions.length ? (
-                    <span className="font-medium text-ink-900">
-                      {questions.length} {questions.length === 1 ? "question" : "questions"}
+                  {readiness.total === 0 ? (
+                    <StatusBadge status="EMPTY" />
+                  ) : readiness.problem ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span className="text-xs text-ink-500">
+                        {readiness.ready} of {readiness.total} ready
+                      </span>
+                      <StatusBadge status={readiness.problem} />
                     </span>
                   ) : (
-                    <StatusBadge status={contentStatus} />
+                    <span className="font-medium text-ink-900">
+                      {readiness.total} {readiness.total === 1 ? "part" : "parts"} ready
+                    </span>
                   )}
                 </dd>
               </div>
@@ -240,45 +167,99 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
             </dl>
           </Panel>
 
-          {lesson.type === "QUIZ" && (
-            <Panel title={isExam ? "Assessment settings" : "Quiz settings"}>
-              <ActionForm action={updateQuizSettings.bind(null, lesson.id)}>
-                <Field
-                  label="Where it sits"
-                  hint={
-                    isExam
-                      ? "Shown after every other lesson; learners open it once they've completed them all."
-                      : "Shown where you place it in the course, after the lessons it checks."
-                  }
-                >
-                  <Select name="kind" defaultValue={lesson.quiz?.kind ?? "QUIZ"}>
-                    <option value="QUIZ">Quiz, between lessons</option>
-                    <option value="EXAM">Final assessment, after all lessons</option>
-                  </Select>
-                </Field>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Pass mark (%)">
-                    <Input name="passMark" type="number" min={0} max={100} required defaultValue={lesson.quiz?.passMark ?? 70} />
-                  </Field>
-                  <Field label="Max attempts" hint="Empty = unlimited">
-                    <Input name="maxAttempts" type="number" min={1} max={100} defaultValue={lesson.quiz?.maxAttempts ?? ""} />
-                  </Field>
-                </div>
-                <Switch name="shuffle" label="Shuffle" description="Mix up question and option order" defaultChecked={lesson.quiz?.shuffle} />
-              </ActionForm>
-            </Panel>
-          )}
+          <Panel title="Lesson details">
+            <ActionForm action={updateLesson.bind(null, lesson.id)}>
+              <Field label="Title">
+                <Input name="title" required defaultValue={lesson.title} />
+              </Field>
+              <Field label="Notes for learners" hint="Shown under the lesson." optional>
+                <Textarea name="description" rows={4} defaultValue={lesson.description} />
+              </Field>
+              <Field
+                label="Tutor notes"
+                hint="Extra material for the AI tutor; learners don't see it. Paste a transcript or key points, especially for video, audio and document parts."
+                optional
+              >
+                <Textarea name="tutorNotes" rows={6} defaultValue={lesson.tutorNotes} />
+              </Field>
+              <Switch
+                name="published"
+                label="Visible to learners"
+                description="Draft lessons are hidden from the course"
+                defaultChecked={lesson.published}
+              />
+            </ActionForm>
+          </Panel>
         </aside>
       </div>
     </div>
   );
 }
 
-const QUESTION_TYPE = { SINGLE: "Single answer", MULTIPLE: "Multiple answers", TRUE_FALSE: "True / False" } as const;
+type Block = LessonBlock & { asset: ContentAsset | null };
 
-const CONTENT_HINT = {
-  VIDEO: "The video learners watch. Its length is read automatically.",
-  AUDIO: "The recording learners listen to.",
-  SCORM: "A SCORM package; progress and completion are reported by the package.",
-  HTML: "A web page; learners mark it complete when they're done.",
-} as const;
+/** The one-line description shown while a part is collapsed. */
+function summarize(block: Block, questionCount: number, passMark?: number): string {
+  if (block.type === "TEXT") {
+    const plain = block.body.replace(/[#>*_`\[\]()-]+/g, " ").replace(/\s+/g, " ").trim();
+    return plain ? plain.slice(0, 160) : "No text yet. Open to write it.";
+  }
+  if (block.type === "QUIZ") {
+    return questionCount
+      ? `${questionCount} ${questionCount === 1 ? "question" : "questions"}${passMark !== undefined ? ` · pass mark ${passMark}%` : ""}`
+      : "No questions yet. Open to add some.";
+  }
+  const asset = block.asset;
+  if (!asset) return `No ${BLOCK_LABEL[block.type as BlockKind].toLowerCase()} file yet. Open to upload one.`;
+  if (asset.status === "FAILED") return asset.error ?? "Processing failed. Upload the file again.";
+  const size = asset.sizeBytes ? ` · ${(asset.sizeBytes / 1024 / 1024).toFixed(1)} MB` : "";
+  return `${asset.fileName}${size}${asset.scormVersion ? ` · SCORM ${asset.scormVersion}` : ""}`;
+}
+
+function PartEditor({
+  block,
+  lessonId,
+  storageReady,
+  questions,
+  quiz,
+  quizSources,
+  canBeExam,
+}: {
+  block: Block;
+  lessonId: string;
+  storageReady: boolean;
+  questions: EditableQuestion[];
+  quiz: { kind: "QUIZ" | "EXAM"; passMark: number; maxAttempts: number | null; shuffle: boolean } | null;
+  quizSources: Awaited<ReturnType<typeof listQuizSources>> | null;
+  canBeExam: boolean;
+}) {
+  if (block.type === "TEXT") return <TextPartEditor blockId={block.id} initial={block.body} />;
+
+  if (block.type === "QUIZ") {
+    return (
+      <QuizPartEditor
+        lessonId={lessonId}
+        questions={questions}
+        settings={quiz ?? { kind: "QUIZ", passMark: 70, maxAttempts: null, shuffle: false }}
+        sources={quizSources}
+        canBeExam={canBeExam}
+      />
+    );
+  }
+
+  if (!isFileBlock(block.type)) return null;
+  if (!storageReady) {
+    return (
+      <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        File uploads need the AWS S3 bucket connected to this Vercel project (<code>S3_BUCKET_NAME</code>, <code>AWS_REGION</code>,{" "}
+        <code>AWS_ROLE_ARN</code>).
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      <UploadField blockId={block.id} kind={block.type} asset={block.asset} />
+      {block.type === "DOCUMENT" && <DocumentAccess blockId={block.id} allowDownload={block.allowDownload} />}
+    </div>
+  );
+}
