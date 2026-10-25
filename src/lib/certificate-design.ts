@@ -44,7 +44,7 @@ export interface TemplateDesign {
 export const DEFAULT_DESIGN: TemplateDesign = {
   layout: "CLASSIC",
   font: "SERIF",
-  primaryColor: "#3229a2",
+  primaryColor: "#145c3f",
   accentColor: "#b08d3c",
   backgroundColor: "#ffffff",
   heading: "Certificate of Completion",

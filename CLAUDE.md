@@ -19,3 +19,10 @@
 - Still site-admin only: creating events and uploading event images, "Manage group", and the `/admin` area.
 - `groupMemberWhere`, `groupLearnerWhere` and `notifyGroup` need the group's `id` as well as its audience fields.
 - The group banner (`src/app/community/[group]/page.tsx`) is the themed blue gradient unless the group has a `coverImage`. Group admins and site admins get a "more" (…) menu on it with Add/Change/Remove photo (`GroupCoverButton`, actions `createGroupCoverUpload` / `saveGroupCover` in `src/app/community/actions.ts`) that uploads straight to the bucket under `covers/groups/<id>/`. The admin-only `CoverImageField` in `/admin` writes the same field.
+
+## Theme
+
+- The visual theme is copied from the main site (`OakvaleLearning/oakvale_main`: `app/globals.css`, `tailwind.config.js`, `app/layout.tsx`). All tokens live in `@theme` in `src/app/globals.css`; fonts are loaded in `src/app/layout.tsx` with `next/font/google`. Change colours or fonts there, not in components.
+- Colours: `primary-*` is forest green (600 = the main site's forest-mid `#145c3f`, 800 = forest `#0a3d2b`, 200/100 = mint/mint-light, 400 = sage). `gold` and `gold-light` (`#c8881a`, `#e8a832`) are for highlights. `accent-*` is the error red (700 = the main site's `#9a1d1d`), so keep using it for errors and warnings, not decoration. `ink-*` are warm greys (900 = charcoal `#1c1c1c`), `canvas`/`cream` is `#f7f3ec` and `line` is `#e8e4de`.
+- Fonts: DM Sans for the interface (`font-sans`, the default), Cormorant Garamond for page titles and key figures (`font-display`, or `font-heading`), EB Garamond for lesson reading text (`font-serif`, used by `.lesson-md`), Geist Mono for code.
+- Hex values that can't use tokens (emails in `src/lib/email-templates.ts` and `src/lib/community/emails.ts`, `src/app/manifest.ts`, the viewport `themeColor`, certificate defaults in `src/lib/certificate-design.ts`, swatches in `TemplateEditor.tsx`) use `#145c3f`. Update them together if the primary colour changes. Existing saved certificate templates keep the colours they were saved with.
