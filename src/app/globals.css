@@ -2,64 +2,74 @@
 
 /* ------------------------------------------------------------------ */
 /*  Oakvale Learning — Design Tokens                                   */
-/*  Primary: #3229a2 (deep indigo)   Accent: #d929dd (magenta)        */
-/*  Solid colours only — no gradients anywhere in the UI.              */
+/*  Taken from the main site (OakvaleLearning/oakvale_main):           */
+/*  forest green + gold on cream; Cormorant Garamond, EB Garamond,     */
+/*  DM Sans. Solid colours only — no gradients except the group        */
+/*  banner.                                                            */
 /* ------------------------------------------------------------------ */
 
 @theme {
-  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-eb-garamond), Georgia, serif;
+  --font-heading: var(--font-cormorant), Georgia, serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
-  /* Brand — Primary (indigo) */
-  --color-primary-50: #eeecfb;
-  --color-primary-100: #d9d5f6;
-  --color-primary-200: #b3abed;
-  --color-primary-300: #8d80e4;
-  --color-primary-400: #6656d3;
-  --color-primary-500: #4a3cbb;
-  --color-primary-600: #3229a2;
-  --color-primary-700: #2a2287;
-  --color-primary-800: #211a6b;
-  --color-primary-900: #171149;
-  --color-primary-950: #0d0a2b;
+  /* Brand — Primary (forest green; 600 = forest-mid, 800 = forest) */
+  --color-primary-50: #eff7f2;
+  --color-primary-100: #d6ede0;
+  --color-primary-200: #a8d5b5;
+  --color-primary-300: #79be93;
+  --color-primary-400: #4ea97a;
+  --color-primary-500: #2b8a5e;
+  --color-primary-600: #145c3f;
+  --color-primary-700: #0f4b33;
+  --color-primary-800: #0a3d2b;
+  --color-primary-900: #072d20;
+  --color-primary-950: #031a12;
 
-  /* Brand — Accent (magenta). Reserved for errors and rare highlights. */
-  --color-accent-50: #fdeafd;
-  --color-accent-100: #fbd0fb;
-  --color-accent-200: #f6a4f6;
-  --color-accent-300: #f072f1;
-  --color-accent-400: #e84be9;
-  --color-accent-500: #d929dd;
-  --color-accent-600: #b31eb8;
-  --color-accent-700: #8d1892;
-  --color-accent-800: #66125f;
-  --color-accent-900: #430c40;
+  /* Brand — Gold, for highlights */
+  --color-gold: #c8881a;
+  --color-gold-light: #e8a832;
 
-  /* Neutrals (ink) */
-  --color-ink-50: #f7f7fa;
-  --color-ink-100: #eeeef3;
-  --color-ink-200: #e0e0e8;
-  --color-ink-300: #b8b8c9;
-  --color-ink-400: #8f8fa6;
-  --color-ink-500: #6c6c85;
-  --color-ink-600: #55556b;
-  --color-ink-700: #434356;
-  --color-ink-800: #2c2c3a;
-  --color-ink-900: #1a1a24;
-  --color-ink-950: #0e0e15;
+  /* Accent — errors and warnings (the main site's #9a1d1d red at 700) */
+  --color-accent-50: #fdeeee;
+  --color-accent-100: #fad6d6;
+  --color-accent-200: #f3aeae;
+  --color-accent-300: #e97d7d;
+  --color-accent-400: #d94f4f;
+  --color-accent-500: #c23232;
+  --color-accent-600: #b02525;
+  --color-accent-700: #9a1d1d;
+  --color-accent-800: #7a1717;
+  --color-accent-900: #531010;
 
-  /* Cool neutral canvas behind cards. */
-  --color-canvas: #f6f6f9;
-  --color-line: #e6e6ed;
+  /* Neutrals (ink): warm greys from the main site (charcoal, mid-grey, stone, light-grey) */
+  --color-ink-50: #fbf9f5;
+  --color-ink-100: #f2eee6;
+  --color-ink-200: #e8e4de;
+  --color-ink-300: #d4cfca;
+  --color-ink-400: #9a958f;
+  --color-ink-500: #6f6b66;
+  --color-ink-600: #5a5a5a;
+  --color-ink-700: #444444;
+  --color-ink-800: #2e2e2e;
+  --color-ink-900: #1c1c1c;
+  --color-ink-950: #111111;
+
+  /* Cream canvas behind cards, as on the main site. */
+  --color-cream: #f7f3ec;
+  --color-cream-warm: #ede7db;
+  --color-canvas: #f7f3ec;
+  --color-line: #e8e4de;
 
   --color-background: #ffffff;
-  --color-foreground: #1a1a24;
+  --color-foreground: #1c1c1c;
 
   --radius-4xl: 2rem;
 
   /* Soft, neutral elevation — never coloured glows. */
-  --shadow-card: 0 1px 2px rgb(20 18 40 / 0.04), 0 1px 1px rgb(20 18 40 / 0.02);
-  --shadow-raised: 0 1px 2px rgb(20 18 40 / 0.05), 0 8px 24px -12px rgb(20 18 40 / 0.12);
+  --shadow-card: 0 1px 2px rgb(10 61 43 / 0.05), 0 1px 1px rgb(10 61 43 / 0.03);
+  --shadow-raised: 0 1px 2px rgb(10 61 43 / 0.06), 0 8px 24px -12px rgb(10 61 43 / 0.16);
 
   /* Motion */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -79,7 +89,6 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
-    font-feature-settings: "ss01", "cv11";
   }
 
   :focus-visible {
@@ -115,11 +124,12 @@
   box-shadow: var(--shadow-card);
 }
 
-/* Page titles and key figures: tight, confident sans. */
+/* Page titles and key figures: Cormorant Garamond, like the main site headings. */
 @utility font-display {
-  font-family: var(--font-sans);
-  font-weight: 600;
-  letter-spacing: -0.03em;
+  font-family: var(--font-heading);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  font-variant-numeric: lining-nums;
 }
 
 /* Small uppercase label above titles and table columns. */
@@ -170,7 +180,8 @@
 }
 
 /* Written lesson parts: the tutor's markdown styles, at reading size. */
-.lesson-md { font-size: 1rem; line-height: 1.75; }
+.lesson-md { font-family: var(--font-serif); font-size: 1.125rem; line-height: 1.75; }
+.lesson-md :is(h1, h2, h3, h4) { font-family: var(--font-heading); font-weight: 600; }
 .lesson-md > * + * { margin-top: 1em; }
 .lesson-md :is(h1, h2) { font-size: 1.375rem; margin-top: 1.5em; }
 .lesson-md :is(h3, h4) { font-size: 1.0625rem; margin-top: 1.25em; }
