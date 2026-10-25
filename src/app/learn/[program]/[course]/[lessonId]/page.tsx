@@ -120,7 +120,7 @@ export default async function LessonPage({ params }: PageProps<"/learn/[program]
         </div>
       </div>
 
-      <TutorPanel key={lesson.id} lessonId={lesson.id} lessonTitle={lesson.title} locked={tutor !== "OPEN"} />
+      {tutor === "OPEN" && <TutorPanel key={lesson.id} lessonId={lesson.id} lessonTitle={lesson.title} locked={false} />}
     </div>
   );
 }

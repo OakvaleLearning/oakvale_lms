@@ -39,22 +39,16 @@ export interface TutorMessageView {
 }
 
 /**
- * The tutor stays closed on a quiz until its answers would be revealed anyway:
- * the learner has passed or has no attempts left.
+ * The tutor is never available on a lesson that contains a quiz or final
+ * assessment, for anyone, before or after attempts. The learner page doesn't
+ * show it there and this closes the API too.
  */
 export async function getTutorAvailability(
-  session: SessionPayload,
-  lesson: Pick<AccessibleLesson, "id" | "type">
+  _session: SessionPayload,
+  lesson: Pick<AccessibleLesson, "type" | "blocks">
 ): Promise<TutorAvailability> {
-  if (lesson.type !== "QUIZ" || session.role === "ADMIN") return "OPEN";
-  const quiz = await prisma.quiz.findUnique({
-    where: { lessonId: lesson.id },
-    select: { maxAttempts: true, attempts: { where: { userId: session.userId }, select: { passed: true } } },
-  });
-  if (!quiz) return "OPEN";
-  const finished =
-    quiz.attempts.some((a) => a.passed) || (quiz.maxAttempts !== null && quiz.attempts.length >= quiz.maxAttempts);
-  return finished ? "OPEN" : "QUIZ_LOCKED";
+  const hasQuiz = lesson.type === "QUIZ" || lesson.blocks.some((b) => b.type === "QUIZ");
+  return hasQuiz ? "QUIZ_LOCKED" : "OPEN";
 }
 
 export async function getTutorHistory(userId: string, lessonId: string): Promise<TutorMessageView[]> {
