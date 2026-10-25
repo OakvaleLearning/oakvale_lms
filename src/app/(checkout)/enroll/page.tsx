@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Award, Check, CheckCircle2, Info, Laptop, MailWarning, ShieldCheck, Sparkles } from "lucide-react";
+import { Award, BellRing, Check, CheckCircle2, Info, Laptop, MailWarning, ShieldCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession, isEmailVerified } from "@/lib/auth";
@@ -125,7 +125,7 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-8 sm:py-14">
       {isPrelaunch() && (
         <div className="mb-8 flex items-start gap-3 rounded-xl border border-primary-100 bg-primary-50 px-4 py-3 text-sm text-primary-950">
-          <Sparkles className="mt-0.5 size-4 shrink-0 text-primary-600" />
+          <BellRing className="mt-0.5 size-4 shrink-0 text-primary-600" />
           <p>
             <span className="font-semibold">Early enrolment is open.</span>{" "}
             <span className="text-primary-900/75">
