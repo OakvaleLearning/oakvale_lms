@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ImagePlus, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { InlineConfirm } from "@/components/ui/InlineConfirm";
 import { createCoverUpload, saveCover, type CoverTarget } from "@/app/admin/cover-actions";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +32,7 @@ export function CoverImageField({ target, current }: { target: CoverTarget; curr
   const [phase, setPhase] = useState<Phase>({ name: "idle" });
   const [preview, setPreview] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [removing, startRemove] = useTransition();
   const busy = phase.name === "uploading" || phase.name === "saving" || removing;
   const shown = preview ?? current;
@@ -67,7 +69,7 @@ export function CoverImageField({ target, current }: { target: CoverTarget; curr
   }
 
   function remove() {
-    if (!window.confirm("Remove the cover image?")) return;
+    setConfirming(false);
     startRemove(async () => {
       const res = await saveCover(target, null);
       if (!res.ok) setPhase({ name: "error", message: res.error });
@@ -146,12 +148,15 @@ export function CoverImageField({ target, current }: { target: CoverTarget; curr
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        {shown && (
+        {shown && confirming && (
+          <InlineConfirm message="Remove the cover image?" confirmLabel="Remove" onCancel={() => setConfirming(false)} onConfirm={remove} />
+        )}
+        {shown && !confirming && (
           <>
             <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => input.current?.click()}>
               <RefreshCw className="size-4" /> Replace
             </Button>
-            <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={remove} className="text-accent-700 hover:bg-accent-50">
+            <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => setConfirming(true)} className="text-accent-700 hover:bg-accent-50">
               {removing ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />} Remove
             </Button>
           </>

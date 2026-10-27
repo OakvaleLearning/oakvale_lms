@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Flag, Loader2, Lock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { InlineConfirm } from "@/components/ui/InlineConfirm";
 import { addComment, deleteComment, react } from "@/app/community/actions";
 import { COMMENT_MAX_CHARS } from "@/lib/validation";
 import type { AuthorView, CommentView, ReactionKind } from "@/lib/community/shared";
@@ -90,6 +91,7 @@ function Comment({
   const [count, setCount] = useState(comment.reactionCount);
   const [replying, setReplying] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState("");
 
   async function onReact(kind: ReactionKind | null) {
@@ -105,7 +107,7 @@ function Comment({
   }
 
   async function remove() {
-    if (!window.confirm("Delete this comment?")) return;
+    setConfirmingDelete(false);
     const res = await deleteComment(comment.id).catch(() => null);
     if (!res?.ok) return setError(res?.error ?? "That didn't work. Try again.");
     router.refresh();
@@ -117,7 +119,7 @@ function Comment({
 
   const items: MenuItem[] = [
     ...(comment.author.id !== me.id ? [{ label: "Report comment", icon: Flag, onSelect: () => setReporting(true) }] : []),
-    ...(comment.canDelete ? [{ label: "Delete comment", icon: Trash2, onSelect: remove, danger: true }] : []),
+    ...(comment.canDelete ? [{ label: "Delete comment", icon: Trash2, onSelect: () => setConfirmingDelete(true), danger: true }] : []),
   ];
   const authorHref = `/community/members/${comment.author.id}`;
 
@@ -153,6 +155,15 @@ function Comment({
             </button>
           )}
         </div>
+        {confirmingDelete && (
+          <InlineConfirm
+            message="Delete this comment?"
+            confirmLabel="Delete"
+            onCancel={() => setConfirmingDelete(false)}
+            onConfirm={remove}
+            className="mt-2 pl-1"
+          />
+        )}
         {error && <p className="mt-1 pl-1 text-xs text-accent-700">{error}</p>}
         {reporting && <ReportPanel target={{ commentId: comment.id }} onClose={() => setReporting(false)} />}
         {replying && (

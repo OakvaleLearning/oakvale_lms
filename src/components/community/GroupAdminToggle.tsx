@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, ShieldOff } from "lucide-react";
+import { InlineConfirm } from "@/components/ui/InlineConfirm";
 import { setGroupAdmin } from "@/app/community/actions";
 
 /** Make a member a group admin, or take it away. Shown only to people who can manage the group. */
@@ -10,15 +11,29 @@ export function GroupAdminToggle({ groupId, userId, name, isAdmin }: { groupId: 
   const router = useRouter();
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
+  const [confirming, setConfirming] = useState(false);
 
   function toggle() {
-    if (isAdmin && !window.confirm(`Remove ${name} as an admin of this group?`)) return;
+    if (isAdmin && !confirming) return setConfirming(true);
+    setConfirming(false);
     setError("");
     start(async () => {
       const res = await setGroupAdmin(groupId, userId, !isAdmin);
       if (!res.ok) return setError(res.error);
       router.refresh();
     });
+  }
+
+  if (confirming) {
+    return (
+      <InlineConfirm
+        message={`Remove ${name} as a group admin?`}
+        confirmLabel="Remove"
+        onCancel={() => setConfirming(false)}
+        onConfirm={toggle}
+        className="max-w-56 shrink-0 justify-end text-right"
+      />
+    );
   }
 
   const Icon = isAdmin ? ShieldOff : ShieldCheck;

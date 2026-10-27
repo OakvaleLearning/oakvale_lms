@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Camera, Loader2, MoreHorizontal, Trash2 } from "lucide-react";
+import { InlineConfirm } from "@/components/ui/InlineConfirm";
 import { createGroupCoverUpload, saveGroupCover } from "@/app/community/actions";
 
 const ACCEPT = "image/jpeg,image/png,image/webp";
@@ -15,6 +16,7 @@ export function GroupCoverButton({ groupId, hasCover }: { groupId: string; hasCo
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
 
   // Close the menu on an outside click or Escape.
@@ -58,7 +60,7 @@ export function GroupCoverButton({ groupId, hasCover }: { groupId: string; hasCo
   }
 
   function remove() {
-    if (!window.confirm("Remove the banner photo?")) return;
+    setConfirming(false);
     void run(async () => {
       const res = await saveGroupCover(groupId, null);
       if (!res.ok) throw new Error(res.error);
@@ -101,13 +103,22 @@ export function GroupCoverButton({ groupId, hasCover }: { groupId: string; hasCo
               className={item + " text-accent-700"}
               onClick={() => {
                 setOpen(false);
-                remove();
+                setConfirming(true);
               }}
             >
               <Trash2 className="size-4" /> Remove photo
             </button>
           )}
         </div>
+      )}
+      {confirming && (
+        <InlineConfirm
+          message="Remove the banner photo?"
+          confirmLabel="Remove"
+          onCancel={() => setConfirming(false)}
+          onConfirm={remove}
+          className="max-w-64 justify-end rounded-xl border border-line bg-white p-3 shadow-raised"
+        />
       )}
       {error && <p className="max-w-56 rounded-lg bg-white/95 px-2.5 py-1.5 text-xs text-accent-700 shadow-sm">{error}</p>}
     </div>

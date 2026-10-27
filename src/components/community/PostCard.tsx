@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Flag, Link2, Lock, LockOpen, Megaphone, MessageCircle, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { FormError } from "@/components/ui/TextField";
+import { InlineConfirm } from "@/components/ui/InlineConfirm";
 import { deletePost, react, setPostFlag, updatePost } from "@/app/community/actions";
 import { POST_MAX_CHARS } from "@/lib/validation";
 import type { PostView, ReactionKind } from "@/lib/community/shared";
@@ -48,6 +49,7 @@ export function PostCard({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(post.body);
   const [reporting, setReporting] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -90,7 +92,7 @@ export function PostCard({
   }
 
   async function remove() {
-    if (!window.confirm("Delete this post? This can't be undone.")) return;
+    setConfirmingDelete(false);
     if (await run(() => deletePost(post.id))) {
       if (onRemoved) onRemoved(post.id);
       else router.push(`/community/${post.group.slug}`);
@@ -121,7 +123,7 @@ export function PostCard({
       : []),
     { label: copied ? "Link copied" : "Copy link", icon: Link2, onSelect: copyLink },
     ...(!post.canEdit ? [{ label: "Report post", icon: Flag, onSelect: () => setReporting(true) }] : []),
-    ...(post.canEdit || post.canModerate ? [{ label: "Delete post", icon: Trash2, onSelect: remove, danger: true }] : []),
+    ...(post.canEdit || post.canModerate ? [{ label: "Delete post", icon: Trash2, onSelect: () => setConfirmingDelete(true), danger: true }] : []),
   ];
 
   const long = post.body.length > 600 || post.body.split("\n").length > 10;
@@ -171,6 +173,16 @@ export function PostCard({
           </div>
           <Menu items={items} label="Post options" />
         </header>
+
+        {confirmingDelete && (
+          <InlineConfirm
+            message="Delete this post? This can't be undone."
+            confirmLabel="Delete"
+            onCancel={() => setConfirmingDelete(false)}
+            onConfirm={remove}
+            className="mt-3 rounded-lg bg-accent-50 px-3 py-2"
+          />
+        )}
 
         {editing ? (
           <div className="mt-4 space-y-3">

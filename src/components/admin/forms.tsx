@@ -14,6 +14,7 @@ import { useFormStatus } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowDown, ArrowUp, Check, CheckCircle2, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { InlineConfirm } from "@/components/ui/InlineConfirm";
 import { EASE } from "@/components/motion";
 import { cn } from "@/lib/utils";
 
@@ -168,17 +169,34 @@ export function DeleteButton({
 }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState("");
+  const [confirming, setConfirming] = useState(false);
+
+  if (confirming) {
+    return (
+      <InlineConfirm
+        message={confirmText}
+        confirmLabel={label ?? "Delete"}
+        onCancel={() => setConfirming(false)}
+        onConfirm={() => {
+          setConfirming(false);
+          start(async () => {
+            const res = await onDelete();
+            setError(res && "error" in res && res.error ? res.error : "");
+          });
+        }}
+        className="justify-end"
+      />
+    );
+  }
+
   return (
     <span className="inline-flex items-center gap-2">
       <button
         type="button"
         disabled={pending}
         onClick={() => {
-          if (!window.confirm(confirmText)) return;
-          start(async () => {
-            const res = await onDelete();
-            setError(res && "error" in res && res.error ? res.error : "");
-          });
+          setError("");
+          setConfirming(true);
         }}
         className={cn(
           "inline-flex items-center gap-1.5 rounded-lg text-ink-400 hover:bg-accent-50 hover:text-accent-600 disabled:opacity-40",

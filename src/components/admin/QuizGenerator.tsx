@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Check, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { InlineConfirm } from "@/components/ui/InlineConfirm";
 import { FormError } from "@/components/ui/TextField";
 import { cn } from "@/lib/utils";
 import { generateQuestions } from "@/app/admin/lessons/[id]/actions";
@@ -39,6 +40,7 @@ export function QuizGenerator({
   const [replace, setReplace] = useState(false);
   const [error, setError] = useState("");
   const [created, setCreated] = useState(0);
+  const [confirming, setConfirming] = useState(false);
   const [pending, start] = useTransition();
 
   const toggle = <T,>(list: T[], item: T) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
@@ -46,7 +48,8 @@ export function QuizGenerator({
   function generate() {
     setError("");
     setCreated(0);
-    if (replace && !confirm(`Replace all ${existingCount} existing questions with new AI questions?`)) return;
+    if (replace && !confirming) return setConfirming(true);
+    setConfirming(false);
     start(async () => {
       const res = await generateQuestions(lessonId, { sourceLessonIds: selected, count, types, difficulty, focus, replace });
       if (!res.ok) {
@@ -143,19 +146,28 @@ export function QuizGenerator({
 
       {error && <FormError>{error}</FormError>}
 
-      <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" onClick={generate} disabled={pending || selected.length === 0 || types.length === 0}>
-          {pending ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-          {pending ? "Writing questions…" : `Generate ${count} questions`}
-        </Button>
-        {pending && <span className="text-sm text-ink-500">This can take up to a minute.</span>}
-        {created > 0 && !pending && (
-          <span className="inline-flex items-center gap-1.5 text-sm text-emerald-700">
-            <Check className="size-4" /> Added {created} {created === 1 ? "question" : "questions"}. Check them below before
-            learners see this quiz.
-          </span>
-        )}
-      </div>
+      {confirming ? (
+        <InlineConfirm
+          message={`Replace all ${existingCount} existing questions with new AI questions?`}
+          confirmLabel="Replace questions"
+          onCancel={() => setConfirming(false)}
+          onConfirm={generate}
+        />
+      ) : (
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="button" onClick={generate} disabled={pending || selected.length === 0 || types.length === 0}>
+            {pending ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+            {pending ? "Writing questions…" : `Generate ${count} questions`}
+          </Button>
+          {pending && <span className="text-sm text-ink-500">This can take up to a minute.</span>}
+          {created > 0 && !pending && (
+            <span className="inline-flex items-center gap-1.5 text-sm text-emerald-700">
+              <Check className="size-4" /> Added {created} {created === 1 ? "question" : "questions"}. Check them below before
+              learners see this quiz.
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

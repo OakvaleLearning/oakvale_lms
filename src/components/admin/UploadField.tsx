@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, CheckCircle2, FileUp, Loader2, Trash2, UploadCloud } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { InlineConfirm } from "@/components/ui/InlineConfirm";
 import { removeAsset } from "@/app/admin/lessons/[id]/actions";
 import { UPLOAD_RULES, type FileBlockKind } from "@/lib/lms/blocks";
 import { cn } from "@/lib/utils";
@@ -24,11 +25,19 @@ export function UploadField({
   const [phase, setPhase] = useState<UploadPhase>({ name: "idle" });
   const [over, setOver] = useState(false);
   const [removing, startRemove] = useTransition();
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
+  /** A file picked or dropped over an existing one, waiting for the admin to confirm the replacement. */
+  const [replacement, setReplacement] = useState<File | null>(null);
   const busy = phase.name === "uploading" || phase.name === "processing";
   const rule = UPLOAD_RULES[kind];
 
+  function pick(file: File) {
+    if (asset) setReplacement(file);
+    else void upload(file);
+  }
+
   async function upload(file: File) {
-    if (asset && !window.confirm("Replace the current file?")) return;
+    setReplacement(null);
     try {
       await uploadToBlock(blockId, kind, file, setPhase);
       router.refresh();
@@ -61,15 +70,28 @@ export function UploadField({
               {asset.scormVersion ? ` · SCORM ${asset.scormVersion}` : ""}
             </div>
           </div>
-          <button
-            type="button"
-            disabled={busy || removing}
-            onClick={() => window.confirm("Remove this file?") && startRemove(() => removeAsset(blockId))}
-            className="grid size-8 place-items-center rounded-lg text-ink-400 hover:bg-accent-50 hover:text-accent-600 disabled:opacity-40"
-            aria-label="Remove file"
-          >
-            {removing ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
-          </button>
+          {confirmingRemove ? (
+            <InlineConfirm
+              message="Remove this file?"
+              confirmLabel="Remove"
+              onCancel={() => setConfirmingRemove(false)}
+              onConfirm={() => {
+                setConfirmingRemove(false);
+                startRemove(() => removeAsset(blockId));
+              }}
+              className="shrink-0 justify-end"
+            />
+          ) : (
+            <button
+              type="button"
+              disabled={busy || removing}
+              onClick={() => setConfirmingRemove(true)}
+              className="grid size-8 place-items-center rounded-lg text-ink-400 hover:bg-accent-50 hover:text-accent-600 disabled:opacity-40"
+              aria-label="Remove file"
+            >
+              {removing ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+            </button>
+          )}
         </div>
       )}
 
@@ -78,7 +100,7 @@ export function UploadField({
         type="file"
         accept={rule.accept}
         className="hidden"
-        onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])}
+        onChange={(e) => e.target.files?.[0] && pick(e.target.files[0])}
       />
 
       <div
@@ -95,7 +117,7 @@ export function UploadField({
           e.preventDefault();
           e.stopPropagation();
           setOver(false);
-          if (!busy) void upload(e.dataTransfer.files[0]);
+          if (!busy) pick(e.dataTransfer.files[0]);
         }}
         className={cn(
           "rounded-2xl border border-dashed px-4 py-5 transition-colors",
@@ -103,31 +125,43 @@ export function UploadField({
           asset && "py-3"
         )}
       >
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="button" size="sm" variant={asset ? "outline" : "primary"} disabled={busy} onClick={() => input.current?.click()}>
-            {busy ? <Loader2 className="size-4 animate-spin" /> : <FileUp className="size-4" />}
-            {asset ? "Replace file" : "Choose file"}
-          </Button>
-          {!busy && (
-            <span className="inline-flex items-center gap-1.5 text-sm text-ink-500">
-              <UploadCloud className="size-4" /> or drop it here
-            </span>
-          )}
-          {phase.name === "uploading" && (
-            <div className="flex min-w-48 flex-1 items-center gap-3">
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-ink-100">
-                <div className="h-full bg-primary-600 transition-all" style={{ width: `${phase.percent}%` }} />
+        {replacement ? (
+          <InlineConfirm
+            message={`Replace the current file with ${replacement.name}?`}
+            confirmLabel="Replace"
+            onCancel={() => {
+              setReplacement(null);
+              if (input.current) input.current.value = "";
+            }}
+            onConfirm={() => void upload(replacement)}
+          />
+        ) : (
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" size="sm" variant={asset ? "outline" : "primary"} disabled={busy} onClick={() => input.current?.click()}>
+              {busy ? <Loader2 className="size-4 animate-spin" /> : <FileUp className="size-4" />}
+              {asset ? "Replace file" : "Choose file"}
+            </Button>
+            {!busy && (
+              <span className="inline-flex items-center gap-1.5 text-sm text-ink-500">
+                <UploadCloud className="size-4" /> or drop it here
+              </span>
+            )}
+            {phase.name === "uploading" && (
+              <div className="flex min-w-48 flex-1 items-center gap-3">
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-ink-100">
+                  <div className="h-full bg-primary-600 transition-all" style={{ width: `${phase.percent}%` }} />
+                </div>
+                <span className="text-xs tabular-nums text-ink-500">{phase.percent}%</span>
               </div>
-              <span className="text-xs tabular-nums text-ink-500">{phase.percent}%</span>
-            </div>
-          )}
-          {phase.name === "processing" && (
-            <span className="text-sm text-ink-500">
-              {kind === "SCORM" || kind === "HTML" ? "Unpacking the package…" : "Finishing…"}
-            </span>
-          )}
-          {phase.name === "error" && <span className="text-sm text-accent-600">{phase.message}</span>}
-        </div>
+            )}
+            {phase.name === "processing" && (
+              <span className="text-sm text-ink-500">
+                {kind === "SCORM" || kind === "HTML" ? "Unpacking the package…" : "Finishing…"}
+              </span>
+            )}
+            {phase.name === "error" && <span className="text-sm text-accent-600">{phase.message}</span>}
+          </div>
+        )}
         <p className="mt-2 text-xs text-ink-400">{rule.hint}</p>
       </div>
     </div>

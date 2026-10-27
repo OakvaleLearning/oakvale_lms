@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, RotateCcw, Send, ShieldOff } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { InlineConfirm } from "@/components/ui/InlineConfirm";
 import { cn } from "@/lib/utils";
 import { restoreCertificate, revokeCertificate, setCpdStatus } from "@/app/admin/certificates/actions";
 
@@ -11,6 +12,43 @@ import { restoreCertificate, revokeCertificate, setCpdStatus } from "@/app/admin
 export function RevokeButton({ id, revoked }: { id: string; revoked: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  const [confirming, setConfirming] = useState(false);
+  const [reason, setReason] = useState("");
+
+  if (confirming) {
+    return revoked ? (
+      <InlineConfirm
+        message="Restore this certificate? It will verify as valid again."
+        confirmLabel="Restore"
+        onCancel={() => setConfirming(false)}
+        onConfirm={() => {
+          setConfirming(false);
+          start(async () => void (await restoreCertificate(id), router.refresh()));
+        }}
+        className="max-w-md justify-end"
+      />
+    ) : (
+      <InlineConfirm
+        message="Revoke this certificate? It will show as revoked when anyone verifies it."
+        confirmLabel="Revoke"
+        onCancel={() => setConfirming(false)}
+        onConfirm={() => {
+          setConfirming(false);
+          start(async () => void (await revokeCertificate(id, reason), router.refresh()));
+        }}
+        className="max-w-md justify-end"
+      >
+        <input
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          placeholder="Reason (optional)"
+          aria-label="Reason for revoking (optional)"
+          className="h-8 min-w-40 flex-1 rounded-lg border border-line bg-white px-2.5 text-sm text-ink-900 outline-none focus:border-primary-500 focus:ring-3 focus:ring-primary-100"
+        />
+      </InlineConfirm>
+    );
+  }
+
   return (
     <Button
       type="button"
@@ -19,14 +57,8 @@ export function RevokeButton({ id, revoked }: { id: string; revoked: boolean }) 
       disabled={pending}
       className={revoked ? undefined : "text-accent-700 hover:bg-accent-50"}
       onClick={() => {
-        if (revoked) {
-          if (!confirm("Restore this certificate? It will verify as valid again.")) return;
-          start(async () => void (await restoreCertificate(id), router.refresh()));
-          return;
-        }
-        const reason = prompt("Revoke this certificate? It will show as revoked when anyone verifies it.\n\nReason (optional):");
-        if (reason === null) return;
-        start(async () => void (await revokeCertificate(id, reason), router.refresh()));
+        setReason("");
+        setConfirming(true);
       }}
     >
       {pending ? <Loader2 className="size-4 animate-spin" /> : revoked ? <RotateCcw className="size-4" /> : <ShieldOff className="size-4" />}
