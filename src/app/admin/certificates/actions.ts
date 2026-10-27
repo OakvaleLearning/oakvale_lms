@@ -20,7 +20,7 @@ function refresh() {
  * Templates
  * ------------------------------------------------------------------ */
 
-const color = z.string().regex(/^#[0-9a-f]{6}$/i, "Colours must be hex values like #3229a2");
+const color = z.string().regex(/^#[0-9a-f]{6}$/i, "Colours must be hex values like #145c3f");
 const line = (max: number) => z.string().trim().max(max);
 
 const templateSchema = z.object({

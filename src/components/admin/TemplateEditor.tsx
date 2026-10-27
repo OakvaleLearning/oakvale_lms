@@ -18,7 +18,7 @@ import { saveTemplate } from "@/app/admin/certificates/actions";
 import { cn } from "@/lib/utils";
 import { Field, Input, Panel, Switch, Textarea } from "./forms";
 
-const SWATCHES = ["#3229a2", "#0d0a2b", "#14532d", "#7f1d1d", "#1e3a5f", "#b08d3c", "#d929dd", "#0e7490"];
+const SWATCHES = ["#145c3f", "#0a3d2b", "#14532d", "#7f1d1d", "#1e3a5f", "#c8881a", "#e8a832", "#0e7490"];
 const BACKGROUNDS = ["#ffffff", "#fdfbf5", "#f7f7fa", "#f5f1e8"];
 
 export function TemplateEditor({

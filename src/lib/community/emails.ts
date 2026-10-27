@@ -175,7 +175,7 @@ function digestEmail(
   const eventHtml = events
     .map(
       (e) =>
-        `<li style="margin:0 0 8px;font-size:14px;color:#3f3f46;"><a href="${appUrl()}/community/events/${e.id}" style="color:#3229a2;font-weight:600;text-decoration:none;">${escape(e.title)}</a>, ${escape(formatEventTime(e.startsAt))} <span style="color:#71717a;">(${escape(e.groupName)})</span></li>`
+        `<li style="margin:0 0 8px;font-size:14px;color:#3f3f46;"><a href="${appUrl()}/community/events/${e.id}" style="color:#145c3f;font-weight:600;text-decoration:none;">${escape(e.title)}</a>, ${escape(formatEventTime(e.startsAt))} <span style="color:#71717a;">(${escape(e.groupName)})</span></li>`
     )
     .join("");
 

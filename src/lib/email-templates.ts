@@ -27,7 +27,7 @@ export function layout(title: string, bodyHtml: string): string {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:24px 0;">
       <tr><td align="center">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e4e4e7;">
-          <tr><td style="background:#3229a2;padding:20px 32px;">
+          <tr><td style="background:#145c3f;padding:20px 32px;">
             <span style="color:#ffffff;font-size:18px;font-weight:700;letter-spacing:.2px;">${SITE.name}</span>
           </td></tr>
           <tr><td style="padding:32px;">
@@ -46,7 +46,7 @@ export function layout(title: string, bodyHtml: string): string {
 }
 
 export function button(href: string, label: string): string {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;"><tr><td style="border-radius:10px;background:#3229a2;">
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;"><tr><td style="border-radius:10px;background:#145c3f;">
     <a href="${href}" style="display:inline-block;padding:12px 24px;color:#ffffff;font-weight:600;font-size:14px;text-decoration:none;border-radius:10px;">${label}</a>
   </td></tr></table>`;
 }
@@ -100,7 +100,7 @@ function renderHtml(blocks: Block[]): string {
                 .join("")}
             </td></tr></table>`;
         case "link":
-          return p(`<a href="${escape(b.href)}" style="color:#3229a2;font-weight:600;">${inlineHtml(b.label)}</a>`);
+          return p(`<a href="${escape(b.href)}" style="color:#145c3f;font-weight:600;">${inlineHtml(b.label)}</a>`);
         case "button":
           return button(escape(b.href), inlineHtml(b.label));
       }

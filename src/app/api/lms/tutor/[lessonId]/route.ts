@@ -45,7 +45,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/lms/tutor/[less
   const { session, lesson } = auth;
 
   if ((await getTutorAvailability(session, lesson)) !== "OPEN") {
-    return NextResponse.json({ error: "Finish the quiz to unlock the tutor." }, { status: 403 });
+    return NextResponse.json({ error: "The tutor isn't available on quizzes and assessments." }, { status: 403 });
   }
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Please enter a question." }, { status: 400 });
