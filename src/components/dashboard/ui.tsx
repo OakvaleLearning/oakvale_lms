@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CountUp } from "@/components/motion";
+import { PageSizeSelect } from "./PageSizeSelect";
 
 /** Eyebrow, serif title, supporting copy and optional actions at the top of a page. */
 export function PageHeader({
@@ -171,12 +172,14 @@ function pageList(page: number, pages: number): (number | "gap")[] {
 /**
  * "Showing 21–40 of 132" with Previous / numbered pages / Next, as plain links.
  * `href(p)` builds the link for page p, keeping the page's other query params.
+ * With `sizes`, also a "Show N per page" selector (each option links to its size).
  */
 export function Pagination({
   page,
   pageSize,
   total,
   href,
+  sizes,
   noun = "results",
   className,
 }: {
@@ -184,11 +187,14 @@ export function Pagination({
   pageSize: number;
   total: number;
   href: (page: number) => string;
+  sizes?: { size: number; href: string }[];
   noun?: string;
   className?: string;
 }) {
   const pages = Math.max(1, Math.ceil(total / pageSize));
-  if (pages <= 1) return null;
+  // The selector stays visible on a single page, as long as there's more than the smallest size to show.
+  const showSizes = sizes && total > Math.min(...sizes.map((s) => s.size));
+  if (pages <= 1 && !showSizes) return null;
   const from = (page - 1) * pageSize + 1;
   const to = Math.min(total, page * pageSize);
   const cell = "grid h-9 min-w-9 place-items-center rounded-lg px-2.5 text-sm tabular-nums";
@@ -200,50 +206,55 @@ export function Pagination({
         Showing <span className="font-medium text-ink-800">{from}–{to}</span> of{" "}
         <span className="font-medium text-ink-800">{total}</span> {noun}
       </p>
-      <ol className="flex items-center gap-1.5">
-        <li>
-          {page > 1 ? (
-            <Link href={href(page - 1)} className={link} aria-label="Previous page" rel="prev">
-              <ChevronLeft className="size-4" />
-            </Link>
-          ) : (
-            <span className={off} aria-hidden>
-              <ChevronLeft className="size-4" />
-            </span>
-          )}
-        </li>
-        {pageList(page, pages).map((p, i) =>
-          p === "gap" ? (
-            <li key={`gap-${i}`} className="hidden px-1 text-sm text-ink-400 sm:block" aria-hidden>
-              …
-            </li>
-          ) : (
-            // The numbers take room phones don't have; there, Previous/Next and the count are enough.
-            <li key={p} className="hidden sm:block">
-              {p === page ? (
-                <span aria-current="page" className={cn(cell, "bg-primary-600 font-medium text-white")}>
-                  {p}
-                </span>
-              ) : (
-                <Link href={href(p)} className={link}>
-                  {p}
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+        {sizes && showSizes && <PageSizeSelect value={pageSize} options={sizes} />}
+        {pages > 1 && (
+          <ol className="flex items-center gap-1.5">
+            <li>
+              {page > 1 ? (
+                <Link href={href(page - 1)} className={link} aria-label="Previous page" rel="prev">
+                  <ChevronLeft className="size-4" />
                 </Link>
+              ) : (
+                <span className={off} aria-hidden>
+                  <ChevronLeft className="size-4" />
+                </span>
               )}
             </li>
-          )
+            {pageList(page, pages).map((p, i) =>
+              p === "gap" ? (
+                <li key={`gap-${i}`} className="hidden px-1 text-sm text-ink-400 sm:block" aria-hidden>
+                  …
+                </li>
+              ) : (
+                // The numbers take room phones don't have; there, Previous/Next and the count are enough.
+                <li key={p} className="hidden sm:block">
+                  {p === page ? (
+                    <span aria-current="page" className={cn(cell, "bg-primary-600 font-medium text-white")}>
+                      {p}
+                    </span>
+                  ) : (
+                    <Link href={href(p)} className={link}>
+                      {p}
+                    </Link>
+                  )}
+                </li>
+              )
+            )}
+            <li>
+              {page < pages ? (
+                <Link href={href(page + 1)} className={link} aria-label="Next page" rel="next">
+                  <ChevronRight className="size-4" />
+                </Link>
+              ) : (
+                <span className={off} aria-hidden>
+                  <ChevronRight className="size-4" />
+                </span>
+              )}
+            </li>
+          </ol>
         )}
-        <li>
-          {page < pages ? (
-            <Link href={href(page + 1)} className={link} aria-label="Next page" rel="next">
-              <ChevronRight className="size-4" />
-            </Link>
-          ) : (
-            <span className={off} aria-hidden>
-              <ChevronRight className="size-4" />
-            </span>
-          )}
-        </li>
-      </ol>
+      </div>
     </nav>
   );
 }

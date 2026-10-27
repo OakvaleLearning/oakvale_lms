@@ -4,18 +4,17 @@ import { Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { formatDay } from "@/lib/utils";
+import { DEFAULT_PAGE_SIZE, PAGE_SIZES, clampPage, listHref, readPaging } from "@/lib/paging";
 import { Input } from "@/components/admin/forms";
 import { PageHeader, Pagination } from "@/components/dashboard/ui";
 
 export const metadata: Metadata = { title: "Learners" };
 
-const PAGE_SIZE = 20;
-
 export default async function LearnersPage({ searchParams }: PageProps<"/admin/learners">) {
   await requireAdmin();
-  const { q, page } = await searchParams;
-  const query = typeof q === "string" ? q.trim() : "";
-  const requested = Math.max(1, Math.floor(Number(page)) || 1);
+  const sp = await searchParams;
+  const query = typeof sp.q === "string" ? sp.q.trim() : "";
+  const { page: requested, limit } = readPaging(sp);
 
   const where = {
     role: "LEARNER" as const,
@@ -29,23 +28,19 @@ export default async function LearnersPage({ searchParams }: PageProps<"/admin/l
       : {}),
   };
   const total = await prisma.user.count({ where });
-  // A page past the end (e.g. after a search narrows the list) shows the last page.
-  const pageNo = Math.min(requested, Math.max(1, Math.ceil(total / PAGE_SIZE)));
+  const pageNo = clampPage(requested, total, limit);
   const learners = await prisma.user.findMany({
     where,
     // id breaks ties so a learner never shows on two pages, or on none.
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    skip: (pageNo - 1) * PAGE_SIZE,
-    take: PAGE_SIZE,
+    skip: (pageNo - 1) * limit,
+    take: limit,
     include: {
       enrollments: { where: { status: "ACTIVE" }, include: { tier: { include: { program: { select: { title: true } } } } } },
       _count: { select: { progress: { where: { status: "COMPLETED" } } } },
     },
   });
-  const pageHref = (p: number) => {
-    const params = new URLSearchParams({ ...(query ? { q: query } : {}), ...(p > 1 ? { page: String(p) } : {}) });
-    return `/admin/learners${params.size ? `?${params}` : ""}`;
-  };
+  const pageHref = (p: number) => listHref("/admin/learners", { q: query, page: p, limit });
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
@@ -55,6 +50,7 @@ export default async function LearnersPage({ searchParams }: PageProps<"/admin/l
         description={`${total} ${total === 1 ? "learner" : "learners"}${query ? ` matching “${query}”` : ""}`}
         actions={
           <form className="relative w-full sm:w-72">
+            {limit !== DEFAULT_PAGE_SIZE && <input type="hidden" name="limit" value={limit} />}
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-400" />
             <Input name="q" defaultValue={query} placeholder="Search by name or email" className="pl-9" />
           </form>
@@ -128,7 +124,14 @@ export default async function LearnersPage({ searchParams }: PageProps<"/admin/l
           </table>
         </div>
       </div>
-      <Pagination page={pageNo} pageSize={PAGE_SIZE} total={total} href={pageHref} noun="learners" />
+      <Pagination
+        page={pageNo}
+        pageSize={limit}
+        total={total}
+        href={pageHref}
+        sizes={PAGE_SIZES.map((size) => ({ size, href: listHref("/admin/learners", { q: query, limit: size }) }))}
+        noun="learners"
+      />
     </div>
   );
 }
