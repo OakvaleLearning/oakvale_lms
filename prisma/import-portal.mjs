@@ -48,7 +48,10 @@ const counts = {};
 const count = (key) => (counts[key] = (counts[key] ?? 0) + 1);
 
 async function main() {
-  if ((await lms.$queryRaw`SELECT 1 AS ok`.catch(() => null)) === null) throw new Error("Can't reach the LMS database (DATABASE_URL).");
+  for (const [label, db] of [["LMS database (DATABASE_URL)", lms], ["portal database (PORTAL_DATABASE_URL)", portal]]) {
+    const err = await db.$queryRaw`SELECT 1`.then(() => null, (e) => e);
+    if (err) throw new Error(`Can't reach the ${label}: ${err.message}`);
+  }
 
   const tiers = {};
   for (const [track, programSlug] of Object.entries(TRACK_PROGRAM)) {
@@ -216,6 +219,27 @@ async function main() {
   for (const [k, v] of Object.entries(counts).sort()) console.log(`  ${String(v).padStart(5)}  ${k}`);
   const paidTotal = payments.filter((p) => p.status === "SUCCESS").reduce((s, p) => s + p.amount, 0);
   console.log(`\n  successful payments on the portal: ${naira(paidTotal)}`);
+  // Everyone who paid, so the totals can be checked against Paystack. Flags paid
+  // learners left without access, and more than one successful payment on an enrolment.
+  const paidRows = [];
+  for (const [key, e] of best) {
+    const merged = enrollments.filter((x) => `${x.userId}:${x.track}` === key).map((x) => x.id);
+    const paid = payments.filter((p) => p.status === "SUCCESS" && merged.includes(p.enrollmentId));
+    if (!paid.length) continue;
+    const total = paid.reduce((s, p) => s + p.amount, 0);
+    const flags = [
+      STATUS[e.status] !== "ACTIVE" && "NO ACCESS",
+      paid.length > 1 && `${paid.length} payments`,
+      total > e.totalAmount && "PAID MORE THAN THE PRICE",
+    ].filter(Boolean);
+    paidRows.push(
+      `  ${usersById.get(e.userId)?.email}  ${TRACK_PROGRAM[e.track]}  portal: ${e.status}  paid ${naira(total)} of ${naira(e.totalAmount)}` +
+        (flags.length ? `  ← ${flags.join(", ")}` : "")
+    );
+  }
+  console.log(`\nLearners who paid (${paidRows.length}):`);
+  for (const r of paidRows) console.log(r);
+
   if (deposits.length) {
     console.log(`\nSplit-plan deposits with no access yet (${deposits.length}). Once the balance is paid, open the learner in /admin → Grant access → Full Programme:`);
     for (const d of deposits) console.log(`  ${d}`);
