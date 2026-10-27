@@ -160,3 +160,90 @@ export function Breadcrumbs({ items, className }: { items: { label: string; href
     </nav>
   );
 }
+
+/** Page numbers with gaps: 1 … 4 5 6 … 12. */
+function pageList(page: number, pages: number): (number | "gap")[] {
+  const shown = new Set([1, pages, page - 1, page, page + 1].filter((p) => p >= 1 && p <= pages));
+  const sorted = [...shown].sort((a, b) => a - b);
+  return sorted.flatMap((p, i) => (i > 0 && p - sorted[i - 1] > 1 ? ["gap" as const, p] : [p]));
+}
+
+/**
+ * "Showing 21–40 of 132" with Previous / numbered pages / Next, as plain links.
+ * `href(p)` builds the link for page p, keeping the page's other query params.
+ */
+export function Pagination({
+  page,
+  pageSize,
+  total,
+  href,
+  noun = "results",
+  className,
+}: {
+  page: number;
+  pageSize: number;
+  total: number;
+  href: (page: number) => string;
+  noun?: string;
+  className?: string;
+}) {
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  if (pages <= 1) return null;
+  const from = (page - 1) * pageSize + 1;
+  const to = Math.min(total, page * pageSize);
+  const cell = "grid h-9 min-w-9 place-items-center rounded-lg px-2.5 text-sm tabular-nums";
+  const link = cn(cell, "border border-line bg-white text-ink-700 transition-colors hover:border-ink-300 hover:bg-ink-50");
+  const off = cn(cell, "border border-line/60 text-ink-300");
+  return (
+    <nav aria-label="Pages" className={cn("flex flex-wrap items-center justify-between gap-3", className)}>
+      <p className="text-sm text-ink-500">
+        Showing <span className="font-medium text-ink-800">{from}–{to}</span> of{" "}
+        <span className="font-medium text-ink-800">{total}</span> {noun}
+      </p>
+      <ol className="flex items-center gap-1.5">
+        <li>
+          {page > 1 ? (
+            <Link href={href(page - 1)} className={link} aria-label="Previous page" rel="prev">
+              <ChevronLeft className="size-4" />
+            </Link>
+          ) : (
+            <span className={off} aria-hidden>
+              <ChevronLeft className="size-4" />
+            </span>
+          )}
+        </li>
+        {pageList(page, pages).map((p, i) =>
+          p === "gap" ? (
+            <li key={`gap-${i}`} className="hidden px-1 text-sm text-ink-400 sm:block" aria-hidden>
+              …
+            </li>
+          ) : (
+            // The numbers take room phones don't have; there, Previous/Next and the count are enough.
+            <li key={p} className="hidden sm:block">
+              {p === page ? (
+                <span aria-current="page" className={cn(cell, "bg-primary-600 font-medium text-white")}>
+                  {p}
+                </span>
+              ) : (
+                <Link href={href(p)} className={link}>
+                  {p}
+                </Link>
+              )}
+            </li>
+          )
+        )}
+        <li>
+          {page < pages ? (
+            <Link href={href(page + 1)} className={link} aria-label="Next page" rel="next">
+              <ChevronRight className="size-4" />
+            </Link>
+          ) : (
+            <span className={off} aria-hidden>
+              <ChevronRight className="size-4" />
+            </span>
+          )}
+        </li>
+      </ol>
+    </nav>
+  );
+}

@@ -5,18 +5,17 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { formatDay } from "@/lib/utils";
 import { Input } from "@/components/admin/forms";
-import { PageHeader } from "@/components/dashboard/ui";
-import { ButtonLink } from "@/components/ui/Button";
+import { PageHeader, Pagination } from "@/components/dashboard/ui";
 
 export const metadata: Metadata = { title: "Learners" };
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 20;
 
 export default async function LearnersPage({ searchParams }: PageProps<"/admin/learners">) {
   await requireAdmin();
   const { q, page } = await searchParams;
   const query = typeof q === "string" ? q.trim() : "";
-  const pageNo = Math.max(1, Number(page) || 1);
+  const requested = Math.max(1, Math.floor(Number(page)) || 1);
 
   const where = {
     role: "LEARNER" as const,
@@ -29,20 +28,24 @@ export default async function LearnersPage({ searchParams }: PageProps<"/admin/l
         }
       : {}),
   };
-  const [total, learners] = await Promise.all([
-    prisma.user.count({ where }),
-    prisma.user.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      skip: (pageNo - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
-      include: {
-        enrollments: { where: { status: "ACTIVE" }, include: { tier: { include: { program: { select: { title: true } } } } } },
-        _count: { select: { progress: { where: { status: "COMPLETED" } } } },
-      },
-    }),
-  ]);
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const total = await prisma.user.count({ where });
+  // A page past the end (e.g. after a search narrows the list) shows the last page.
+  const pageNo = Math.min(requested, Math.max(1, Math.ceil(total / PAGE_SIZE)));
+  const learners = await prisma.user.findMany({
+    where,
+    // id breaks ties so a learner never shows on two pages, or on none.
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    skip: (pageNo - 1) * PAGE_SIZE,
+    take: PAGE_SIZE,
+    include: {
+      enrollments: { where: { status: "ACTIVE" }, include: { tier: { include: { program: { select: { title: true } } } } } },
+      _count: { select: { progress: { where: { status: "COMPLETED" } } } },
+    },
+  });
+  const pageHref = (p: number) => {
+    const params = new URLSearchParams({ ...(query ? { q: query } : {}), ...(p > 1 ? { page: String(p) } : {}) });
+    return `/admin/learners${params.size ? `?${params}` : ""}`;
+  };
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
@@ -125,17 +128,7 @@ export default async function LearnersPage({ searchParams }: PageProps<"/admin/l
           </table>
         </div>
       </div>
-      {pages > 1 && (
-        <div className="flex items-center justify-between text-sm text-ink-500">
-          <span>
-            Page {pageNo} of {pages} · {total} learners
-          </span>
-          <div className="flex gap-2">
-            {pageNo > 1 && <ButtonLink variant="outline" size="sm" href={`?q=${encodeURIComponent(query)}&page=${pageNo - 1}`}>Previous</ButtonLink>}
-            {pageNo < pages && <ButtonLink variant="outline" size="sm" href={`?q=${encodeURIComponent(query)}&page=${pageNo + 1}`}>Next</ButtonLink>}
-          </div>
-        </div>
-      )}
+      <Pagination page={pageNo} pageSize={PAGE_SIZE} total={total} href={pageHref} noun="learners" />
     </div>
   );
 }
