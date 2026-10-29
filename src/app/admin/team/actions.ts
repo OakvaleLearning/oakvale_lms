@@ -50,3 +50,23 @@ export async function removeAdmin(userId: string): Promise<State> {
   revalidatePath("/admin/team");
   return { ok: true };
 }
+
+/**
+ * Send a fresh set-password link to an admin who hasn't used their invite yet.
+ * Any earlier link stops working.
+ */
+export async function resendAdminInvite(_prev: State, fd: FormData): Promise<State> {
+  const session = await requireAdmin();
+  const userId = String(fd.get("userId") ?? "");
+  const user = await prisma.user.findFirst({
+    where: { id: userId, role: "ADMIN" },
+    select: { id: true, name: true, email: true, emailVerifiedAt: true },
+  });
+  if (!user) return { error: "That admin no longer exists." };
+  if (user.emailVerifiedAt) return { error: "They've already set their password." };
+
+  const token = await createPasswordResetToken(user.id, ADMIN_INVITE_TTL_HOURS * 60);
+  const sent = await sendAdminInviteEmail(user, session.name, token);
+  if (!sent) return { error: "The email didn't send. Try again in a moment." };
+  return { ok: true };
+}

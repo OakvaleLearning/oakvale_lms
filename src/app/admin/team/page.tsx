@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { formatDay } from "@/lib/utils";
 import { ActionForm, DeleteButton, Field, Input, Panel } from "@/components/admin/forms";
+import { ResendInviteButton } from "@/components/admin/ResendInviteButton";
 import { PageHeader } from "@/components/dashboard/ui";
 import { addAdmin, removeAdmin } from "./actions";
 
@@ -13,7 +14,7 @@ export default async function TeamPage() {
   const admins = await prisma.user.findMany({
     where: { role: "ADMIN" },
     orderBy: { createdAt: "asc" },
-    select: { id: true, name: true, email: true, createdAt: true },
+    select: { id: true, name: true, email: true, emailVerifiedAt: true, createdAt: true },
   });
 
   return (
@@ -32,11 +33,17 @@ export default async function TeamPage() {
                 <div className="truncate font-medium text-ink-900">
                   {a.name}
                   {a.id === session.userId && <span className="ml-2 text-xs font-normal text-ink-400">(you)</span>}
+                  {!a.emailVerifiedAt && (
+                    <span className="ml-2 rounded-full bg-gold-light/20 px-2 py-0.5 text-xs font-normal text-ink-700">
+                      Invite pending
+                    </span>
+                  )}
                 </div>
                 <div className="truncate text-xs text-ink-400">
                   {a.email} · since {formatDay(a.createdAt)}
                 </div>
               </div>
+              {!a.emailVerifiedAt && a.id !== session.userId && <ResendInviteButton userId={a.id} />}
               {a.id !== session.userId && admins.length > 1 && (
                 <DeleteButton
                   onDelete={removeAdmin.bind(null, a.id)}
