@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { requiredLesson } from "./access";
 import { checkCertificateAfterLesson } from "./certificates";
 
 export interface ProgressUpdate {
@@ -189,7 +190,8 @@ export async function getModuleProgress(userId: string, moduleIds: string[]) {
   if (moduleIds.length === 0) return result;
 
   const lessons = await prisma.lesson.findMany({
-    where: { published: true, topic: { moduleId: { in: moduleIds } } },
+    // Optional final assessments don't count: skipping one still reaches 100%.
+    where: { published: true, topic: { moduleId: { in: moduleIds } }, ...requiredLesson },
     select: {
       topic: { select: { moduleId: true } },
       progress: { where: { userId, status: "COMPLETED" }, select: { lessonId: true } },

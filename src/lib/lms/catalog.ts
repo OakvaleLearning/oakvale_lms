@@ -120,6 +120,8 @@ export interface OutlineLesson {
   locked: boolean;
   /** Final assessment: listed last, open once every other lesson is complete. */
   exam: boolean;
+  /** Optional final assessment: learners can finish the module without it. */
+  optional: boolean;
 }
 
 /**
@@ -140,7 +142,7 @@ export async function getModuleOutline(userId: string, moduleId: string, opts: {
           title: true,
           type: true,
           durationSec: true,
-          quiz: { select: { kind: true } },
+          quiz: { select: { kind: true, optional: true } },
           progress: { where: { userId }, select: { status: true } },
         },
       },
@@ -157,6 +159,7 @@ export async function getModuleOutline(userId: string, moduleId: string, opts: {
     status: l.progress[0]?.status ?? "NOT_STARTED",
     locked,
     exam: isExam(l),
+    optional: isExam(l) && Boolean(l.quiz?.optional),
   });
 
   let blocked = false;

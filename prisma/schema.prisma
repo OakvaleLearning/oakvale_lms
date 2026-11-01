@@ -342,6 +342,9 @@ model Quiz {
   // QUIZ checks the lessons just before it; EXAM is the final assessment,
   // shown after every other lesson and opened once they're all complete.
   kind        QuizKind      @default(QUIZ)
+  // EXAM only: an optional final assessment doesn't count towards completing
+  // the module or the certificate's lesson count; its score counts if taken.
+  optional    Boolean       @default(false)
   passMark    Int           @default(70) // percent
   maxAttempts Int? // null = unlimited
   shuffle     Boolean       @default(false)

@@ -268,8 +268,11 @@ export async function updateQuizSettings(
     passMark: fd.get("passMark"),
     maxAttempts: fd.get("maxAttempts") || undefined,
     shuffle: fd.get("shuffle") === "on",
+    optional: fd.get("optional") === "on",
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid settings" };
+  // Only a final assessment can be optional; a quiz between lessons always counts.
+  if (parsed.data.kind !== "EXAM") parsed.data.optional = false;
 
   // The final assessment is a lesson of its own: it can't sit beside other parts.
   if (parsed.data.kind === "EXAM") {

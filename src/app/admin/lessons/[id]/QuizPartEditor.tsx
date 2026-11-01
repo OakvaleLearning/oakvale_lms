@@ -24,7 +24,7 @@ export function QuizPartEditor({
 }: {
   lessonId: string;
   questions: EditableQuestion[];
-  settings: { kind: "QUIZ" | "EXAM"; passMark: number; maxAttempts: number | null; shuffle: boolean };
+  settings: { kind: "QUIZ" | "EXAM"; passMark: number; maxAttempts: number | null; shuffle: boolean; optional: boolean };
   sources: { kind: "QUIZ" | "EXAM"; sources: SourceLesson[] } | null;
   /** Only a lesson made of just this quiz can be the module's final assessment. */
   canBeExam: boolean;
@@ -98,6 +98,7 @@ export function QuizPartEditor({
         <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-medium text-ink-900 [&::-webkit-details-marker]:hidden">
           <Settings2 className="size-4 text-ink-500" /> {isExam ? "Assessment settings" : "Quiz settings"}
           <span className="ml-2 hidden text-xs font-normal text-ink-500 sm:inline">
+            {isExam ? (settings.optional ? "Optional · " : "Required · ") : ""}
             Pass mark {settings.passMark}%{settings.maxAttempts ? ` · ${settings.maxAttempts} attempts` : ""}
           </span>
           <ChevronDown className="ml-auto size-4 text-ink-400 transition-transform group-open:rotate-180" />
@@ -130,6 +131,14 @@ export function QuizPartEditor({
               </Field>
             </div>
             <Switch name="shuffle" label="Shuffle" description="Mix up question and option order" defaultChecked={settings.shuffle} />
+            {isExam ? (
+              <Switch
+                name="optional"
+                label="Optional"
+                description="Learners can finish the module and earn the certificate without taking it. If they take it, the score still counts towards the certificate average."
+                defaultChecked={settings.optional}
+              />
+            ) : null}
           </ActionForm>
         </div>
       </details>

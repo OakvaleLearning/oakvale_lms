@@ -1,0 +1,1 @@
+ALTER TABLE "Quiz" ADD COLUMN "optional" BOOLEAN NOT NULL DEFAULT false;

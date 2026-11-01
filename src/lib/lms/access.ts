@@ -1,4 +1,5 @@
 import "server-only";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isPrelaunch } from "@/lib/launch";
 import { isEmailVerified, type SessionPayload } from "@/lib/auth";
@@ -12,7 +13,8 @@ import { isEmailVerified, type SessionPayload } from "@/lib/auth";
  *  3. In a `sequential` module, each lesson opens only after the one before it.
  *  0. Learners must have confirmed their email before opening any lesson.
  *  4. A final assessment (an EXAM quiz) comes after every other lesson and
- *     opens once they are all completed.
+ *     opens once they are all completed. An optional one can be skipped: it
+ *     doesn't count towards completing the module.
  *
  * Admins can open everything (for previewing), published or not.
  */
@@ -36,7 +38,12 @@ export async function getOrderedLessons(moduleId: string, includeUnpublished = f
   return [...lessons.filter((l) => l.quiz?.kind !== "EXAM"), ...lessons.filter((l) => l.quiz?.kind === "EXAM")];
 }
 
-/** Which of the given modules the user has completed (every published lesson COMPLETED). */
+/** Lessons a learner must complete to finish a module: everything except optional final assessments. */
+export const requiredLesson = {
+  NOT: { quiz: { is: { kind: "EXAM", optional: true } } },
+} satisfies Prisma.LessonWhereInput;
+
+/** Which of the given modules the user has completed (every required published lesson COMPLETED). */
 export async function getCompletedModuleIds(
   userId: string,
   moduleIds: string[]
@@ -45,14 +52,14 @@ export async function getCompletedModuleIds(
   const [totals, done] = await Promise.all([
     prisma.lesson.groupBy({
       by: ["topicId"],
-      where: { published: true, topic: { moduleId: { in: moduleIds } } },
+      where: { published: true, topic: { moduleId: { in: moduleIds } }, ...requiredLesson },
       _count: true,
     }),
     prisma.lessonProgress.findMany({
       where: {
         userId,
         status: "COMPLETED",
-        lesson: { published: true, topic: { moduleId: { in: moduleIds } } },
+        lesson: { published: true, topic: { moduleId: { in: moduleIds } }, ...requiredLesson },
       },
       select: { lesson: { select: { topic: { select: { moduleId: true } } } } },
     }),

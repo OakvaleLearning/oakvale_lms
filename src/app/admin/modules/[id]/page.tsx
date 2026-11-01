@@ -49,7 +49,7 @@ export default async function ModuleBuilderPage({ params }: PageProps<"/admin/mo
             orderBy: [{ order: "asc" }, { createdAt: "asc" }],
             include: {
               blocks: { orderBy: [{ order: "asc" }, { createdAt: "asc" }], select: { type: true, body: true, asset: { select: { status: true } } } },
-              quiz: { select: { kind: true, _count: { select: { questions: true } } } },
+              quiz: { select: { kind: true, optional: true, _count: { select: { questions: true } } } },
             },
           },
         },
@@ -160,7 +160,7 @@ export default async function ModuleBuilderPage({ params }: PageProps<"/admin/mo
                             <span className="block text-sm font-medium text-ink-900 sm:truncate">{l.title}</span>
                             <span className="block text-xs text-ink-500">
                               {l.quiz?.kind === "EXAM"
-                                ? "Final assessment · shown after all lessons"
+                                ? `Final assessment · ${l.quiz.optional ? "optional" : "required"} · shown after all lessons`
                                 : l.type === "MIXED" && l.blocks.length > 0
                                   ? `Multi-part · ${l.blocks.length} ${l.blocks.length === 1 ? "part" : "parts"}`
                                   : LESSON_TYPE_LABEL[l.type]}

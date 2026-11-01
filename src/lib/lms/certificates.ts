@@ -100,7 +100,7 @@ export async function getCertificateProgress(userId: string, programId: string):
           lessons: {
             where: { published: true },
             select: {
-              quiz: { select: { _count: { select: { questions: true } } } },
+              quiz: { select: { kind: true, optional: true, _count: { select: { questions: true } } } },
               progress: { where: { userId }, select: { status: true, score: true } },
             },
           },
@@ -110,12 +110,18 @@ export async function getCertificateProgress(userId: string, programId: string):
   });
 
   const modules: CertificateModuleProgress[] = [];
-  const lessons: (typeof mods)[number]["topics"][number]["lessons"] = [];
+  type Row = (typeof mods)[number]["topics"][number]["lessons"][number];
+  const isOptionalExam = (l: Row) => l.quiz?.kind === "EXAM" && l.quiz.optional;
+  const lessons: Row[] = [];
+  const taken: Row[] = [];
   for (const mod of mods) {
-    const own = mod.topics.flatMap((t) => t.lessons);
+    // Optional final assessments aren't required; their score counts only once taken (below).
+    const all = mod.topics.flatMap((t) => t.lessons);
+    const own = all.filter((l) => !isOptionalExam(l));
     // A module with no lessons yet can't be completed, so it isn't required.
     if (own.length === 0) continue;
     lessons.push(...own);
+    taken.push(...all.filter((l) => isOptionalExam(l) && l.progress[0]?.score != null));
     modules.push({
       id: mod.id,
       slug: mod.slug,
@@ -126,7 +132,7 @@ export async function getCertificateProgress(userId: string, programId: string):
   }
 
   // A quiz with no questions can't be taken, so it doesn't count. (A lesson's score is its quiz's score.)
-  const quizzes = lessons.filter((l) => (l.quiz?._count.questions ?? 0) > 0);
+  const quizzes = [...lessons, ...taken].filter((l) => (l.quiz?._count.questions ?? 0) > 0);
   const lessonsDone = modules.reduce((n, m) => n + m.lessonsDone, 0);
   const score = quizzes.length
     ? Math.round(quizzes.reduce((sum, l) => sum + (l.progress[0]?.score ?? 0), 0) / quizzes.length)

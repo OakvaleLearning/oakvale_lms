@@ -112,6 +112,7 @@ export const quizSettingsSchema = z.object({
   passMark: z.coerce.number().int().min(0).max(100),
   maxAttempts: z.coerce.number().int().min(1).max(100).optional(),
   shuffle: z.boolean().default(false),
+  optional: z.boolean().default(false),
 });
 
 const choiceQuestionSchema = z

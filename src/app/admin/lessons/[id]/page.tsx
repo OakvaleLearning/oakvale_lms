@@ -233,7 +233,7 @@ function PartEditor({
   lessonId: string;
   storageReady: boolean;
   questions: EditableQuestion[];
-  quiz: { kind: "QUIZ" | "EXAM"; passMark: number; maxAttempts: number | null; shuffle: boolean } | null;
+  quiz: { kind: "QUIZ" | "EXAM"; passMark: number; maxAttempts: number | null; shuffle: boolean; optional: boolean } | null;
   quizSources: Awaited<ReturnType<typeof listQuizSources>> | null;
   canBeExam: boolean;
 }) {
@@ -245,7 +245,7 @@ function PartEditor({
       <QuizPartEditor
         lessonId={lessonId}
         questions={questions}
-        settings={quiz ?? { kind: "QUIZ", passMark: 70, maxAttempts: null, shuffle: false }}
+        settings={quiz ?? { kind: "QUIZ", passMark: 70, maxAttempts: null, shuffle: false, optional: false }}
         sources={quizSources}
         canBeExam={canBeExam}
       />

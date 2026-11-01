@@ -115,7 +115,7 @@ export default async function ModulePage({ params, searchParams }: PageProps<"/l
                           </span>
                           <span className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-500">
                             <LessonIcon type={l.type} className="size-3.5" />
-                            {l.exam ? "Final assessment" : LESSON_TYPE_LABEL[l.type]}
+                            {l.exam ? (l.optional ? "Final assessment · Optional" : "Final assessment") : LESSON_TYPE_LABEL[l.type]}
                             {duration && <> · {duration}</>}
                           </span>
                         </span>
