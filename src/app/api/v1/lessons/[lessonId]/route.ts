@@ -12,7 +12,7 @@ import { jsonError, requireApiSession } from "@/lib/api/mobile";
  * order; each part's `content.kind` says how:
  * - media: stream `url` (presigned, ~2h) natively and resume at `startAt`
  * - quiz: questions without answers; submit to POST /api/lms/quiz/<lessonId>
- * - web: SCORM/HTML; get a WebView URL from POST /api/v1/lessons/<lessonId>/launch
+ * - web: SCORM/HTML/EMBED; get a WebView URL from POST /api/v1/lessons/<lessonId>/launch
  *   with `{ "blockId": "<part id>" }`
  * - document: `url` (presigned) to show (`display` "pdf" | "image"); for "download" files
  *   (Word/PowerPoint/Excel) show `viewUrl` in a web view instead. When `allowDownload` is
@@ -82,6 +82,11 @@ type Part = Extract<Awaited<ReturnType<typeof checkLessonAccess>>, { ok: true }>
 async function partContent(block: Part, lessonId: string, userId: string, startAt: number) {
   if (block.type === "TEXT") {
     return block.body.trim() ? { kind: "text" as const, markdown: block.body } : { kind: "unavailable" as const };
+  }
+  // Embeds (e.g. Genially) open through the same WebView launch as web pages,
+  // so apps that predate them show them too. `url` is the page itself.
+  if (block.type === "EMBED") {
+    return block.body ? { kind: "web" as const, url: block.body } : { kind: "unavailable" as const };
   }
   if (block.type === "QUIZ") {
     const quiz = await getQuizForLearner(lessonId, userId);

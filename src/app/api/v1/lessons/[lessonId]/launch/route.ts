@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { createLessonTicket } from "@/lib/auth";
 import { checkLessonAccess } from "@/lib/lms/access";
 import { jsonError, requireApiSession } from "@/lib/api/mobile";
+import { isWebPart } from "@/lib/lms/blocks";
 
 /**
- * SCORM/HTML lessons run in a WebView, which needs a cookie session on this
+ * SCORM/HTML/EMBED parts run in a WebView, which needs a cookie session on this
  * domain. Returns a URL carrying a 2-minute ticket; /m/launch swaps it for a
  * cookie and opens the bare lesson player.
  */
@@ -14,7 +15,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/v1/lessons/[les
   const { lessonId } = await ctx.params;
 
   const access = await checkLessonAccess(session, lessonId);
-  const web = access.ok ? access.lesson.blocks.filter((b) => b.type === "SCORM" || b.type === "HTML") : [];
+  const web = access.ok ? access.lesson.blocks.filter(isWebPart) : [];
   if (!access.ok || web.length === 0) return jsonError("Not allowed", 403);
 
   // Which web part to open: the one asked for, else the lesson's first.

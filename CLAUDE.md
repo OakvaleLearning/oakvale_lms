@@ -2,7 +2,8 @@
 
 ## Lessons are built from parts
 
-- A `Lesson` holds ordered `LessonBlock`s ("parts"): VIDEO, AUDIO, DOCUMENT, TEXT, SCORM, HTML, QUIZ. `Lesson.type` and `durationSec` are derived (`syncLesson` in `src/lib/lms/lesson-parts.ts`); one part means that part's type, several means `MIXED`. Never set them by hand.
+- A `Lesson` holds ordered `LessonBlock`s ("parts"): VIDEO, AUDIO, DOCUMENT, TEXT, EMBED, SCORM, HTML, QUIZ.
+- EMBED parts show a page hosted elsewhere (built for Genially) in a sandboxed iframe (`EmbedFrame`). The https URL is stored in `LessonBlock.body`, cleaned by `normalizeEmbedUrl` in `blocks.ts`, which accepts a share link, an `<iframe>` code or Genially's `<div class="genially-embed">` code. Learners mark them complete by hand. The mobile API reports them as `kind: "web"` so the app opens them through the existing WebView launch (`/m/lesson`). `Lesson.type` and `durationSec` are derived (`syncLesson` in `src/lib/lms/lesson-parts.ts`); one part means that part's type, several means `MIXED`. Never set them by hand.
 - Part kinds, upload rules and labels live in `src/lib/lms/blocks.ts`; readiness (ready/processing/failed/empty) in `src/lib/lms/readiness.ts`.
 - Progress is per part (`BlockProgress`) and rolled up to `LessonProgress` by `recordProgress` in `src/lib/lms/progress.ts`. Completion is sticky: adding a part never un-completes a learner. QUIZ and SCORM parts report their own result; all other parts use the client "complete" call.
 - A lesson can have at most one SCORM part and one QUIZ part. A final assessment (`Quiz.kind = EXAM`) must be the lesson's only part.

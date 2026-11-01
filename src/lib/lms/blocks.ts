@@ -1,11 +1,11 @@
 /**
  * Lesson parts ("blocks"). A lesson is an ordered list of parts — video, audio,
- * SCORM, web page, document, text, quiz — that learners work through in turn.
+ * SCORM, web page, document, text, embed, quiz — that learners work through in turn.
  *
  * Shared by server and client code: no database access here.
  */
 
-export const BLOCK_TYPES = ["VIDEO", "AUDIO", "SCORM", "HTML", "DOCUMENT", "TEXT", "QUIZ"] as const;
+export const BLOCK_TYPES = ["VIDEO", "AUDIO", "SCORM", "HTML", "DOCUMENT", "TEXT", "EMBED", "QUIZ"] as const;
 export type BlockKind = (typeof BLOCK_TYPES)[number];
 
 /** Parts backed by an uploaded file. */
@@ -27,6 +27,7 @@ export const BLOCK_LABEL: Record<BlockKind, string> = {
   HTML: "Web page",
   DOCUMENT: "Document",
   TEXT: "Text",
+  EMBED: "Embed",
   QUIZ: "Quiz",
 };
 
@@ -38,6 +39,7 @@ export const BLOCK_HINT: Record<BlockKind, string> = {
   HTML: "A web page or interactive .zip of one.",
   DOCUMENT: "PDF, Word, PowerPoint, Excel or an image.",
   TEXT: "Write notes, steps or key points right here.",
+  EMBED: "A Genially or other online course, by its link.",
   QUIZ: "Check understanding. One per lesson.",
 };
 
@@ -139,8 +141,55 @@ export function blockTypeForFile(fileName: string): FileBlockKind | "ZIP" | null
   return null;
 }
 
+/** Parts the mobile app opens in a WebView (POST /api/v1/lessons/<id>/launch). */
+export const isWebPart = (part: { type: string }) => part.type === "SCORM" || part.type === "HTML" || part.type === "EMBED";
+
 /** Whole minutes → seconds, for the per-part "estimated time" box. */
 export const minutesToSeconds = (min: number) => Math.round(min * 60);
 
 /** Longest written content a TEXT part may hold. */
 export const MAX_TEXT_CHARS = 60_000;
+
+/**
+ * The iframe URL for an EMBED part, from what an admin pasted: a share link
+ * (https://view.genially.com/…) or a whole embed code: an <iframe src="…">, or
+ * Genially's <div class="genially-embed"> + script. Only https pages can be embedded.
+ * Returns "" for an empty input.
+ */
+export function normalizeEmbedUrl(input: string): { ok: true; url: string } | { ok: false; error: string } {
+  const raw = input.trim();
+  if (!raw) return { ok: true, url: "" };
+  // Genially's default embed code is a <div id="<creation id>" class="genially-embed"> plus a script.
+  const geniallyId =
+    /<div\b[^>]*\bid\s*=\s*["']([a-f0-9]{16,40})["'][^>]*genially-embed/i.exec(raw)?.[1] ??
+    /<div\b[^>]*genially-embed[^>]*\bid\s*=\s*["']([a-f0-9]{16,40})["']/i.exec(raw)?.[1];
+  const fromCode =
+    /<iframe\b[^>]*?\ssrc\s*=\s*["']([^"']+)["']/i.exec(raw)?.[1] ??
+    (geniallyId ? `https://view.genially.com/${geniallyId}` : undefined);
+  if (!fromCode && raw.startsWith("<")) return { ok: false, error: "That embed code has no iframe link in it. Paste the share link instead." };
+  const candidate = (fromCode ?? raw).replace(/&amp;/g, "&").trim();
+
+  let url: URL;
+  try {
+    url = new URL(/^[a-z][a-z0-9+.-]*:/i.test(candidate) ? candidate : `https://${candidate}`);
+  } catch {
+    return { ok: false, error: "That doesn't look like a link. Paste the share link or embed code." };
+  }
+  if (url.protocol !== "https:") return { ok: false, error: "Only https:// links can be embedded." };
+  if (url.username || url.password) return { ok: false, error: "That link can't be embedded." };
+  // Genially's editor needs a login; the public view link is what learners can see.
+  if (/(^|\.)genial(\.ly|ly\.com)$/i.test(url.hostname) && url.hostname.startsWith("app.")) {
+    return { ok: false, error: "That's the Genially editor link. In Genially, use Share → Link (view.genially.com/…) instead." };
+  }
+  if (url.href.length > 2000) return { ok: false, error: "That link is too long." };
+  return { ok: true, url: url.href };
+}
+
+/** "view.genially.com" from an embed URL, for summaries. */
+export function embedHost(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}

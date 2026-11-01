@@ -6,12 +6,13 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { isStorageConfigured } from "@/lib/storage";
 import { listQuizSources } from "@/lib/lms/quiz-generator";
-import { BLOCK_LABEL, isFileBlock, type BlockKind } from "@/lib/lms/blocks";
+import { BLOCK_LABEL, embedHost, isFileBlock, type BlockKind } from "@/lib/lms/blocks";
 import { lessonReadiness, partStatus } from "@/lib/lms/readiness";
 import { LESSON_TYPE_LABEL, LessonIcon } from "@/components/learn/LessonIcon";
 import { ActionForm, DeleteButton, Field, Input, Panel, Switch, Textarea } from "@/components/admin/forms";
 import { UploadField } from "@/components/admin/UploadField";
 import { TextPartEditor } from "@/components/admin/TextPartEditor";
+import { EmbedPartEditor } from "@/components/admin/EmbedPartEditor";
 import { DocumentAccess } from "@/components/admin/DocumentAccess";
 import { LessonBuilder, type BuilderPart } from "@/components/admin/LessonBuilder";
 import type { EditableQuestion } from "@/components/admin/QuestionEditor";
@@ -204,6 +205,9 @@ function summarize(block: Block, questionCount: number, passMark?: number): stri
     const plain = block.body.replace(/[#>*_`\[\]()-]+/g, " ").replace(/\s+/g, " ").trim();
     return plain ? plain.slice(0, 160) : "No text yet. Open to write it.";
   }
+  if (block.type === "EMBED") {
+    return block.body ? `${embedHost(block.body)} · ${block.body}` : "No link yet. Open to paste one.";
+  }
   if (block.type === "QUIZ") {
     return questionCount
       ? `${questionCount} ${questionCount === 1 ? "question" : "questions"}${passMark !== undefined ? ` · pass mark ${passMark}%` : ""}`
@@ -234,6 +238,7 @@ function PartEditor({
   canBeExam: boolean;
 }) {
   if (block.type === "TEXT") return <TextPartEditor blockId={block.id} initial={block.body} />;
+  if (block.type === "EMBED") return <EmbedPartEditor blockId={block.id} initial={block.body} />;
 
   if (block.type === "QUIZ") {
     return (

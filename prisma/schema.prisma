@@ -220,6 +220,7 @@ enum LessonType {
   QUIZ
   DOCUMENT
   TEXT
+  EMBED
   MIXED
 }
 
@@ -231,6 +232,7 @@ enum BlockType {
   HTML
   DOCUMENT // PDF, Word, PowerPoint, Excel or an image
   TEXT // written content (Markdown) typed in the editor
+  EMBED // a page from another site (e.g. a Genially) shown in an iframe
   QUIZ // marks where the lesson's quiz sits
 }
 
@@ -277,6 +279,7 @@ model LessonBlock {
   // Learners must complete required parts for the lesson to count as done.
   required    Boolean         @default(true)
   // TEXT parts: the written content, as Markdown.
+  // EMBED parts: the https URL shown in the iframe (see normalizeEmbedUrl).
   body        String          @default("")
   // DOCUMENT parts: whether learners get Download / Open-in-new-tab buttons.
   // Either way the file is viewable in the lesson.

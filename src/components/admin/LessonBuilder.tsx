@@ -46,6 +46,7 @@ const DELETE_WARNING: Record<BlockKind, string> = {
   HTML: "Delete this web page part and its file?",
   DOCUMENT: "Delete this document part and its file?",
   TEXT: "Delete this text part?",
+  EMBED: "Delete this embed part? The page itself stays where it's hosted.",
   QUIZ: "Delete the quiz, all of its questions and learners' attempts? This cannot be undone.",
 };
 

@@ -5,11 +5,13 @@ import { checkLessonAccess } from "@/lib/lms/access";
 import { getInitialCmi } from "@/lib/lms/scorm";
 import { isStorageConfigured } from "@/lib/storage";
 import { ScormPlayer } from "@/components/learn/ScormPlayer";
+import { EmbedFrame } from "@/components/learn/EmbedFrame";
+import { isWebPart } from "@/lib/lms/blocks";
 
 export const metadata: Metadata = { title: "Lesson", robots: { index: false } };
 
 /**
- * Full-screen SCORM/HTML player for the mobile app's WebView: no site chrome;
+ * Full-screen SCORM/HTML/embed player for the mobile app's WebView: no site chrome;
  * the app draws its own header and "Mark as complete" button.
  */
 export default async function MobileLessonPage({ params, searchParams }: PageProps<"/m/lesson/[lessonId]">) {
@@ -21,9 +23,12 @@ export default async function MobileLessonPage({ params, searchParams }: PagePro
   const access = await checkLessonAccess(session, lessonId);
   if (!access.ok) notFound();
   const { lesson } = access;
-  // The web part to play: the one asked for, else the lesson's first SCORM / web page part.
-  const web = lesson.blocks.filter((b) => b.type === "SCORM" || b.type === "HTML");
+  // The web part to play: the one asked for, else the lesson's first SCORM / web page / embed part.
+  const web = lesson.blocks.filter(isWebPart);
   const part = web.find((b) => b.id === blockParam) ?? web[0];
+  if (part?.type === "EMBED" && part.body) {
+    return <EmbedFrame src={part.body} title={lesson.title} className="fixed inset-0 size-full border-0" />;
+  }
   const asset = part?.asset;
   if (!part || !asset || asset.status !== "READY" || !isStorageConfigured()) {
     return <Notice>This lesson&apos;s content is being prepared. Please check back soon.</Notice>;

@@ -15,6 +15,7 @@ import {
   isFileBlock,
   MAX_TEXT_CHARS,
   minutesToSeconds,
+  normalizeEmbedUrl,
   ONE_PER_LESSON,
   UPLOAD_RULES,
 } from "@/lib/lms/blocks";
@@ -80,17 +81,26 @@ const partSchema = z.object({
   /** Estimated time in minutes; null clears it. */
   durationMin: z.number().min(0).max(24 * 60).nullable().optional(),
   body: z.string().max(MAX_TEXT_CHARS, "That's too long for one part. Split it into two.").optional(),
+  /** Embed parts: a share link or a pasted embed code. */
+  embedUrl: z.string().max(10_000, "That's too long. Paste just the link.").optional(),
 });
 
-/** Change a part's heading, whether it's required, its estimated time, or (for text parts) its content. */
-export async function updateBlock(blockId: string, input: unknown): Promise<Result> {
+/** Change a part's heading, whether it's required, its estimated time, or its content (text, or an embed's link). */
+export async function updateBlock(blockId: string, input: unknown): Promise<Result<{ embedUrl?: string }>> {
   await requireAdmin();
   const parsed = partSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
-  const { title, required, allowDownload, durationMin, body } = parsed.data;
+  const { title, required, allowDownload, durationMin, body, embedUrl } = parsed.data;
 
   const block = await prisma.lessonBlock.findUnique({ where: { id: blockId }, select: { lessonId: true, type: true, required: true } });
   if (!block) return { ok: false, error: "Part not found." };
+
+  let embed: string | undefined;
+  if (embedUrl !== undefined && block.type === "EMBED") {
+    const normalized = normalizeEmbedUrl(embedUrl);
+    if (!normalized.ok) return normalized;
+    embed = normalized.url;
+  }
 
   await prisma.lessonBlock.update({
     where: { id: blockId },
@@ -99,6 +109,7 @@ export async function updateBlock(blockId: string, input: unknown): Promise<Resu
       ...(required !== undefined ? { required } : {}),
       ...(allowDownload !== undefined && block.type === "DOCUMENT" ? { allowDownload } : {}),
       ...(body !== undefined && block.type === "TEXT" ? { body } : {}),
+      ...(embed !== undefined ? { body: embed } : {}),
       ...(durationMin !== undefined ? { durationSec: durationMin ? minutesToSeconds(durationMin) : null } : {}),
     },
   });
@@ -106,7 +117,7 @@ export async function updateBlock(blockId: string, input: unknown): Promise<Resu
   // Making a part optional may complete lessons for learners who were only missing it.
   if (required === false && block.required) await reconcileLessonProgress(block.lessonId);
   refresh(block.lessonId);
-  return { ok: true };
+  return { ok: true, ...(embed !== undefined ? { embedUrl: embed } : {}) };
 }
 
 /** Remove a part, with its file (or, for a quiz part, the quiz and learners' attempts). */

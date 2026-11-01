@@ -1,4 +1,4 @@
-import { AlignLeft, FileCode2, FileText, Headphones, Layers, ListChecks, Package, PlayCircle } from "lucide-react";
+import { AlignLeft, AppWindow, FileCode2, FileText, Headphones, Layers, ListChecks, Package, PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ICONS = {
@@ -9,6 +9,7 @@ const ICONS = {
   HTML: FileCode2,
   DOCUMENT: FileText,
   TEXT: AlignLeft,
+  EMBED: AppWindow,
   MIXED: Layers,
 } as const;
 
@@ -21,6 +22,7 @@ export const LESSON_TYPE_LABEL = {
   HTML: "Interactive (HTML)",
   DOCUMENT: "Document",
   TEXT: "Reading",
+  EMBED: "Interactive (embedded)",
   MIXED: "Multi-part",
 } as const;
 

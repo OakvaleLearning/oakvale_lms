@@ -11,9 +11,9 @@ interface PartLike {
   asset: { status: string } | null;
 }
 
-/** A part's state: written parts need text, quizzes need questions, file parts need a processed upload. */
+/** A part's state: written parts need text, embeds a link, quizzes need questions, file parts need a processed upload. */
 export function partStatus(part: PartLike, questionCount: number): PartStatus {
-  if (part.type === "TEXT") return part.body.trim() ? "READY" : "EMPTY";
+  if (part.type === "TEXT" || part.type === "EMBED") return part.body.trim() ? "READY" : "EMPTY";
   if (part.type === "QUIZ") return questionCount > 0 ? "READY" : "EMPTY";
   return (part.asset?.status as PartStatus | undefined) ?? "EMPTY";
 }

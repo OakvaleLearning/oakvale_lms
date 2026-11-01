@@ -7,6 +7,7 @@ import { isStorageConfigured, presignDownload } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 import { LessonIcon } from "@/components/learn/LessonIcon";
 import { LessonFrame } from "@/components/learn/LessonFrame";
+import { EmbedFrame } from "@/components/learn/EmbedFrame";
 import { LessonMarkdown } from "@/components/learn/LessonMarkdown";
 import { MediaPlayer } from "@/components/learn/MediaPlayer";
 import { ScormPlayer } from "@/components/learn/ScormPlayer";
@@ -149,6 +150,24 @@ async function PartBody({
           />
         </footer>
       </section>
+    );
+  }
+
+  if (part.type === "EMBED") {
+    if (!part.body) return <Placeholder />;
+    return (
+      <div>
+        <LessonFrame key={part.id} title={title}>
+          <EmbedFrame src={part.body} title={title} className="absolute inset-0 size-full" />
+        </LessonFrame>
+        <CompletionBar
+          done={completed}
+          doneText="You've finished this."
+          todoText="Finished working through this?"
+          lessonId={lesson.id}
+          blockId={part.id}
+        />
+      </div>
     );
   }
 
