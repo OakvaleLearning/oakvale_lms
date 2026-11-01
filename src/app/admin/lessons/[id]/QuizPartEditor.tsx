@@ -2,11 +2,17 @@ import { ChevronDown, Plus, Settings2, Sparkles } from "lucide-react";
 import { ActionForm, DeleteButton, Field, Input, MoveButtons, Select, Switch } from "@/components/admin/forms";
 import { QuestionEditor, type EditableQuestion } from "@/components/admin/QuestionEditor";
 import { QuizGenerator } from "@/components/admin/QuizGenerator";
+import { displayBlankPrompt } from "@/lib/lms/fill-blank";
 import type { SourceLesson } from "@/lib/lms/quiz-generator";
 import { moveItem } from "../../actions";
 import { deleteQuestion, updateQuizSettings } from "./actions";
 
-const QUESTION_TYPE: Record<EditableQuestion["type"], string> = { SINGLE: "Single answer", MULTIPLE: "Multiple answers", TRUE_FALSE: "True / False" } as const;
+const QUESTION_TYPE: Record<EditableQuestion["type"], string> = {
+  SINGLE: "Single answer",
+  MULTIPLE: "Multiple answers",
+  TRUE_FALSE: "True / False",
+  FILL_BLANK: "Fill in the blanks",
+};
 
 /** The editor inside a quiz part: settings, AI drafting, and the questions. */
 export function QuizPartEditor({
@@ -59,7 +65,7 @@ export function QuizPartEditor({
               <span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary-50 text-xs font-semibold text-primary-700">
                 {i + 1}
               </span>
-              <span className="min-w-0 flex-1 truncate text-sm text-ink-900">{q.prompt}</span>
+              <span className="min-w-0 flex-1 truncate text-sm text-ink-900">{q.type === "FILL_BLANK" ? displayBlankPrompt(q.prompt) : q.prompt}</span>
               <span className="hidden shrink-0 text-xs text-ink-500 sm:inline">{QUESTION_TYPE[q.type]}</span>
               <ChevronDown className="size-4 shrink-0 text-ink-400 transition-transform group-open:rotate-180" />
             </summary>

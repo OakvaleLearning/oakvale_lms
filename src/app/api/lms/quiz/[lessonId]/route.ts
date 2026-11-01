@@ -5,7 +5,7 @@ import { checkLessonAccess } from "@/lib/lms/access";
 import { submitQuiz } from "@/lib/lms/quiz";
 
 const schema = z.object({
-  answers: z.record(z.string().max(40), z.array(z.string().max(40)).max(20)),
+  answers: z.record(z.string().max(40), z.array(z.string().max(200)).max(20)),
 });
 
 /** Submit a quiz attempt; graded on the server. */

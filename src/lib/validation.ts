@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { BLOCK_TYPES } from "@/lib/lms/blocks";
+import { MAX_ANSWER_CHARS, MAX_BLANKS, parseBlankText } from "@/lib/lms/fill-blank";
 
 /**
  * WhatsApp / phone number. Deliberately lenient about formatting (spaces,
@@ -113,7 +114,7 @@ export const quizSettingsSchema = z.object({
   shuffle: z.boolean().default(false),
 });
 
-export const questionSchema = z
+const choiceQuestionSchema = z
   .object({
     type: z.enum(["SINGLE", "MULTIPLE", "TRUE_FALSE"]),
     prompt: z.string().trim().min(3, "Question is too short").max(2000),
@@ -127,6 +128,33 @@ export const questionSchema = z
   })
   .refine((q) => q.correct.every((c) => q.options.some((o) => o.id === c)), "Correct answer must be one of the options")
   .refine((q) => q.type === "MULTIPLE" || q.correct.length === 1, "Single-answer questions need exactly one correct option");
+
+/**
+ * The prompt arrives as the admin typed it, answers in [brackets]; it is saved
+ * with the blanks cut out and the answers moved to `correct` (see fill-blank.ts).
+ */
+const fillBlankQuestionSchema = z
+  .object({
+    type: z.literal("FILL_BLANK"),
+    prompt: z.string().trim().min(3, "Question is too short").max(2000),
+    explanation: z.string().trim().max(2000).optional().or(z.literal("")),
+    points: z.coerce.number().int().min(1).max(100).default(1),
+  })
+  .superRefine((q, ctx) => {
+    const { prompt, answers } = parseBlankText(q.prompt);
+    const issue = (message: string) => ctx.addIssue({ code: "custom", message, path: ["prompt"] });
+    if (prompt.includes("[") || prompt.includes("]")) issue("Each blank needs an opening [ and a closing ]");
+    else if (answers.length === 0) issue("Put each answer in [square brackets] to make a blank");
+    else if (answers.length > MAX_BLANKS) issue(`Use at most ${MAX_BLANKS} blanks`);
+    else if (answers.some((a) => a.length === 0)) issue("Every blank needs an answer inside the brackets");
+    else if (answers.flat().some((a) => a.length > MAX_ANSWER_CHARS)) issue(`Answers can be up to ${MAX_ANSWER_CHARS} characters`);
+  })
+  .transform((q) => {
+    const { prompt, answers } = parseBlankText(q.prompt);
+    return { ...q, prompt, options: [] as { id: string; text: string }[], correct: answers.map((a) => a.join("|")) };
+  });
+
+export const questionSchema = z.discriminatedUnion("type", [choiceQuestionSchema, fillBlankQuestionSchema]);
 
 /* ------------------------------------------------------------------ *
  * Community

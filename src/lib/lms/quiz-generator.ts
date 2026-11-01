@@ -16,7 +16,7 @@ const MATERIAL_LIMIT = 60_000;
 
 export const GENERATE_COUNTS = [5, 10, 15, 20] as const;
 export const DIFFICULTIES = ["easy", "mixed", "challenging"] as const;
-export type QuestionKind = "SINGLE" | "MULTIPLE" | "TRUE_FALSE";
+export type QuestionKind = "SINGLE" | "MULTIPLE" | "TRUE_FALSE" | "FILL_BLANK";
 export type Difficulty = (typeof DIFFICULTIES)[number];
 
 export type QuizKind = "QUIZ" | "EXAM";
@@ -114,15 +114,18 @@ async function gatherMaterial(moduleId: string, lessonIds: string[]): Promise<st
 const generatedSchema = z.object({
   questions: z.array(
     z.object({
-      type: z.enum(["SINGLE", "MULTIPLE", "TRUE_FALSE"]),
-      prompt: z.string().describe("The question, one or two sentences"),
-      options: z.array(z.string()).describe("Answer choices. For TRUE_FALSE exactly [\"True\", \"False\"]"),
-      correct: z.array(z.number().int()).describe("Zero-based indexes of the correct options"),
+      type: z.enum(["SINGLE", "MULTIPLE", "TRUE_FALSE", "FILL_BLANK"]),
+      prompt: z
+        .string()
+        .describe("The question, one or two sentences. For FILL_BLANK, the sentence with each answer in [square brackets]"),
+      options: z.array(z.string()).describe("Answer choices. For TRUE_FALSE exactly [\"True\", \"False\"]. Empty for FILL_BLANK"),
+      correct: z.array(z.number().int()).describe("Zero-based indexes of the correct options. Empty for FILL_BLANK"),
       explanation: z.string().describe("Why the answer is right, citing the lesson, in 1-2 sentences"),
     })
   ),
 });
 
+/** Fill-in-the-blank drafts keep their answers in [brackets] in the prompt, as admins type them. */
 export interface DraftQuestion {
   type: QuestionKind;
   prompt: string;
@@ -166,6 +169,8 @@ export async function generateQuizDraft(input: {
     SINGLE: "SINGLE: 4 options, exactly one correct.",
     MULTIPLE: "MULTIPLE: 4-5 options, two or more correct. Say \"Select all that apply\" in the prompt.",
     TRUE_FALSE: 'TRUE_FALSE: options exactly ["True", "False"], one correct.',
+    FILL_BLANK:
+      'FILL_BLANK: a sentence from the material with 1-2 key words or short phrases (a term, number or step, never a whole clause) in [square brackets]; learners type them in. Add common alternative spellings or forms after "|", e.g. "Wash hands for at least [20|twenty] seconds." options and correct are empty.',
   } satisfies Record<QuestionKind, string>;
 
   let output: z.infer<typeof generatedSchema>;
@@ -209,6 +214,10 @@ ${material}
 
   const questions = output.questions.flatMap((q): DraftQuestion[] => {
     const type = input.types.includes(q.type) ? q.type : input.types[0];
+    if (type === "FILL_BLANK") {
+      if (q.type !== "FILL_BLANK" || !/\[[^[\]]+\]/.test(q.prompt)) return [];
+      return [{ type, prompt: q.prompt.trim(), options: [], correct: [], explanation: q.explanation.trim() }];
+    }
     const texts = type === "TRUE_FALSE" ? ["True", "False"] : q.options.map((t) => t.trim()).filter(Boolean).slice(0, 10);
     const ids = type === "TRUE_FALSE" ? ["true", "false"] : texts.map((_, i) => `o${i + 1}`);
     let correct = [...new Set(q.correct)].filter((i) => i >= 0 && i < texts.length).map((i) => ids[i]);

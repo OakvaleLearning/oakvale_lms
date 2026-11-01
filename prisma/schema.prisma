@@ -350,6 +350,7 @@ enum QuestionType {
   SINGLE
   MULTIPLE
   TRUE_FALSE
+  FILL_BLANK
 }
 
 model Question {

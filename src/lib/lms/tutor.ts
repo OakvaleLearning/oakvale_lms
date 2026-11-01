@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/auth";
 import type { LessonAccess } from "./access";
 import { partsText } from "./lesson-material";
+import { blankMatches, displayBlankPrompt } from "./fill-blank";
 import type { QuizOption } from "./quiz";
 
 /**
@@ -155,6 +156,19 @@ async function describeQuizResults(userId: string, lessonId: string): Promise<st
 
   const answers = attempt.answers as Record<string, string[]>;
   const lines = quiz.questions.map((q, i) => {
+    if (q.type === "FILL_BLANK") {
+      const accepted = q.correct as string[];
+      const typed = answers[q.id] ?? [];
+      const right = accepted.every((c, bi) => blankMatches(typed[bi], c));
+      return [
+        `${i + 1}. Fill in the blanks: ${displayBlankPrompt(q.prompt)}`,
+        `   Learner typed: ${accepted.map((_, bi) => `"${typed[bi] ?? ""}"`).join(", ")} (${right ? "correct" : "incorrect"})`,
+        `   Correct answers: ${accepted.map((c) => c.split("|").join(" or ")).join(", ")}`,
+        q.explanation ? `   Explanation: ${q.explanation}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+    }
     const options = q.options as unknown as QuizOption[];
     const text = (ids: string[]) =>
       ids.map((id) => options.find((o) => o.id === id)?.text ?? id).join(", ") || "(no answer)";

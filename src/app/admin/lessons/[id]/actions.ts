@@ -324,7 +324,7 @@ export async function deleteQuestion(lessonId: string, questionId: string): Prom
 const generateSchema = z.object({
   sourceLessonIds: z.array(z.string().max(40)).min(1, "Pick at least one lesson to base the questions on").max(100),
   count: z.coerce.number().refine((n) => (GENERATE_COUNTS as readonly number[]).includes(n), "Pick how many questions"),
-  types: z.array(z.enum(["SINGLE", "MULTIPLE", "TRUE_FALSE"])).min(1, "Pick at least one question type"),
+  types: z.array(z.enum(["SINGLE", "MULTIPLE", "TRUE_FALSE", "FILL_BLANK"])).min(1, "Pick at least one question type"),
   difficulty: z.enum(DIFFICULTIES),
   focus: z.string().trim().max(500).default(""),
   replace: z.boolean().default(false),
@@ -353,7 +353,11 @@ export async function generateQuestions(lessonId: string, input: unknown): Promi
   });
   if (!draft.ok) return draft;
 
-  const valid = draft.questions.filter((q) => questionSchema.safeParse(q).success);
+  // Parsed, not raw: fill-in-the-blank drafts are stored with their brackets turned into blanks.
+  const valid = draft.questions.flatMap((q) => {
+    const parsed = questionSchema.safeParse(q);
+    return parsed.success ? [parsed.data] : [];
+  });
   if (valid.length === 0) return { ok: false, error: "The AI's questions didn't come out usable. Please try again." };
   const start = replace ? 0 : Math.max(-1, ...quiz.questions.map((q) => q.order)) + 1;
 

@@ -16,6 +16,7 @@ const TYPE_LABEL: Record<QuestionKind, string> = {
   SINGLE: "Single answer",
   MULTIPLE: "Multiple answers",
   TRUE_FALSE: "True / False",
+  FILL_BLANK: "Fill in the blanks",
 };
 
 export function QuizGenerator({

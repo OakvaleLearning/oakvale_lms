@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { blankMatches, blankSegments, displayBlankPrompt } from "./fill-blank";
 import { recordProgress } from "./progress";
 
 export interface QuizOption {
@@ -10,17 +11,25 @@ export interface QuizOption {
 /** A question as learners see it — correct answers are never included. */
 export interface LearnerQuestion {
   id: string;
-  type: "SINGLE" | "MULTIPLE" | "TRUE_FALSE";
+  type: "SINGLE" | "MULTIPLE" | "TRUE_FALSE" | "FILL_BLANK";
+  /** For FILL_BLANK, the sentence with each blank shown as "_____". */
   prompt: string;
+  /** Empty for FILL_BLANK. */
   options: QuizOption[];
+  /** FILL_BLANK only: the text around the blanks; there are `segments.length - 1` blanks. Answer with one string per blank, in order. */
+  segments?: string[];
   points: number;
 }
 
 export interface QuestionResult {
   questionId: string;
   correct: boolean;
+  /** FILL_BLANK only: which blanks were right, in order. */
+  blanks?: boolean[];
   /** Only revealed once the learner has passed or has no attempts left. */
   correctOptionIds?: string[];
+  /** FILL_BLANK, revealed like correctOptionIds: the accepted answers for each blank, in order. */
+  correctAnswers?: string[][];
   explanation?: string | null;
 }
 
@@ -46,13 +55,24 @@ export async function getQuizForLearner(lessonId: string, userId: string) {
     select: { score: true, passed: true, createdAt: true },
   });
 
-  const questions: LearnerQuestion[] = quiz.questions.map((q) => ({
-    id: q.id,
-    type: q.type,
-    prompt: q.prompt,
-    options: quiz.shuffle ? shuffled(q.options as unknown as QuizOption[]) : (q.options as unknown as QuizOption[]),
-    points: q.points,
-  }));
+  const questions: LearnerQuestion[] = quiz.questions.map((q) =>
+    q.type === "FILL_BLANK"
+      ? {
+          id: q.id,
+          type: q.type,
+          prompt: displayBlankPrompt(q.prompt),
+          options: [],
+          segments: blankSegments(q.prompt),
+          points: q.points,
+        }
+      : {
+          id: q.id,
+          type: q.type,
+          prompt: q.prompt,
+          options: quiz.shuffle ? shuffled(q.options as unknown as QuizOption[]) : (q.options as unknown as QuizOption[]),
+          points: q.points,
+        }
+  );
 
   return {
     id: quiz.id,
@@ -96,12 +116,20 @@ export async function submitQuiz(
   let earned = 0;
   let possible = 0;
   const graded = quiz.questions.map((q) => {
+    possible += q.points;
+    if (q.type === "FILL_BLANK") {
+      // One mark per blank: a question with three blanks and two right earns two thirds of its points.
+      const correct = q.correct as string[];
+      const blanks = correct.map((accepted, i) => blankMatches(answers[q.id]?.[i], accepted));
+      const right = blanks.filter(Boolean).length;
+      earned += correct.length ? (q.points * right) / correct.length : 0;
+      return { q, correct, blanks, isRight: right === correct.length };
+    }
     const correct = [...(q.correct as string[])].sort();
     const given = [...new Set(answers[q.id] ?? [])].sort();
     const isRight = correct.length === given.length && correct.every((c, i) => c === given[i]);
-    possible += q.points;
     if (isRight) earned += q.points;
-    return { q, correct, isRight };
+    return { q, correct, blanks: undefined, isRight };
   });
 
   const score = possible ? Math.round((earned / possible) * 100) : 0;
@@ -123,10 +151,15 @@ export async function submitQuiz(
     passed,
     attemptsUsed,
     attemptsLeft,
-    results: graded.map(({ q, correct, isRight }) => ({
+    results: graded.map(({ q, correct, blanks, isRight }) => ({
       questionId: q.id,
       correct: isRight,
-      ...(reveal ? { correctOptionIds: correct, explanation: q.explanation } : {}),
+      ...(blanks ? { blanks } : {}),
+      ...(reveal
+        ? blanks
+          ? { correctAnswers: correct.map((c) => c.split("|")), explanation: q.explanation }
+          : { correctOptionIds: correct, explanation: q.explanation }
+        : {}),
     })),
   };
 }

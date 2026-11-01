@@ -11,7 +11,9 @@ import { jsonError, requireApiSession } from "@/lib/api/mobile";
  * One lesson for the mobile player. A lesson is a list of `parts`, played in
  * order; each part's `content.kind` says how:
  * - media: stream `url` (presigned, ~2h) natively and resume at `startAt`
- * - quiz: questions without answers; submit to POST /api/lms/quiz/<lessonId>
+ * - quiz: questions without answers; submit to POST /api/lms/quiz/<lessonId>. A
+ *   FILL_BLANK question has no `options`; it has `segments` (the text around the blanks)
+ *   and is answered with one typed string per blank, in order
  * - web: SCORM/HTML/EMBED; get a WebView URL from POST /api/v1/lessons/<lessonId>/launch
  *   with `{ "blockId": "<part id>" }`
  * - document: `url` (presigned) to show (`display` "pdf" | "image"); for "download" files
