@@ -25,8 +25,6 @@ import {
   TitleField,
 } from "@/components/admin/forms";
 import { cardControlsClass, cardListClass, cardRowClass } from "@/components/admin/cardList";
-import { IssueEligibleButton } from "@/components/admin/IssueEligibleButton";
-import { updateModuleCertificate } from "../../certificates/actions";
 import {
   createLesson,
   createTopic,
@@ -60,18 +58,11 @@ export default async function ModuleBuilderPage({ params }: PageProps<"/admin/mo
   });
   if (!mod) notFound();
 
-  const [siblings, templates, issuedCount] = await Promise.all([
-    prisma.module.findMany({
-      where: { programId: mod.programId, id: { not: mod.id } },
-      orderBy: { order: "asc" },
-      select: { id: true, title: true },
-    }),
-    prisma.certificateTemplate.findMany({
-      orderBy: [{ isDefault: "desc" }, { name: "asc" }],
-      select: { id: true, name: true, isDefault: true },
-    }),
-    prisma.certificate.count({ where: { moduleId: mod.id } }),
-  ]);
+  const siblings = await prisma.module.findMany({
+    where: { programId: mod.programId, id: { not: mod.id } },
+    orderBy: { order: "asc" },
+    select: { id: true, title: true },
+  });
 
   const lessons = mod.topics.flatMap((m) => m.lessons);
   const published = lessons.filter((l) => l.published).length;
@@ -256,65 +247,13 @@ export default async function ModuleBuilderPage({ params }: PageProps<"/admin/mo
               </div>
             </ActionForm>
           </Panel>
-          <Panel
-            title="Certificate"
-            description={`${issuedCount} issued`}
-            actions={
-              <Link href="/admin/certificates?tab=templates" className="text-xs font-medium text-primary-600 hover:text-primary-700">
-                Templates
+          <Panel title="Certificate">
+            <p className="text-sm leading-relaxed text-ink-600">
+              Certificates are issued per programme, once a learner finishes every module their tier unlocks.{" "}
+              <Link href={`/admin/programs/${mod.program.id}`} className="font-medium text-primary-600 hover:text-primary-700">
+                Certificate settings
               </Link>
-            }
-          >
-            <ActionForm action={updateModuleCertificate.bind(null, mod.id)}>
-              <Switch
-                name="certificateEnabled"
-                label="Issue a certificate"
-                description="When every lesson is complete and the quiz and assessment average reaches the pass mark"
-                defaultChecked={mod.certificateEnabled}
-              />
-              <Field label="Pass mark" hint="Average of the learner's best score on each quiz and final assessment in this module">
-                <span className="flex items-center gap-2">
-                  <Input
-                    name="certificatePassMark"
-                    type="number"
-                    min={0}
-                    max={100}
-                    required
-                    defaultValue={mod.certificatePassMark}
-                    className="w-24"
-                  />
-                  <span className="text-sm text-ink-500">%</span>
-                </span>
-              </Field>
-              <Field label="Template">
-                <Select name="certificateTemplateId" defaultValue={mod.certificateTemplateId ?? ""}>
-                  <option value="">Default template</option>
-                  {templates.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                      {t.isDefault ? " (default)" : ""}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <div className="space-y-4 border-t border-line pt-5">
-                <Switch
-                  name="cpdEnabled"
-                  label="Includes a CPD certificate"
-                  description="Sent to the learner directly by the issuing body"
-                  defaultChecked={mod.cpdEnabled}
-                />
-                <Field label="CPD issuing body" hint="Shown to learners, e.g. The CPD Certification Service">
-                  <Input name="cpdProvider" defaultValue={mod.cpdProvider} maxLength={120} />
-                </Field>
-                <Field label="CPD hours" optional>
-                  <Input name="cpdHours" type="number" min={1} max={1000} defaultValue={mod.cpdHours ?? ""} className="w-24" />
-                </Field>
-              </div>
-            </ActionForm>
-            <div className="mt-5 border-t border-line pt-5">
-              <IssueEligibleButton moduleId={mod.id} />
-            </div>
+            </p>
           </Panel>
           <Panel title="Cover image">
             <CoverImageField target={{ kind: "module", id: mod.id }} current={mod.coverImage} />

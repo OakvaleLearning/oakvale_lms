@@ -44,8 +44,14 @@ export default async function ModulePage({ params, searchParams }: PageProps<"/l
   const [topics, progressMap, certificate] = await Promise.all([
     getModuleOutline(session.userId, mod.id, { sequential: mod.sequential, isAdmin }),
     getModuleProgress(session.userId, [mod.id]),
-    prisma.certificate.findUnique({
-      where: { userId_moduleId: { userId: session.userId, moduleId: mod.id } },
+    // The programme certificate covering this module (or one issued for the module before certificates were per programme).
+    prisma.certificate.findFirst({
+      where: {
+        userId: session.userId,
+        revokedAt: null,
+        OR: [{ programId: mod.program.id, scope: { contains: mod.id } }, { moduleId: mod.id }],
+      },
+      orderBy: { issuedAt: "desc" },
       select: { serial: true, revokedAt: true },
     }),
   ]);
@@ -200,13 +206,14 @@ export default async function ModulePage({ params, searchParams }: PageProps<"/l
                 <ArrowRight className="size-4 shrink-0" />
               </Link>
             ) : (
-              mod.certificateEnabled && (
+              mod.program.certificateEnabled && (
                 <p className="mt-5 flex items-start gap-2.5 border-t border-line pt-5 text-xs leading-relaxed text-ink-500">
                   <Award className="mt-px size-4 shrink-0 text-ink-400" />
                   <span>
-                    Earn a certificate by completing every lesson
-                    {` with a quiz average of ${mod.certificatePassMark}% or more`}.
-                    {mod.cpdEnabled && ` Includes a CPD certificate from ${mod.cpdProvider || "an accredited CPD body"}.`}
+                    Earn your {mod.program.title} certificate by completing every module in your enrolment
+                    {` with a quiz average of ${mod.program.certificatePassMark}% or more`}.
+                    {mod.program.cpdEnabled &&
+                      ` Includes a CPD certificate from ${mod.program.cpdProvider || "an accredited CPD body"}.`}
                   </span>
                 </p>
               )

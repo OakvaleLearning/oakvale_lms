@@ -49,7 +49,7 @@ export const DEFAULT_DESIGN: TemplateDesign = {
   backgroundColor: "#ffffff",
   heading: "Certificate of Completion",
   intro: "This is to certify that",
-  body: "has successfully completed {module}, part of the {programme} programme.",
+  body: "has successfully completed the {programme} programme, covering {module}.",
   footer: "",
   signatoryName: "Oakvale Learning",
   signatoryTitle: "Director of Training",
@@ -68,6 +68,7 @@ export function toDesign(t: TemplateDesign): TemplateDesign {
 export interface CertificateData {
   serial: string;
   recipientName: string;
+  /** The modules covered, joined ("A and B"); a single module on certificates from before November 2026. */
   moduleTitle: string;
   programTitle: string;
   score: number | null;
@@ -78,8 +79,8 @@ export interface CertificateData {
 export const SAMPLE_CERTIFICATE: CertificateData = {
   serial: "OAK-7K3Q-M9XP",
   recipientName: "Adaeze Okafor",
-  moduleTitle: "Professional Child Care",
-  programTitle: "Child Care",
+  moduleTitle: "The Foundation and Professional Mastery",
+  programTitle: "Adult & Elderly Care",
   score: 86,
   issuedAt: "2026-11-20T10:00:00Z",
   cpdHours: 12,

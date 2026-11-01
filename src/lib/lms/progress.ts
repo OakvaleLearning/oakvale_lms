@@ -130,7 +130,7 @@ export async function recordProgress(userId: string, lessonId: string, update: P
       update: data,
       create: { userId, lessonId, ...data },
     });
-    // Finishing a lesson, or raising a quiz score, may complete the module certificate.
+    // Finishing a lesson, or raising a quiz score, may complete the programme certificate.
     const certify = completed && (existing?.status !== "COMPLETED" || (score ?? 0) > (existing?.score ?? 0));
     return { saved, certify };
   });

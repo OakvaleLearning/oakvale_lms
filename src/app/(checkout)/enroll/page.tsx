@@ -43,9 +43,6 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
                   order: true,
                   prerequisiteId: true,
                   prerequisite: { select: { title: true } },
-                  certificateEnabled: true,
-                  cpdEnabled: true,
-                  cpdHours: true,
                   topics: { select: { _count: { select: { lessons: { where: { published: true } } } } } },
                 },
               },
@@ -266,8 +263,6 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
                     const lessons = tc.module.topics.reduce((n, m) => n + m._count.lessons, 0);
                     const facts = [
                       lessons > 0 && `${lessons} ${lessons === 1 ? "lesson" : "lessons"}`,
-                      tc.module.certificateEnabled && "Certificate",
-                      tc.module.cpdEnabled && (tc.module.cpdHours ? `CPD · ${tc.module.cpdHours} hrs` : "CPD certificate"),
                     ].filter(Boolean);
                     return (
                       <li key={tc.moduleId} className="flex gap-3">
@@ -281,6 +276,24 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
                       </li>
                     );
                   })}
+                  {program.certificateEnabled && modules.length > 0 && (
+                    <li className="flex gap-3">
+                      <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-600">
+                        <Award className="size-3" strokeWidth={2.5} />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-ink-900">Programme certificate</p>
+                        <p className="mt-0.5 text-xs text-ink-500">
+                          {[
+                            modules.length > 1 ? "On completing every module" : "On completing the module",
+                            program.cpdEnabled && (program.cpdHours ? `CPD · ${program.cpdHours} hrs` : "CPD certificate"),
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
+                      </div>
+                    </li>
+                  )}
                 </ul>
                 {needs && (
                   <p className="mt-5 flex items-start gap-2 rounded-lg bg-canvas px-3 py-2.5 text-xs leading-relaxed text-ink-600">

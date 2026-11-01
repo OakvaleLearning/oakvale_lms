@@ -91,7 +91,18 @@ export async function getModuleBySlugs(session: SessionPayload, programSlug: str
   const mod = await prisma.module.findFirst({
     where: { slug: moduleSlug, program: { slug: programSlug } },
     include: {
-      program: { select: { id: true, slug: true, title: true, published: true } },
+      program: {
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          published: true,
+          certificateEnabled: true,
+          certificatePassMark: true,
+          cpdEnabled: true,
+          cpdProvider: true,
+        },
+      },
       prerequisite: { select: { title: true, slug: true } },
     },
   });

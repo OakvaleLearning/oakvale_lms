@@ -194,16 +194,16 @@ ${TEAM}`;
 /** Sent when a learner earns a module certificate; mentions the CPD certificate when the module has one. */
 export async function sendCertificateEmail(
   user: { name: string; email: string },
-  cert: { serial: string; moduleTitle: string; cpdStatus: string; cpdProvider: string | null; link: string }
+  cert: { serial: string; programTitle: string; moduleTitle: string; cpdStatus: string; cpdProvider: string | null; link: string }
 ): Promise<boolean> {
   const cpd =
     cert.cpdStatus === "NONE"
       ? ""
-      : `This module also carries a CPD certificate. We will pass your details to ${cert.cpdProvider || "the CPD issuing body"}, who will email it to you directly.`;
+      : `This programme also carries a CPD certificate. We will pass your details to ${cert.cpdProvider || "the CPD issuing body"}, who will email it to you directly.`;
 
   const bodyHtml =
     p(`Dear ${escape(user.name)},`) +
-    p(`Congratulations! You have completed <strong>${escape(cert.moduleTitle)}</strong> and earned your ${SITE.name} certificate.`) +
+    p(`Congratulations! You have completed the <strong>${escape(cert.programTitle)}</strong> programme (${escape(cert.moduleTitle)}) and earned your ${SITE.name} certificate.`) +
     button(cert.link, "View and download") +
     p(`Your certificate ID is <strong>${cert.serial}</strong>. Anyone can check it is genuine by scanning its QR code or visiting ${appUrl()}/verify.`) +
     (cpd ? p(escape(cpd)) : "") +
@@ -211,7 +211,7 @@ export async function sendCertificateEmail(
 
   const text = `Dear ${user.name},
 
-Congratulations! You have completed ${cert.moduleTitle} and earned your ${SITE.name} certificate.
+Congratulations! You have completed the ${cert.programTitle} programme (${cert.moduleTitle}) and earned your ${SITE.name} certificate.
 
 View and download it: ${cert.link}
 
@@ -222,7 +222,7 @@ ${TEAM}`;
 
   return sendEmail({
     to: user.email,
-    subject: `Your certificate: ${cert.moduleTitle}`,
+    subject: `Your certificate: ${cert.programTitle}`,
     html: layout("You've earned a certificate", bodyHtml),
     text,
   });

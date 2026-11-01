@@ -22,6 +22,7 @@ export default async function VerifyResultPage({ params }: PageProps<"/verify/[s
           serial: true,
           recipientName: true,
           moduleTitle: true,
+          scope: true,
           programTitle: true,
           score: true,
           issuedAt: true,
@@ -75,8 +76,8 @@ export default async function VerifyResultPage({ params }: PageProps<"/verify/[s
         </div>
         <dl className="card divide-y divide-line text-sm">
           <Row label="Awarded to" value={cert.recipientName} />
-          <Row label="Module" value={cert.moduleTitle} />
           <Row label="Programme" value={cert.programTitle} />
+          <Row label={cert.scope ? "Modules completed" : "Module"} value={cert.moduleTitle} />
           <Row label="Issued" value={formatIssueDate(cert.issuedAt)} />
           {cert.score !== null && <Row label="Assessment score" value={`${cert.score}%`} />}
           <Row label="Certificate ID" value={<span className="font-mono tracking-wider">{cert.serial}</span>} />

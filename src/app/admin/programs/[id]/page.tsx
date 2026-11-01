@@ -16,11 +16,14 @@ import {
   Input,
   MoveButtons,
   Panel,
+  Select,
   Switch,
   Textarea,
   TitleField,
 } from "@/components/admin/forms";
 import { cardControlsClass, cardListClass, cardRowClass } from "@/components/admin/cardList";
+import { IssueEligibleButton } from "@/components/admin/IssueEligibleButton";
+import { updateProgramCertificate } from "../../certificates/actions";
 import {
   createModule,
   createTier,
@@ -51,6 +54,14 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
     },
   });
   if (!program) notFound();
+
+  const [templates, issuedCount] = await Promise.all([
+    prisma.certificateTemplate.findMany({
+      orderBy: [{ isDefault: "desc" }, { name: "asc" }],
+      select: { id: true, name: true, isDefault: true },
+    }),
+    prisma.certificate.count({ where: { programId: program.id, scope: { not: null } } }),
+  ]);
 
   const moduleOptions = program.modules.map((c) => ({ id: c.id, title: c.title }));
 
@@ -237,6 +248,66 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
                 defaultChecked={program.published}
               />
             </ActionForm>
+          </Panel>
+          <Panel
+            title="Certificate"
+            description={`${issuedCount} issued`}
+            actions={
+              <Link href="/admin/certificates?tab=templates" className="text-xs font-medium text-primary-600 hover:text-primary-700">
+                Templates
+              </Link>
+            }
+          >
+            <ActionForm action={updateProgramCertificate.bind(null, program.id)}>
+              <Switch
+                name="certificateEnabled"
+                label="Issue a certificate"
+                description="When a learner completes every module their tier unlocks and their quiz and assessment average reaches the pass mark"
+                defaultChecked={program.certificateEnabled}
+              />
+              <Field label="Pass mark" hint="Average of the learner's best score on each quiz and final assessment across those modules">
+                <span className="flex items-center gap-2">
+                  <Input
+                    name="certificatePassMark"
+                    type="number"
+                    min={0}
+                    max={100}
+                    required
+                    defaultValue={program.certificatePassMark}
+                    className="w-24"
+                  />
+                  <span className="text-sm text-ink-500">%</span>
+                </span>
+              </Field>
+              <Field label="Template">
+                <Select name="certificateTemplateId" defaultValue={program.certificateTemplateId ?? ""}>
+                  <option value="">Default template</option>
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                      {t.isDefault ? " (default)" : ""}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <div className="space-y-4 border-t border-line pt-5">
+                <Switch
+                  name="cpdEnabled"
+                  label="Includes a CPD certificate"
+                  description="Sent to the learner directly by the issuing body"
+                  defaultChecked={program.cpdEnabled}
+                />
+                <Field label="CPD issuing body" hint="Shown to learners, e.g. The CPD Certification Service">
+                  <Input name="cpdProvider" defaultValue={program.cpdProvider} maxLength={120} />
+                </Field>
+                <Field label="CPD hours" optional>
+                  <Input name="cpdHours" type="number" min={1} max={1000} defaultValue={program.cpdHours ?? ""} className="w-24" />
+                </Field>
+              </div>
+            </ActionForm>
+            <div className="mt-5 border-t border-line pt-5">
+              <IssueEligibleButton programId={program.id} />
+            </div>
           </Panel>
           <Panel title="Cover image">
             <CoverImageField target={{ kind: "program", id: program.id }} current={program.coverImage} />

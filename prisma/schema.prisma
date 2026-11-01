@@ -107,20 +107,31 @@ model PasswordResetToken {
  */
 
 model Program {
-  id          String           @id @default(cuid())
+  id                    String               @id @default(cuid())
   // Matches the marketing site's slugs ("adult-care", "child-care") so its
   // tier CTAs (/enroll?track=<slug>&tier=<tier>) resolve here.
-  slug        String           @unique
-  title       String
-  description String           @default("")
-  coverImage  String?
-  published   Boolean          @default(false)
-  order       Int              @default(0)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  tiers       Tier[]
-  modules     Module[]
-  groups      CommunityGroup[]
+  slug                  String               @unique
+  title                 String
+  description           String               @default("")
+  coverImage            String?
+  published             Boolean              @default(false)
+  order                 Int                  @default(0)
+  // One certificate per programme, issued once a learner has finished every
+  // module their tiers unlock here and their quiz average reaches the pass mark.
+  certificateEnabled    Boolean              @default(true)
+  certificateTemplate   CertificateTemplate? @relation(fields: [certificateTemplateId], references: [id], onDelete: SetNull)
+  certificateTemplateId String?
+  certificatePassMark   Int                  @default(70) // percent, average of every quiz in the modules covered
+  // CPD certificate, sent to the learner directly by an outside issuing body.
+  cpdEnabled            Boolean              @default(false)
+  cpdProvider           String               @default("")
+  cpdHours              Int?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  tiers                 Tier[]
+  modules               Module[]
+  groups                CommunityGroup[]
+  certificates          Certificate[]
 
   @@index([published, order])
 }
@@ -158,37 +169,29 @@ model TierModule {
 }
 
 /// The top level of a programme (e.g. Foundation / Professional). Tiers unlock
-/// modules, and certificates are issued per module.
+/// modules; certificates are issued per programme.
 model Module {
-  id                    String               @id @default(cuid())
-  program               Program              @relation(fields: [programId], references: [id], onDelete: Cascade)
-  programId             String
-  slug                  String
-  title                 String
-  description           String               @default("")
-  coverImage            String?
-  order                 Int                  @default(0)
-  published             Boolean              @default(false)
+  id             String        @id @default(cuid())
+  program        Program       @relation(fields: [programId], references: [id], onDelete: Cascade)
+  programId      String
+  slug           String
+  title          String
+  description    String        @default("")
+  coverImage     String?
+  order          Int           @default(0)
+  published      Boolean       @default(false)
   // When true, each lesson unlocks only after the previous one is completed.
-  sequential            Boolean              @default(false)
+  sequential     Boolean       @default(false)
   // Module that must be completed first (e.g. Professional requires Foundation).
-  prerequisite          Module?              @relation("ModulePrerequisite", fields: [prerequisiteId], references: [id], onDelete: SetNull)
-  prerequisiteId        String?
-  dependents            Module[]             @relation("ModulePrerequisite")
-  // Certificate issued once every lesson is done and the quiz average reaches the pass mark.
-  certificateEnabled    Boolean              @default(true)
-  certificateTemplate   CertificateTemplate? @relation(fields: [certificateTemplateId], references: [id], onDelete: SetNull)
-  certificateTemplateId String?
-  certificatePassMark   Int                  @default(70) // percent, average of the module's quizzes
-  // CPD certificate, sent to the learner directly by an outside issuing body.
-  cpdEnabled            Boolean              @default(false)
-  cpdProvider           String               @default("")
-  cpdHours              Int?
-  createdAt             DateTime             @default(now())
-  updatedAt             DateTime             @updatedAt
-  topics                Topic[]
-  tiers                 TierModule[]
-  certificates          Certificate[]
+  prerequisite   Module?       @relation("ModulePrerequisite", fields: [prerequisiteId], references: [id], onDelete: SetNull)
+  prerequisiteId String?
+  dependents     Module[]      @relation("ModulePrerequisite")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  topics         Topic[]
+  tiers          TierModule[]
+  // Certificates issued per module before November 2026; new ones are per programme.
+  certificates   Certificate[]
 
   @@unique([programId, slug])
   @@index([programId, order])
@@ -624,7 +627,7 @@ enum CertificateFont {
   SANS
 }
 
-/// How an issued certificate looks. Modules pick one; the default is used otherwise.
+/// How an issued certificate looks. Programmes pick one; the default is used otherwise.
 model CertificateTemplate {
   id              String            @id @default(cuid())
   name            String
@@ -636,8 +639,8 @@ model CertificateTemplate {
   backgroundColor String            @default("#ffffff")
   heading         String            @default("Certificate of Completion")
   intro           String            @default("This is to certify that")
-  // Placeholders: {name} {module} {programme} {score} {date} {hours} ({course} is an old alias of {module})
-  body            String            @default("has successfully completed {module}, part of the {programme} programme.")
+  // Placeholders: {name} {module} (the modules covered) {programme} {score} {date} {hours} ({course} is an old alias of {module})
+  body            String            @default("has successfully completed the {programme} programme, covering {module}.")
   footer          String            @default("")
   signatoryName   String            @default("")
   signatoryTitle  String            @default("")
@@ -648,33 +651,41 @@ model CertificateTemplate {
   showBarcode     Boolean           @default(true)
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
-  modules         Module[]
+  programs        Program[]
   certificates    Certificate[]
 }
 
 enum CpdStatus {
-  NONE // module has no CPD certificate
+  NONE // programme has no CPD certificate
   PENDING // learner qualified; details not yet sent to the issuing body
   SUBMITTED // details sent; the body emails the learner directly
   ISSUED // the body has issued it
 }
 
-/// A certificate earned by a learner. Names and titles are copied at issue so
-/// the certificate still verifies if the module is renamed or deleted.
+/// A certificate earned by a learner for completing a programme (every module
+/// their tiers unlock in it). Names and titles are copied at issue so the
+/// certificate still verifies if the programme or its modules are renamed or deleted.
 model Certificate {
   id            String               @id @default(cuid())
   // Public ID printed on the certificate and encoded in its QR code and barcode.
   serial        String               @unique
   user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId        String
+  program       Program?             @relation(fields: [programId], references: [id], onDelete: SetNull)
+  programId     String?
+  // The module IDs this certificate covers, sorted and comma-joined. A learner who
+  // upgrades and finishes more modules earns a new certificate with a wider scope.
+  scope         String?
+  // Set only on certificates issued per module before November 2026.
   module        Module?              @relation(fields: [moduleId], references: [id], onDelete: SetNull)
   moduleId      String?
   template      CertificateTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   templateId    String?
   recipientName String
+  // Titles of the modules covered, joined ("The Foundation and Professional Mastery"); printed as {module}.
   moduleTitle   String
   programTitle  String
-  score         Int? // quiz average in percent; null when the module has no quizzes
+  score         Int? // quiz average in percent; null when there were no quizzes
   cpdStatus     CpdStatus            @default(NONE)
   cpdProvider   String?
   cpdHours      Int?
@@ -685,6 +696,8 @@ model Certificate {
   emailSentAt   DateTime?
 
   @@unique([userId, moduleId])
+  @@unique([userId, programId, scope])
+  @@index([programId])
   @@index([cpdStatus, issuedAt])
   @@index([issuedAt])
 }

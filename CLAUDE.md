@@ -2,10 +2,11 @@
 
 ## Catalogue: Programme → Module → Topic → Lesson
 
-- `Module` is the top level of a programme (e.g. Foundation / Professional): tiers unlock modules (`TierModule`), and prerequisites, `sequential`, certificates and CPD are all per module. `Topic` groups lessons inside a module. These were called Course and Module before November 2026 (migration `20261101120000_module_topic_rename`).
+- `Module` is the top level of a programme (e.g. Foundation / Professional): tiers unlock modules (`TierModule`), and prerequisites and `sequential` are per module. `Topic` groups lessons inside a module. These were called Course and Module before November 2026 (migration `20261101120000_module_topic_rename`).
 - Never name a local variable `module` (Next's lint rule forbids it, and it shadows Node's global); use `mod`.
 - The mobile API keeps the old names alongside the new ones for older app versions: `/api/v1/courses/...` (legacy outline), `programs[].courses`, `continueLesson.courseSlug/courseTitle`, and `lesson.course` / `lesson.moduleTitle` (the topic's title) in `/api/v1/lessons/[id]`. New fields: `/api/v1/modules/...`, `programs[].modules`, `lesson.module`, `lesson.topicTitle`. Don't remove the old ones until the app no longer reads them.
-- Certificate templates use `{module}`; `{course}` still works as an alias. `/admin/courses/:id` redirects to `/admin/modules/:id` (`next.config.ts`).
+- Certificates are per programme (`src/lib/lms/certificates.ts`): one is issued when a learner has completed every published module their active tiers unlock in the programme and their quiz average across those modules reaches `Program.certificatePassMark`. Certificate settings (on/off, template, pass mark, CPD) live on `Program`. `Certificate.scope` is the sorted module IDs covered; a learner who upgrades and finishes more modules gets a new certificate with the wider scope. Module certificates issued before November 2026 (`moduleId` set, `scope` null) stay valid, and no new ones are issued.
+- Certificate templates use `{module}` (the titles of the modules covered, joined) and `{programme}`; `{course}` still works as an alias of `{module}`. `/admin/courses/:id` redirects to `/admin/modules/:id` (`next.config.ts`).
 
 ## Lessons are built from parts
 

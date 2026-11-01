@@ -4,7 +4,14 @@ import { ArrowRight, Award, CheckCircle2, Circle, Clock, Mail, Send } from "luci
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
 import { getUnlockedModuleIds } from "@/lib/lms/access";
-import { certificateCodes, getCertificateProgress, getDesign, syncCertificates, verifyUrl } from "@/lib/lms/certificates";
+import {
+  certificateCodes,
+  findCoveringCertificate,
+  getCertificateProgress,
+  getDesign,
+  syncCertificates,
+  verifyUrl,
+} from "@/lib/lms/certificates";
 import { formatIssueDate } from "@/lib/certificate-design";
 import { CertificateView } from "@/components/certificates/CertificateView";
 import { CopyLinkButton } from "@/components/certificates/CertificateActions";
@@ -18,29 +25,32 @@ export const metadata: Metadata = { title: "Certificates" };
 
 export default async function CertificatesPage() {
   const session = await requireSession("/learn/certificates");
-  // Picks up certificates earned before a module had them switched on.
+  // Picks up certificates earned before a programme had them switched on.
   await syncCertificates(session.userId);
 
   const [certificates, unlocked] = await Promise.all([
     prisma.certificate.findMany({
       where: { userId: session.userId },
       orderBy: { issuedAt: "desc" },
-      include: { module: { select: { slug: true, program: { select: { slug: true } } } } },
     }),
     getUnlockedModuleIds(session.userId),
   ]);
 
-  const earned = new Set(certificates.map((c) => c.moduleId));
-  const pendingModules = await prisma.module.findMany({
-    where: { id: { in: [...unlocked].filter((id) => !earned.has(id)) }, published: true, certificateEnabled: true },
-    orderBy: [{ program: { order: "asc" } }, { order: "asc" }],
-    select: { id: true, slug: true, title: true, cpdEnabled: true, cpdProvider: true, program: { select: { slug: true, title: true } } },
+  // Programmes the learner is working through that will issue a certificate.
+  const programs = await prisma.program.findMany({
+    where: { certificateEnabled: true, modules: { some: { id: { in: [...unlocked] }, published: true } } },
+    orderBy: { order: "asc" },
+    select: { id: true, slug: true, title: true, cpdEnabled: true, cpdProvider: true },
   });
   const working = (
     await Promise.all(
-      pendingModules.map(async (c) => ({ module: c, progress: (await getCertificateProgress(session.userId, c.id))! }))
+      programs.map(async (program) => {
+        const progress = (await getCertificateProgress(session.userId, program.id))!;
+        const earned = progress.scope && (await findCoveringCertificate(session.userId, program.id, progress.scope));
+        return { program, progress, earned: Boolean(earned) };
+      })
     )
-  ).filter((w) => w.progress.lessonsTotal > 0);
+  ).filter((w) => !w.earned && w.progress.lessonsTotal > 0);
   const designs = new Map(
     await Promise.all(
       [...new Set(certificates.map((c) => c.templateId))].map(async (id) => [id, await getDesign(id)] as const)
@@ -52,7 +62,7 @@ export default async function CertificatesPage() {
       <div className="mx-auto max-w-5xl space-y-10">
         <PageHeader eyebrow="Certificates" title="Your certificates" />
         <EmptyState icon={Award} title="No certificates yet" action={<ButtonLink href="/learn">Go to my learning</ButtonLink>}>
-          Finish a module and pass its quizzes to earn a certificate. It will appear here.
+          Finish every module in your programme and pass its quizzes to earn a certificate. It will appear here.
         </EmptyState>
       </div>
     );
@@ -74,7 +84,7 @@ export default async function CertificatesPage() {
                 <Link
                   href={`/certificates/${cert.serial}`}
                   className="block shrink-0 overflow-hidden rounded-lg ring-1 ring-line transition-shadow hover:shadow-raised sm:w-64"
-                  aria-label={`View certificate for ${cert.moduleTitle}`}
+                  aria-label={`View certificate for ${cert.scope ? cert.programTitle : cert.moduleTitle}`}
                 >
                   <CertificateView design={designs.get(cert.templateId)!} data={cert} {...certificateCodes(cert.serial)} />
                 </Link>
@@ -89,9 +99,11 @@ export default async function CertificatesPage() {
                         <CheckCircle2 className="size-3" /> Earned
                       </span>
                     )}
-                    <span className="text-xs text-ink-500">{cert.programTitle}</span>
+                    <span className="text-xs text-ink-500">{cert.scope ? cert.moduleTitle : cert.programTitle}</span>
                   </div>
-                  <h2 className="mt-2 text-[17px] font-semibold leading-snug tracking-tight text-ink-950">{cert.moduleTitle}</h2>
+                  <h2 className="mt-2 text-[17px] font-semibold leading-snug tracking-tight text-ink-950">
+                    {cert.scope ? cert.programTitle : cert.moduleTitle}
+                  </h2>
                   <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
                     <div>
                       <dt className="text-xs text-ink-500">Issued</dt>
@@ -135,24 +147,28 @@ export default async function CertificatesPage() {
           <h2 className="font-display text-xl text-ink-950">Working towards</h2>
           <p className="mt-1 text-sm text-ink-500">What&apos;s left before each certificate is issued.</p>
           <Reveal delay={0.05} className="mt-4 grid gap-4 sm:grid-cols-2">
-            {working.map(({ module: mod, progress }) => {
+            {working.map(({ program, progress }) => {
               const lessonsOk = progress.lessonsTotal > 0 && progress.lessonsDone === progress.lessonsTotal;
               const scoreOk = progress.score === null || progress.score >= progress.passMark;
               const percent = progress.lessonsTotal ? Math.round((progress.lessonsDone / progress.lessonsTotal) * 100) : 0;
               const untaken = progress.quizzes - progress.quizzesTaken;
+              // Continue with the first module that isn't finished.
+              const next = progress.modules.find((m) => m.lessonsDone < m.lessonsTotal) ?? progress.modules[0];
               return (
                 <Link
-                  key={mod.id}
-                  href={`/learn/${mod.program.slug}/${mod.slug}`}
+                  key={program.id}
+                  href={`/learn/${program.slug}/${next.slug}`}
                   className="card group flex flex-col p-5 transition-colors hover:border-ink-300"
                 >
-                  <span className="text-xs text-ink-500">{mod.program.title}</span>
-                  <h3 className="mt-1 text-[15px] font-semibold text-ink-950">{mod.title}</h3>
+                  <span className="text-xs text-ink-500">Programme certificate</span>
+                  <h3 className="mt-1 text-[15px] font-semibold text-ink-950">{program.title}</h3>
                   <ProgressBar percent={percent} className="mt-4" />
                   <ul className="mt-4 space-y-2 text-sm">
-                    <Requirement done={lessonsOk}>
-                      Complete every lesson · {progress.lessonsDone} of {progress.lessonsTotal}
-                    </Requirement>
+                    {progress.modules.map((m) => (
+                      <Requirement key={m.id} done={m.lessonsDone === m.lessonsTotal}>
+                        Complete {m.title} · {m.lessonsDone} of {m.lessonsTotal} lessons
+                      </Requirement>
+                    ))}
                     {progress.score !== null && (
                       <Requirement done={scoreOk}>
                         Quiz average of {progress.passMark}% or more · yours is {progress.score}%
@@ -167,13 +183,13 @@ export default async function CertificatesPage() {
                       </Requirement>
                     )}
                   </ul>
-                  {mod.cpdEnabled && (
+                  {program.cpdEnabled && (
                     <p className="mt-4 rounded-lg bg-ink-50 px-3 py-2 text-xs leading-relaxed text-ink-600">
-                      Includes a CPD certificate from {mod.cpdProvider || "an accredited CPD body"}.
+                      Includes a CPD certificate from {program.cpdProvider || "an accredited CPD body"}.
                     </p>
                   )}
                   <span className="mt-auto flex items-center justify-between pt-5 text-sm font-medium text-primary-700">
-                    Continue module
+                    Continue {next.title}
                     <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
                   </span>
                 </Link>
