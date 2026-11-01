@@ -7,7 +7,7 @@ import { SupportChat } from "@/components/support/SupportChat";
 
 export const metadata: Metadata = { title: "Support" };
 
-const TOPICS = ["Course content", "Payments & enrolment", "My account", "Certificates"];
+const TOPICS = ["Module content", "Payments & enrolment", "My account", "Certificates"];
 
 export default async function SupportPage() {
   const session = await requireSession("/support");
@@ -20,7 +20,7 @@ export default async function SupportPage() {
       <PageHeader
         eyebrow="Help"
         title="Chat with support"
-        description="Message the Oakvale team about anything: your course, payments or your account. Replies appear here, so you can leave and come back."
+        description="Message the Oakvale team about anything: your module, payments or your account. Replies appear here, so you can leave and come back."
       />
 
       <section className="card mt-8 flex h-[calc(100dvh-16rem)] min-h-[28rem] flex-col overflow-hidden">
@@ -45,7 +45,7 @@ export default async function SupportPage() {
             <>
               <p className="font-display text-lg text-ink-950">How can we help?</p>
               <p className="mt-1.5 text-sm leading-relaxed text-ink-500">
-                Pick a topic or just type your question. Details like the course or lesson name help us answer faster.
+                Pick a topic or just type your question. Details like the module or lesson name help us answer faster.
               </p>
             </>
           }

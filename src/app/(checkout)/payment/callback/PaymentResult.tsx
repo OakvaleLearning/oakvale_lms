@@ -41,8 +41,8 @@ export function PaymentResult({ prelaunch }: { prelaunch: boolean }) {
         <h1 className="mt-6 font-display text-3xl text-ink-950">You&apos;re enrolled!</h1>
         <p className="mt-2 max-w-sm text-ink-500">
           {prelaunch
-            ? "Your payment is confirmed and your place is secured. Our learning platform opens soon, and we'll email you the moment your courses are ready."
-            : "Your payment is confirmed and your courses are ready. Learn at your own pace."}
+            ? "Your payment is confirmed and your place is secured. Our learning platform opens soon, and we'll email you the moment your modules are ready."
+            : "Your payment is confirmed and your modules are ready. Learn at your own pace."}
         </p>
         <ButtonLink href="/learn" className="mt-8">
           {prelaunch ? "View my enrolment" : "Start learning"}

@@ -90,7 +90,7 @@ async function Issued({ q }: { q: string }) {
         OR: [
           { serial: { contains: q, mode: "insensitive" } },
           { recipientName: { contains: q, mode: "insensitive" } },
-          { courseTitle: { contains: q, mode: "insensitive" } },
+          { moduleTitle: { contains: q, mode: "insensitive" } },
           { user: { email: { contains: q, mode: "insensitive" } } },
         ],
       }
@@ -112,7 +112,7 @@ async function Issued({ q }: { q: string }) {
           <input
             name="q"
             defaultValue={q}
-            placeholder="Name, email, course or certificate ID"
+            placeholder="Name, email, module or certificate ID"
             className="h-9 w-full rounded-lg border border-line bg-white pl-9 pr-3 text-sm outline-none placeholder:text-ink-400 focus:border-primary-500 focus:ring-3 focus:ring-primary-100"
           />
         </label>
@@ -123,7 +123,7 @@ async function Issued({ q }: { q: string }) {
 
       {certificates.length === 0 ? (
         <p className="px-5 py-12 text-center text-sm text-ink-500">
-          {q ? "No certificates match that search." : "No certificates yet. They're issued automatically when learners finish a course."}
+          {q ? "No certificates match that search." : "No certificates yet. They're issued automatically when learners finish a module."}
         </p>
       ) : (
         <ul className="divide-y divide-line">
@@ -137,7 +137,7 @@ async function Issued({ q }: { q: string }) {
                   <span className="block truncate text-xs text-ink-500">{c.user.email}</span>
                 </div>
                 <div className="min-w-0">
-                  <span className="block truncate text-sm text-ink-800">{c.courseTitle}</span>
+                  <span className="block truncate text-sm text-ink-800">{c.moduleTitle}</span>
                   <span className="block text-xs text-ink-500">
                     {formatIssueDate(c.issuedAt)}
                     {c.score !== null && ` · ${c.score}%`}
@@ -179,7 +179,7 @@ async function Cpd({ status }: { status: Exclude<CpdStatus, "NONE"> }) {
     learner: c.recipientName,
     email: c.user.email,
     phone: c.user.phone,
-    course: c.courseTitle,
+    module: c.moduleTitle,
     provider: c.cpdProvider ?? "CPD body not set",
     hours: c.cpdHours,
     issuedAt: formatIssueDate(c.issuedAt),
@@ -190,7 +190,7 @@ async function Cpd({ status }: { status: Exclude<CpdStatus, "NONE"> }) {
   return (
     <section className="space-y-4">
       <p className="text-sm leading-relaxed text-ink-600">
-        Learners who earn a certificate on a CPD course are listed here. Download the list, send it to the issuing body, then
+        Learners who earn a certificate on a CPD module are listed here. Download the list, send it to the issuing body, then
         mark those learners as sent. The body emails each learner their CPD certificate directly; mark them issued once it
         confirms.
       </p>
@@ -227,7 +227,7 @@ async function Cpd({ status }: { status: Exclude<CpdStatus, "NONE"> }) {
 async function Templates() {
   const templates = await prisma.certificateTemplate.findMany({
     orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
-    include: { _count: { select: { courses: true } } },
+    include: { _count: { select: { modules: true } } },
   });
   const codes = certificateCodes(SAMPLE_CERTIFICATE.serial);
 
@@ -246,7 +246,7 @@ async function Templates() {
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-ink-600">Courses use the default template unless you pick another in the course settings.</p>
+        <p className="text-sm text-ink-600">Modules use the default template unless you pick another in the module settings.</p>
         <ButtonLink href="/admin/certificates/templates/new" size="sm">
           <Plus className="size-4" /> New template
         </ButtonLink>
@@ -269,11 +269,11 @@ async function Templates() {
                 )}
               </div>
               <p className="mt-0.5 text-xs text-ink-500">
-                {t._count.courses
-                  ? `Chosen by ${t._count.courses} ${t._count.courses === 1 ? "course" : "courses"}`
+                {t._count.modules
+                  ? `Chosen by ${t._count.modules} ${t._count.modules === 1 ? "module" : "modules"}`
                   : t.isDefault
-                    ? "Used by every course without its own template"
-                    : "Not chosen by any course"}
+                    ? "Used by every module without its own template"
+                    : "Not chosen by any module"}
               </p>
               <div className="mt-auto flex flex-wrap gap-1 pt-4">
                 <ButtonLink href={`/admin/certificates/templates/${t.id}`} size="sm" variant="outline">

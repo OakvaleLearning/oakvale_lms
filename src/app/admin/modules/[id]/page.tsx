@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { Breadcrumbs, PageHeader, StatusBadge } from "@/components/dashboard/ui";
 import { LESSON_TYPE_LABEL, LessonIcon } from "@/components/learn/LessonIcon";
-import { formatDuration } from "@/components/learn/CourseOutline";
+import { formatDuration } from "@/components/learn/ModuleOutline";
 import { CoverImageField } from "@/components/admin/CoverImageField";
 import { LessonTypePicker } from "@/components/admin/LessonTypePicker";
 import { lessonReadiness } from "@/lib/lms/readiness";
@@ -26,25 +26,25 @@ import {
 } from "@/components/admin/forms";
 import { cardControlsClass, cardListClass, cardRowClass } from "@/components/admin/cardList";
 import { IssueEligibleButton } from "@/components/admin/IssueEligibleButton";
-import { updateCourseCertificate } from "../../certificates/actions";
+import { updateModuleCertificate } from "../../certificates/actions";
 import {
   createLesson,
-  createModule,
-  deleteCourse,
+  createTopic,
   deleteModule,
+  deleteTopic,
   moveItem,
-  renameModule,
-  updateCourse,
+  renameTopic,
+  updateModule,
 } from "../../actions";
 
-export default async function CourseBuilderPage({ params }: PageProps<"/admin/courses/[id]">) {
+export default async function ModuleBuilderPage({ params }: PageProps<"/admin/modules/[id]">) {
   await requireAdmin();
   const { id } = await params;
-  const course = await prisma.course.findUnique({
+  const mod = await prisma.module.findUnique({
     where: { id },
     include: {
       program: { select: { id: true, slug: true, title: true } },
-      modules: {
+      topics: {
         orderBy: [{ order: "asc" }, { createdAt: "asc" }],
         include: {
           lessons: {
@@ -58,11 +58,11 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
       },
     },
   });
-  if (!course) notFound();
+  if (!mod) notFound();
 
   const [siblings, templates, issuedCount] = await Promise.all([
-    prisma.course.findMany({
-      where: { programId: course.programId, id: { not: course.id } },
+    prisma.module.findMany({
+      where: { programId: mod.programId, id: { not: mod.id } },
       orderBy: { order: "asc" },
       select: { id: true, title: true },
     }),
@@ -70,10 +70,10 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
       orderBy: [{ isDefault: "desc" }, { name: "asc" }],
       select: { id: true, name: true, isDefault: true },
     }),
-    prisma.certificate.count({ where: { courseId: course.id } }),
+    prisma.certificate.count({ where: { moduleId: mod.id } }),
   ]);
 
-  const lessons = course.modules.flatMap((m) => m.lessons);
+  const lessons = mod.topics.flatMap((m) => m.lessons);
   const published = lessons.filter((l) => l.published).length;
 
   return (
@@ -81,30 +81,30 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
       <Breadcrumbs
         items={[
           { label: "Programmes", href: "/admin/programs" },
-          { label: course.program.title, href: `/admin/programs/${course.program.id}` },
-          { label: course.title },
+          { label: mod.program.title, href: `/admin/programs/${mod.program.id}` },
+          { label: mod.title },
         ]}
       />
 
       <PageHeader
-        eyebrow="Course"
+        eyebrow="Module"
         title={
           <span className="flex flex-wrap items-center gap-3">
-            {course.title}
-            <StatusBadge status={course.published ? "PUBLISHED" : "DRAFT"} />
+            {mod.title}
+            <StatusBadge status={mod.published ? "PUBLISHED" : "DRAFT"} />
           </span>
         }
-        description={`${course.modules.length} ${course.modules.length === 1 ? "module" : "modules"} · ${lessons.length} ${
+        description={`${mod.topics.length} ${mod.topics.length === 1 ? "topic" : "topics"} · ${lessons.length} ${
           lessons.length === 1 ? "lesson" : "lessons"
         } · ${published} visible to learners`}
         actions={
           <>
-            <Link href={`/learn/${course.program.slug}/${course.slug}`} className={buttonClass({ variant: "outline", size: "sm" })}>
+            <Link href={`/learn/${mod.program.slug}/${mod.slug}`} className={buttonClass({ variant: "outline", size: "sm" })}>
               <Eye className="size-4" /> Preview as learner
             </Link>
             <DeleteButton
-              onDelete={deleteCourse.bind(null, course.id)}
-              confirmText={`Delete “${course.title}” and all of its content? This cannot be undone.`}
+              onDelete={deleteModule.bind(null, mod.id)}
+              confirmText={`Delete “${mod.title}” and all of its content? This cannot be undone.`}
               label="Delete"
             />
           </>
@@ -116,34 +116,34 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
           <div className="flex items-end justify-between gap-3">
             <div>
               <h2 className="text-[15px] font-semibold text-ink-950">Curriculum</h2>
-              <p className="mt-0.5 text-xs text-ink-500">Modules group lessons. Use the arrows to reorder.</p>
+              <p className="mt-0.5 text-xs text-ink-500">Topics group lessons. Use the arrows to reorder.</p>
             </div>
           </div>
 
-          {course.modules.length === 0 && (
+          {mod.topics.length === 0 && (
             <div className="card px-6 py-12 text-center">
               <Layers className="mx-auto size-6 text-ink-300" />
-              <p className="mt-3 text-sm font-medium text-ink-900">Start with a module</p>
-              <p className="mt-1 text-sm text-ink-500">e.g. “Module 1: Getting started”, then add lessons to it.</p>
+              <p className="mt-3 text-sm font-medium text-ink-900">Start with a topic</p>
+              <p className="mt-1 text-sm text-ink-500">e.g. “Topic 1: Getting started”, then add lessons to it.</p>
             </div>
           )}
 
-          {course.modules.map((m, mi) => (
+          {mod.topics.map((m, mi) => (
             <article key={m.id} className="card overflow-hidden">
               <header className="flex items-center gap-2 border-b border-line bg-canvas/50 py-2 pl-2 pr-3">
-                <MoveButtons onMove={moveItem.bind(null, "module", m.id)} />
+                <MoveButtons onMove={moveItem.bind(null, "topic", m.id)} />
                 <span className="grid size-7 shrink-0 place-items-center rounded-md bg-primary-600 text-xs font-semibold text-white">
                   {mi + 1}
                 </span>
                 <InlineRename
-                  action={renameModule.bind(null, m.id)}
+                  action={renameTopic.bind(null, m.id)}
                   defaultValue={m.title}
                   className="flex-1 text-sm font-semibold text-ink-950"
                 />
                 <span className="hidden shrink-0 text-xs text-ink-500 sm:inline">
                   {m.lessons.length} {m.lessons.length === 1 ? "lesson" : "lessons"}
                 </span>
-                <DeleteButton onDelete={deleteModule.bind(null, m.id)} confirmText={`Delete “${m.title}” and all of its lessons?`} />
+                <DeleteButton onDelete={deleteTopic.bind(null, m.id)} confirmText={`Delete “${m.title}” and all of its lessons?`} />
               </header>
 
               {m.lessons.length > 0 ? (
@@ -186,7 +186,7 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
                   })}
                 </ul>
               ) : (
-                <p className="px-5 py-5 text-sm text-ink-500">No lessons in this module yet.</p>
+                <p className="px-5 py-5 text-sm text-ink-500">No lessons in this topic yet.</p>
               )}
 
               <footer className="border-t border-line px-3 py-2">
@@ -213,30 +213,30 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
 
           <div className="rounded-2xl border border-dashed border-ink-200 bg-white/60 p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-medium text-ink-800">
-              <FolderPlus className="size-4 text-ink-400" /> Add a module
+              <FolderPlus className="size-4 text-ink-400" /> Add a topic
             </div>
             <ActionForm
-              action={createModule.bind(null, course.id)}
-              submitLabel="Add module"
+              action={createTopic.bind(null, mod.id)}
+              submitLabel="Add topic"
               resetOnSuccess
               className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-start"
             >
               <div className="flex-1">
-                <Input name="title" placeholder={`e.g. Module ${course.modules.length + 1}: Personal care`} required />
+                <Input name="title" placeholder={`e.g. Topic ${mod.topics.length + 1}: Personal care`} required />
               </div>
             </ActionForm>
           </div>
         </section>
 
         <aside className="space-y-6 lg:sticky lg:top-8">
-          <Panel title="Course settings">
-            <ActionForm action={updateCourse.bind(null, course.id)}>
-              <TitleField defaultTitle={course.title} />
+          <Panel title="Module settings">
+            <ActionForm action={updateModule.bind(null, mod.id)}>
+              <TitleField defaultTitle={mod.title} />
               <Field label="Description" optional>
-                <Textarea name="description" rows={4} defaultValue={course.description} />
+                <Textarea name="description" rows={4} defaultValue={mod.description} />
               </Field>
-              <Field label="Prerequisite" hint="Learners must complete this course first">
-                <Select name="prerequisiteId" defaultValue={course.prerequisiteId ?? ""}>
+              <Field label="Prerequisite" hint="Learners must complete this module first">
+                <Select name="prerequisiteId" defaultValue={mod.prerequisiteId ?? ""}>
                   <option value="">None</option>
                   {siblings.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -246,12 +246,12 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
                 </Select>
               </Field>
               <div className="space-y-2">
-                <Switch name="published" label="Published" description="Visible to enrolled learners" defaultChecked={course.published} />
+                <Switch name="published" label="Published" description="Visible to enrolled learners" defaultChecked={mod.published} />
                 <Switch
                   name="sequential"
                   label="Unlock lessons in order"
                   description="Each lesson opens after the previous one is completed"
-                  defaultChecked={course.sequential}
+                  defaultChecked={mod.sequential}
                 />
               </div>
             </ActionForm>
@@ -265,14 +265,14 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
               </Link>
             }
           >
-            <ActionForm action={updateCourseCertificate.bind(null, course.id)}>
+            <ActionForm action={updateModuleCertificate.bind(null, mod.id)}>
               <Switch
                 name="certificateEnabled"
                 label="Issue a certificate"
                 description="When every lesson is complete and the quiz and assessment average reaches the pass mark"
-                defaultChecked={course.certificateEnabled}
+                defaultChecked={mod.certificateEnabled}
               />
-              <Field label="Pass mark" hint="Average of the learner's best score on each quiz and final assessment in this course">
+              <Field label="Pass mark" hint="Average of the learner's best score on each quiz and final assessment in this module">
                 <span className="flex items-center gap-2">
                   <Input
                     name="certificatePassMark"
@@ -280,14 +280,14 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
                     min={0}
                     max={100}
                     required
-                    defaultValue={course.certificatePassMark}
+                    defaultValue={mod.certificatePassMark}
                     className="w-24"
                   />
                   <span className="text-sm text-ink-500">%</span>
                 </span>
               </Field>
               <Field label="Template">
-                <Select name="certificateTemplateId" defaultValue={course.certificateTemplateId ?? ""}>
+                <Select name="certificateTemplateId" defaultValue={mod.certificateTemplateId ?? ""}>
                   <option value="">Default template</option>
                   {templates.map((t) => (
                     <option key={t.id} value={t.id}>
@@ -302,22 +302,22 @@ export default async function CourseBuilderPage({ params }: PageProps<"/admin/co
                   name="cpdEnabled"
                   label="Includes a CPD certificate"
                   description="Sent to the learner directly by the issuing body"
-                  defaultChecked={course.cpdEnabled}
+                  defaultChecked={mod.cpdEnabled}
                 />
                 <Field label="CPD issuing body" hint="Shown to learners, e.g. The CPD Certification Service">
-                  <Input name="cpdProvider" defaultValue={course.cpdProvider} maxLength={120} />
+                  <Input name="cpdProvider" defaultValue={mod.cpdProvider} maxLength={120} />
                 </Field>
                 <Field label="CPD hours" optional>
-                  <Input name="cpdHours" type="number" min={1} max={1000} defaultValue={course.cpdHours ?? ""} className="w-24" />
+                  <Input name="cpdHours" type="number" min={1} max={1000} defaultValue={mod.cpdHours ?? ""} className="w-24" />
                 </Field>
               </div>
             </ActionForm>
             <div className="mt-5 border-t border-line pt-5">
-              <IssueEligibleButton courseId={course.id} />
+              <IssueEligibleButton moduleId={mod.id} />
             </div>
           </Panel>
           <Panel title="Cover image">
-            <CoverImageField target={{ kind: "course", id: course.id }} current={course.coverImage} />
+            <CoverImageField target={{ kind: "module", id: mod.id }} current={mod.coverImage} />
           </Panel>
         </aside>
       </div>

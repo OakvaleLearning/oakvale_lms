@@ -3,21 +3,25 @@ import { getLearnerHome } from "@/lib/lms/catalog";
 import { requireApiSession } from "@/lib/api/mobile";
 import { isPrelaunch } from "@/lib/launch";
 
-/** Enrolled programmes → courses with progress, plus the lesson to continue. */
+/** Enrolled programmes → modules with progress, plus the lesson to continue. */
 export async function GET() {
   const session = await requireApiSession();
   if (session instanceof NextResponse) return session;
   const { programs, continueLesson } = await getLearnerHome(session.userId);
   return NextResponse.json({
-    // Pre-launch: enrolled, but courses don't open yet.
+    // Pre-launch: enrolled, but modules don't open yet.
     prelaunch: isPrelaunch() && session.role !== "ADMIN",
-    programs,
+    // `courses` repeats `modules` for app versions from before the rename.
+    programs: programs.map((p) => ({ ...p, courses: p.modules })),
     continueLesson: continueLesson && {
       lessonId: continueLesson.lessonId,
       programSlug: continueLesson.programSlug,
-      courseSlug: continueLesson.courseSlug,
+      moduleSlug: continueLesson.moduleSlug,
       lessonTitle: continueLesson.lessonTitle,
-      courseTitle: continueLesson.courseTitle,
+      moduleTitle: continueLesson.moduleTitle,
+      // Old names, for app versions from before the rename.
+      courseSlug: continueLesson.moduleSlug,
+      courseTitle: continueLesson.moduleTitle,
     },
   });
 }

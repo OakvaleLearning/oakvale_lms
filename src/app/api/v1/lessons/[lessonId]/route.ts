@@ -35,10 +35,10 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/v1/lessons/[les
       : NextResponse.json({ error: "Lesson locked", reason: access.reason }, { status: 403 });
   }
   const { lesson } = access;
-  const course = lesson.module.course;
+  const mod = lesson.topic.module;
 
   const [ordered, progress, partProgress] = await Promise.all([
-    getOrderedLessons(course.id, session.role === "ADMIN"),
+    getOrderedLessons(mod.id, session.role === "ADMIN"),
     prisma.lessonProgress.findUnique({ where: { userId_lessonId: { userId: session.userId, lessonId } } }),
     getBlockProgress(session.userId, lessonId),
   ]);
@@ -65,8 +65,12 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/v1/lessons/[les
       title: lesson.title,
       type: lesson.type,
       description: lesson.description,
-      moduleTitle: lesson.module.title,
-      course: { slug: course.slug, title: course.title, programSlug: course.program.slug },
+      topicTitle: lesson.topic.title,
+      module: { slug: mod.slug, title: mod.title, programSlug: mod.program.slug },
+      // Old names, for app versions from before the rename: `moduleTitle` is
+      // the topic and `course` the module.
+      moduleTitle: lesson.topic.title,
+      course: { slug: mod.slug, title: mod.title, programSlug: mod.program.slug },
       status: progress?.status ?? "NOT_STARTED",
       score: progress?.score ?? null,
       prevId: ordered[index - 1]?.id ?? null,

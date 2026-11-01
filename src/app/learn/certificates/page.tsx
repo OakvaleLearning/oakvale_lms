@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowRight, Award, CheckCircle2, Circle, Clock, Mail, Send } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
-import { getUnlockedCourseIds } from "@/lib/lms/access";
+import { getUnlockedModuleIds } from "@/lib/lms/access";
 import { certificateCodes, getCertificateProgress, getDesign, syncCertificates, verifyUrl } from "@/lib/lms/certificates";
 import { formatIssueDate } from "@/lib/certificate-design";
 import { CertificateView } from "@/components/certificates/CertificateView";
@@ -18,27 +18,27 @@ export const metadata: Metadata = { title: "Certificates" };
 
 export default async function CertificatesPage() {
   const session = await requireSession("/learn/certificates");
-  // Picks up certificates earned before a course had them switched on.
+  // Picks up certificates earned before a module had them switched on.
   await syncCertificates(session.userId);
 
   const [certificates, unlocked] = await Promise.all([
     prisma.certificate.findMany({
       where: { userId: session.userId },
       orderBy: { issuedAt: "desc" },
-      include: { course: { select: { slug: true, program: { select: { slug: true } } } } },
+      include: { module: { select: { slug: true, program: { select: { slug: true } } } } },
     }),
-    getUnlockedCourseIds(session.userId),
+    getUnlockedModuleIds(session.userId),
   ]);
 
-  const earned = new Set(certificates.map((c) => c.courseId));
-  const pendingCourses = await prisma.course.findMany({
+  const earned = new Set(certificates.map((c) => c.moduleId));
+  const pendingModules = await prisma.module.findMany({
     where: { id: { in: [...unlocked].filter((id) => !earned.has(id)) }, published: true, certificateEnabled: true },
     orderBy: [{ program: { order: "asc" } }, { order: "asc" }],
     select: { id: true, slug: true, title: true, cpdEnabled: true, cpdProvider: true, program: { select: { slug: true, title: true } } },
   });
   const working = (
     await Promise.all(
-      pendingCourses.map(async (c) => ({ course: c, progress: (await getCertificateProgress(session.userId, c.id))! }))
+      pendingModules.map(async (c) => ({ module: c, progress: (await getCertificateProgress(session.userId, c.id))! }))
     )
   ).filter((w) => w.progress.lessonsTotal > 0);
   const designs = new Map(
@@ -52,7 +52,7 @@ export default async function CertificatesPage() {
       <div className="mx-auto max-w-5xl space-y-10">
         <PageHeader eyebrow="Certificates" title="Your certificates" />
         <EmptyState icon={Award} title="No certificates yet" action={<ButtonLink href="/learn">Go to my learning</ButtonLink>}>
-          Finish a course and pass its quizzes to earn a certificate. It will appear here.
+          Finish a module and pass its quizzes to earn a certificate. It will appear here.
         </EmptyState>
       </div>
     );
@@ -74,7 +74,7 @@ export default async function CertificatesPage() {
                 <Link
                   href={`/certificates/${cert.serial}`}
                   className="block shrink-0 overflow-hidden rounded-lg ring-1 ring-line transition-shadow hover:shadow-raised sm:w-64"
-                  aria-label={`View certificate for ${cert.courseTitle}`}
+                  aria-label={`View certificate for ${cert.moduleTitle}`}
                 >
                   <CertificateView design={designs.get(cert.templateId)!} data={cert} {...certificateCodes(cert.serial)} />
                 </Link>
@@ -91,7 +91,7 @@ export default async function CertificatesPage() {
                     )}
                     <span className="text-xs text-ink-500">{cert.programTitle}</span>
                   </div>
-                  <h2 className="mt-2 text-[17px] font-semibold leading-snug tracking-tight text-ink-950">{cert.courseTitle}</h2>
+                  <h2 className="mt-2 text-[17px] font-semibold leading-snug tracking-tight text-ink-950">{cert.moduleTitle}</h2>
                   <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
                     <div>
                       <dt className="text-xs text-ink-500">Issued</dt>
@@ -135,19 +135,19 @@ export default async function CertificatesPage() {
           <h2 className="font-display text-xl text-ink-950">Working towards</h2>
           <p className="mt-1 text-sm text-ink-500">What&apos;s left before each certificate is issued.</p>
           <Reveal delay={0.05} className="mt-4 grid gap-4 sm:grid-cols-2">
-            {working.map(({ course, progress }) => {
+            {working.map(({ module: mod, progress }) => {
               const lessonsOk = progress.lessonsTotal > 0 && progress.lessonsDone === progress.lessonsTotal;
               const scoreOk = progress.score === null || progress.score >= progress.passMark;
               const percent = progress.lessonsTotal ? Math.round((progress.lessonsDone / progress.lessonsTotal) * 100) : 0;
               const untaken = progress.quizzes - progress.quizzesTaken;
               return (
                 <Link
-                  key={course.id}
-                  href={`/learn/${course.program.slug}/${course.slug}`}
+                  key={mod.id}
+                  href={`/learn/${mod.program.slug}/${mod.slug}`}
                   className="card group flex flex-col p-5 transition-colors hover:border-ink-300"
                 >
-                  <span className="text-xs text-ink-500">{course.program.title}</span>
-                  <h3 className="mt-1 text-[15px] font-semibold text-ink-950">{course.title}</h3>
+                  <span className="text-xs text-ink-500">{mod.program.title}</span>
+                  <h3 className="mt-1 text-[15px] font-semibold text-ink-950">{mod.title}</h3>
                   <ProgressBar percent={percent} className="mt-4" />
                   <ul className="mt-4 space-y-2 text-sm">
                     <Requirement done={lessonsOk}>
@@ -167,13 +167,13 @@ export default async function CertificatesPage() {
                       </Requirement>
                     )}
                   </ul>
-                  {course.cpdEnabled && (
+                  {mod.cpdEnabled && (
                     <p className="mt-4 rounded-lg bg-ink-50 px-3 py-2 text-xs leading-relaxed text-ink-600">
-                      Includes a CPD certificate from {course.cpdProvider || "an accredited CPD body"}.
+                      Includes a CPD certificate from {mod.cpdProvider || "an accredited CPD body"}.
                     </p>
                   )}
                   <span className="mt-auto flex items-center justify-between pt-5 text-sm font-medium text-primary-700">
-                    Continue course
+                    Continue module
                     <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
                   </span>
                 </Link>

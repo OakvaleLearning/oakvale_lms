@@ -64,7 +64,7 @@ export function QuizGenerator({
   if (sources.length === 0) {
     return (
       <p className="rounded-xl bg-ink-50 px-4 py-3 text-sm text-ink-600">
-        Add some lessons to this course first. The AI writes questions from their content.
+        Add some lessons to this module first. The AI writes questions from their content.
       </p>
     );
   }
@@ -81,7 +81,7 @@ export function QuizGenerator({
               </button>
             )}
             <button type="button" onClick={() => setSelected(ids(sources))} className="hover:text-primary-700">
-              Whole course
+              Whole module
             </button>
             <button type="button" onClick={() => setSelected([])} className="hover:text-primary-700">
               Clear
@@ -90,8 +90,8 @@ export function QuizGenerator({
         </div>
         <p className="mb-2.5 text-xs leading-relaxed text-ink-500">
           {kind === "EXAM"
-            ? "A final assessment covers the whole course, so every lesson is selected."
-            : "A quiz checks the lessons just before it, so those are selected. Make this a final assessment in Quiz settings to cover the whole course."}{" "}
+            ? "A final assessment covers the whole module, so every lesson is selected."
+            : "A quiz checks the lessons just before it, so those are selected. Make this a final assessment in Quiz settings to cover the whole module."}{" "}
           The AI reads each lesson&apos;s uploaded content, notes for learners and tutor notes.
         </p>
         <div className="grid max-h-64 gap-2 overflow-y-auto sm:grid-cols-2">
@@ -99,7 +99,7 @@ export function QuizGenerator({
             <CheckCard
               key={s.id}
               label={s.title}
-              hint={s.chars > 0 ? s.moduleTitle : `${s.moduleTitle} · no text found, add tutor notes`}
+              hint={s.chars > 0 ? s.topicTitle : `${s.topicTitle} · no text found, add tutor notes`}
               checked={selected.includes(s.id)}
               onChange={() => setSelected((all) => toggle(all, s.id))}
             />

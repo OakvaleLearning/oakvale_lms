@@ -6,10 +6,10 @@ import { isEmailVerified, type SessionPayload } from "@/lib/auth";
 /**
  * Access rules — the single place that decides who may open what.
  *
- *  1. A learner may open a course when they hold an ACTIVE enrolment in a tier
- *     that includes it, and the course and its program are published.
- *  2. If the course has a prerequisite, that course must be completed first.
- *  3. In a `sequential` course, each lesson opens only after the one before it.
+ *  1. A learner may open a module when they hold an ACTIVE enrolment in a tier
+ *     that includes it, and the module and its program are published.
+ *  2. If the module has a prerequisite, that module must be completed first.
+ *  3. In a `sequential` module, each lesson opens only after the one before it.
  *  0. Learners must have confirmed their email before opening any lesson.
  *  4. A final assessment (an EXAM quiz) comes after every other lesson and
  *     opens once they are all completed.
@@ -17,81 +17,81 @@ import { isEmailVerified, type SessionPayload } from "@/lib/auth";
  * Admins can open everything (for previewing), published or not.
  */
 
-/** IDs of every course unlocked by the user's ACTIVE enrolments. */
-export async function getUnlockedCourseIds(userId: string): Promise<Set<string>> {
-  const rows = await prisma.tierCourse.findMany({
+/** IDs of every module unlocked by the user's ACTIVE enrolments. */
+export async function getUnlockedModuleIds(userId: string): Promise<Set<string>> {
+  const rows = await prisma.tierModule.findMany({
     where: { tier: { enrollments: { some: { userId, status: "ACTIVE" } } } },
-    select: { courseId: true },
+    select: { moduleId: true },
   });
-  return new Set(rows.map((r) => r.courseId));
+  return new Set(rows.map((r) => r.moduleId));
 }
 
-/** Published lessons of a course, in display order (module order, then lesson order, final assessments last). */
-export async function getOrderedLessons(courseId: string, includeUnpublished = false) {
+/** Published lessons of a module, in display order (topic order, then lesson order, final assessments last). */
+export async function getOrderedLessons(moduleId: string, includeUnpublished = false) {
   const lessons = await prisma.lesson.findMany({
-    where: { module: { courseId }, ...(includeUnpublished ? {} : { published: true }) },
-    orderBy: [{ module: { order: "asc" } }, { order: "asc" }, { createdAt: "asc" }],
-    select: { id: true, title: true, type: true, moduleId: true, quiz: { select: { kind: true } } },
+    where: { topic: { moduleId }, ...(includeUnpublished ? {} : { published: true }) },
+    orderBy: [{ topic: { order: "asc" } }, { order: "asc" }, { createdAt: "asc" }],
+    select: { id: true, title: true, type: true, topicId: true, quiz: { select: { kind: true } } },
   });
   return [...lessons.filter((l) => l.quiz?.kind !== "EXAM"), ...lessons.filter((l) => l.quiz?.kind === "EXAM")];
 }
 
-/** Which of the given courses the user has completed (every published lesson COMPLETED). */
-export async function getCompletedCourseIds(
+/** Which of the given modules the user has completed (every published lesson COMPLETED). */
+export async function getCompletedModuleIds(
   userId: string,
-  courseIds: string[]
+  moduleIds: string[]
 ): Promise<Set<string>> {
-  if (courseIds.length === 0) return new Set();
+  if (moduleIds.length === 0) return new Set();
   const [totals, done] = await Promise.all([
     prisma.lesson.groupBy({
-      by: ["moduleId"],
-      where: { published: true, module: { courseId: { in: courseIds } } },
+      by: ["topicId"],
+      where: { published: true, topic: { moduleId: { in: moduleIds } } },
       _count: true,
     }),
     prisma.lessonProgress.findMany({
       where: {
         userId,
         status: "COMPLETED",
-        lesson: { published: true, module: { courseId: { in: courseIds } } },
+        lesson: { published: true, topic: { moduleId: { in: moduleIds } } },
       },
-      select: { lesson: { select: { module: { select: { courseId: true } } } } },
+      select: { lesson: { select: { topic: { select: { moduleId: true } } } } },
     }),
   ]);
-  const modules = await prisma.module.findMany({
-    where: { id: { in: totals.map((t) => t.moduleId) } },
-    select: { id: true, courseId: true },
+  const topics = await prisma.topic.findMany({
+    where: { id: { in: totals.map((t) => t.topicId) } },
+    select: { id: true, moduleId: true },
   });
-  const courseOf = new Map(modules.map((m) => [m.id, m.courseId]));
+  const moduleOf = new Map(topics.map((m) => [m.id, m.moduleId]));
 
   const total = new Map<string, number>();
   for (const t of totals) {
-    const c = courseOf.get(t.moduleId)!;
+    const c = moduleOf.get(t.topicId)!;
     total.set(c, (total.get(c) ?? 0) + t._count);
   }
   const completed = new Map<string, number>();
   for (const d of done) {
-    const c = d.lesson.module.courseId;
+    const c = d.lesson.topic.moduleId;
     completed.set(c, (completed.get(c) ?? 0) + 1);
   }
   return new Set(
-    courseIds.filter((id) => (total.get(id) ?? 0) > 0 && completed.get(id) === total.get(id))
+    moduleIds.filter((id) => (total.get(id) ?? 0) > 0 && completed.get(id) === total.get(id))
   );
 }
 
-export type CourseLock = "OPEN" | "NOT_ENROLLED" | "PREREQUISITE";
+export type ModuleLock = "OPEN" | "NOT_ENROLLED" | "PREREQUISITE";
 
-/** Whether a learner can open a course, and if not, why. */
-export async function getCourseLock(
+/** Whether a learner can open a module, and if not, why. */
+export async function getModuleLock(
   session: SessionPayload,
-  course: { id: string; published: boolean; prerequisiteId: string | null; program: { published: boolean } }
-): Promise<CourseLock> {
+  mod: { id: string; published: boolean; prerequisiteId: string | null; program: { published: boolean } }
+): Promise<ModuleLock> {
   if (session.role === "ADMIN") return "OPEN";
-  if (!course.published || !course.program.published) return "NOT_ENROLLED";
-  const unlocked = await getUnlockedCourseIds(session.userId);
-  if (!unlocked.has(course.id)) return "NOT_ENROLLED";
-  if (course.prerequisiteId) {
-    const done = await getCompletedCourseIds(session.userId, [course.prerequisiteId]);
-    if (!done.has(course.prerequisiteId)) return "PREREQUISITE";
+  if (!mod.published || !mod.program.published) return "NOT_ENROLLED";
+  const unlocked = await getUnlockedModuleIds(session.userId);
+  if (!unlocked.has(mod.id)) return "NOT_ENROLLED";
+  if (mod.prerequisiteId) {
+    const done = await getCompletedModuleIds(session.userId, [mod.prerequisiteId]);
+    if (!done.has(mod.prerequisiteId)) return "PREREQUISITE";
   }
   return "OPEN";
 }
@@ -101,7 +101,7 @@ export type LessonAccess =
       ok: true;
       lesson: NonNullable<Awaited<ReturnType<typeof loadLesson>>>;
     }
-  | { ok: false; reason: "NOT_FOUND" | CourseLock | "SEQUENTIAL" | "EXAM_LOCKED" | "PRELAUNCH" | "UNVERIFIED" };
+  | { ok: false; reason: "NOT_FOUND" | ModuleLock | "SEQUENTIAL" | "EXAM_LOCKED" | "PRELAUNCH" | "UNVERIFIED" };
 
 function loadLesson(lessonId: string) {
   return prisma.lesson.findUnique({
@@ -110,9 +110,9 @@ function loadLesson(lessonId: string) {
       // The lesson's parts, in the order learners meet them.
       blocks: { orderBy: [{ order: "asc" }, { createdAt: "asc" }], include: { asset: true } },
       quiz: { select: { kind: true } },
-      module: {
+      topic: {
         include: {
-          course: {
+          module: {
             include: { program: { select: { id: true, slug: true, title: true, published: true } } },
           },
         },
@@ -133,18 +133,18 @@ export async function checkLessonAccess(
   if (isPrelaunch()) return { ok: false, reason: "PRELAUNCH" };
   if (!(await isEmailVerified(session.userId))) return { ok: false, reason: "UNVERIFIED" };
 
-  const course = lesson.module.course;
-  const lock = await getCourseLock(session, course);
+  const mod = lesson.topic.module;
+  const lock = await getModuleLock(session, mod);
   if (lock !== "OPEN") return { ok: false, reason: lock };
 
   if (lesson.quiz?.kind === "EXAM") {
-    const others = await getOrderedLessons(course.id).then((all) => all.filter((l) => l.quiz?.kind !== "EXAM").map((l) => l.id));
+    const others = await getOrderedLessons(mod.id).then((all) => all.filter((l) => l.quiz?.kind !== "EXAM").map((l) => l.id));
     const done = await prisma.lessonProgress.count({
       where: { userId: session.userId, status: "COMPLETED", lessonId: { in: others } },
     });
     if (done < others.length) return { ok: false, reason: "EXAM_LOCKED" };
-  } else if (course.sequential) {
-    const ordered = await getOrderedLessons(course.id);
+  } else if (mod.sequential) {
+    const ordered = await getOrderedLessons(mod.id);
     const index = ordered.findIndex((l) => l.id === lesson.id);
     const before = ordered.slice(0, Math.max(index, 0)).map((l) => l.id);
     if (before.length) {

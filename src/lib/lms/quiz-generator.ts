@@ -6,7 +6,7 @@ import { partsText } from "./lesson-material";
 import { tutorModel } from "./tutor";
 
 /**
- * Drafts quiz questions from the course's own lesson material (descriptions,
+ * Drafts quiz questions from the module's own lesson material (descriptions,
  * tutor notes and text extracted from uploaded packages) with the same model
  * as the AI tutor. Admins review and edit the result like any other question.
  */
@@ -24,36 +24,36 @@ export type QuizKind = "QUIZ" | "EXAM";
 export interface SourceLesson {
   id: string;
   title: string;
-  moduleTitle: string;
+  topicTitle: string;
   /** Characters of written material available; 0 means only the title. */
   chars: number;
-  /** Selected by default: the lessons a quiz follows, or the whole course for an exam. */
+  /** Selected by default: the lessons a quiz follows, or the whole module for an exam. */
   suggested: boolean;
 }
 
 /**
- * The course's lessons that have material of their own (everything except
- * lessons that are only a quiz), in course order, with how much text each has.
+ * The module's lessons that have material of their own (everything except
+ * lessons that are only a quiz), in module order, with how much text each has.
  * A quiz suggests the lessons since the previous quiz, including the lesson it
  * sits in; a final assessment suggests every lesson.
  */
 export async function listQuizSources(quizLessonId: string): Promise<{ kind: QuizKind; sources: SourceLesson[] }> {
   const quizLesson = await prisma.lesson.findUnique({
     where: { id: quizLessonId },
-    select: { module: { select: { courseId: true } }, quiz: { select: { kind: true } } },
+    select: { topic: { select: { moduleId: true } }, quiz: { select: { kind: true } } },
   });
   if (!quizLesson) return { kind: "QUIZ", sources: [] };
   const kind = quizLesson.quiz?.kind ?? "QUIZ";
   const lessons = await prisma.lesson.findMany({
-    where: { module: { courseId: quizLesson.module.courseId } },
-    orderBy: [{ module: { order: "asc" } }, { order: "asc" }, { createdAt: "asc" }],
+    where: { topic: { moduleId: quizLesson.topic.moduleId } },
+    orderBy: [{ topic: { order: "asc" } }, { order: "asc" }, { createdAt: "asc" }],
     select: {
       id: true,
       type: true,
       title: true,
       description: true,
       tutorNotes: true,
-      module: { select: { title: true } },
+      topic: { select: { title: true } },
       quiz: { select: { id: true } },
       blocks: { orderBy: [{ order: "asc" }, { createdAt: "asc" }], include: { asset: true } },
     },
@@ -80,20 +80,20 @@ export async function listQuizSources(quizLessonId: string): Promise<{ kind: Qui
     sources: content.map((l) => ({
       id: l.id,
       title: l.title,
-      moduleTitle: l.module.title,
+      topicTitle: l.topic.title,
       chars: l.description.length + l.tutorNotes.length + (text.get(l.id)?.length ?? 0),
       suggested: pick(l.id),
     })),
   };
 }
 
-async function gatherMaterial(courseId: string, lessonIds: string[]): Promise<string> {
+async function gatherMaterial(moduleId: string, lessonIds: string[]): Promise<string> {
   const lessons = await prisma.lesson.findMany({
-    where: { id: { in: lessonIds }, module: { courseId }, type: { not: "QUIZ" } },
-    orderBy: [{ module: { order: "asc" } }, { order: "asc" }],
+    where: { id: { in: lessonIds }, topic: { moduleId }, type: { not: "QUIZ" } },
+    orderBy: [{ topic: { order: "asc" } }, { order: "asc" }],
     include: {
       blocks: { orderBy: [{ order: "asc" }, { createdAt: "asc" }], include: { asset: true } },
-      module: { select: { title: true } },
+      topic: { select: { title: true } },
     },
   });
   const parts = await Promise.all(
@@ -101,7 +101,7 @@ async function gatherMaterial(courseId: string, lessonIds: string[]): Promise<st
       const text = await partsText(l.blocks);
       const body = [l.description, l.tutorNotes, text].filter(Boolean).join("\n\n");
       const attr = (v: string) => v.replace(/"/g, "'");
-      return body ? `<lesson module="${attr(l.module.title)}" title="${attr(l.title)}">\n${body}\n</lesson>` : "";
+      return body ? `<lesson topic="${attr(l.topic.title)}" title="${attr(l.title)}">\n${body}\n</lesson>` : "";
     })
   );
   // Share the budget evenly so one long package doesn't crowd out the rest.
@@ -148,12 +148,12 @@ export async function generateQuizDraft(input: {
     select: {
       title: true,
       quiz: { select: { kind: true } },
-      module: { select: { courseId: true, course: { select: { title: true } } } },
+      topic: { select: { moduleId: true, module: { select: { title: true } } } },
     },
   });
   if (!quizLesson) return { ok: false, error: "Lesson not found." };
 
-  const material = await gatherMaterial(quizLesson.module.courseId, input.sourceLessonIds);
+  const material = await gatherMaterial(quizLesson.topic.moduleId, input.sourceLessonIds);
   if (material.length < 200) {
     return {
       ok: false,
@@ -182,11 +182,11 @@ Rules:
 - Wrong options must be plausible but clearly wrong according to the material. Avoid "all of the above" and "none of the above".
 - Vary which position holds the correct answer.
 - Each explanation says why the correct answer is right, based on the material.`,
-      prompt: `Course: ${quizLesson.module.course.title}
+      prompt: `Module: ${quizLesson.topic.module.title}
 ${quizLesson.quiz?.kind === "EXAM" ? "Final assessment" : "Quiz"}: ${quizLesson.title}
 ${
   quizLesson.quiz?.kind === "EXAM"
-    ? "This is the course's final assessment, taken after every lesson. Spread the questions evenly across all the lessons below, and include some that bring together ideas from more than one lesson."
+    ? "This is the module's final assessment, taken after every lesson. Spread the questions evenly across all the lessons below, and include some that bring together ideas from more than one lesson."
     : "This quiz sits straight after the lessons below and checks that learners understood them. Focus on their key points and safe practice."
 }
 

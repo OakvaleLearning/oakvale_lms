@@ -267,7 +267,7 @@ export function Switch({
   );
 }
 
-/** A checkbox styled as a selectable card (e.g. which courses a tier unlocks). */
+/** A checkbox styled as a selectable card (e.g. which modules a tier unlocks). */
 export function CheckCard({ label, hint, ...props }: { label: string; hint?: string } & Omit<React.ComponentProps<"input">, "type">) {
   return (
     <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm transition-colors hover:border-ink-300 has-[:checked]:border-primary-500 has-[:checked]:bg-primary-50/60 has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-primary-100">

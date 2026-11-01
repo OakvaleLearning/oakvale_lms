@@ -72,7 +72,7 @@ export interface CpdRow {
   learner: string;
   email: string;
   phone: string | null;
-  course: string;
+  module: string;
   provider: string;
   hours: number | null;
   issuedAt: string;
@@ -140,7 +140,7 @@ export function CpdQueue({ rows }: { rows: CpdRow[] }) {
                   </span>
                 </span>
                 <span className="min-w-0 text-xs text-ink-600">
-                  <span className="block truncate text-sm text-ink-800">{r.course}</span>
+                  <span className="block truncate text-sm text-ink-800">{r.module}</span>
                   {r.provider}
                   {r.hours ? ` · ${r.hours} hours` : ""} · completed {r.issuedAt}
                 </span>

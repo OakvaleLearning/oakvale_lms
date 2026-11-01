@@ -5,8 +5,8 @@ import { Award, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { issueEligible } from "@/app/admin/certificates/actions";
 
-/** Issues certificates to learners who already met the course's requirements. */
-export function IssueEligibleButton({ courseId }: { courseId: string }) {
+/** Issues certificates to learners who already met the module's requirements. */
+export function IssueEligibleButton({ moduleId }: { moduleId: string }) {
   const [pending, start] = useTransition();
   const [message, setMessage] = useState("");
   return (
@@ -18,7 +18,7 @@ export function IssueEligibleButton({ courseId }: { courseId: string }) {
         disabled={pending}
         onClick={() =>
           start(async () => {
-            const res = await issueEligible(courseId);
+            const res = await issueEligible(moduleId);
             setMessage(
               !res.ok
                 ? res.error

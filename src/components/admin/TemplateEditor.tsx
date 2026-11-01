@@ -72,7 +72,7 @@ export function TemplateEditor({
             <CertificateView design={design} data={SAMPLE_CERTIFICATE} qrSvg={qrSvg} barcodeSvg={barcodeSvg} />
           </div>
         </div>
-        <p className="text-xs text-ink-500">Preview with sample learner details. Real certificates use each learner&apos;s name, course and score.</p>
+        <p className="text-xs text-ink-500">Preview with sample learner details. Real certificates use each learner&apos;s name, module and score.</p>
       </div>
 
       <div className="space-y-6">

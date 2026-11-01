@@ -39,7 +39,7 @@ export const BLOCK_HINT: Record<BlockKind, string> = {
   HTML: "A web page or interactive .zip of one.",
   DOCUMENT: "PDF, Word, PowerPoint, Excel or an image.",
   TEXT: "Write notes, steps or key points right here.",
-  EMBED: "A Genially or other online course, by its link.",
+  EMBED: "A Genially or other online module, by its link.",
   QUIZ: "Check understanding. One per lesson.",
 };
 

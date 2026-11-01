@@ -9,7 +9,7 @@ import { removeAssetFiles } from "@/lib/lms/packages";
 import { groupSlugTaken } from "@/lib/community/access";
 import { uniqueSlug } from "@/lib/utils";
 import {
-  courseSchema,
+  moduleSchema,
   lessonCreateSchema,
   lessonUpdateSchema,
   programSchema,
@@ -17,7 +17,7 @@ import {
 } from "@/lib/validation";
 
 /**
- * Catalogue management: programs, tiers, courses, modules, lessons.
+ * Catalogue management: programs, tiers, modules, topics, lessons.
  * Every action re-checks the admin session; pages only render forms.
  */
 
@@ -107,7 +107,7 @@ export async function deleteProgram(id: string): Promise<ActionState> {
     return { error: "Learners are enrolled in this programme. Unpublish it instead of deleting." };
   }
   const assets = await prisma.contentAsset.findMany({
-    where: { lesson: { module: { course: { programId: id } } } },
+    where: { lesson: { topic: { module: { programId: id } } } },
     select: { id: true, storageKey: true },
   });
   await prisma.program.delete({ where: { id } });
@@ -126,13 +126,13 @@ function parseTier(fd: FormData) {
     description: text(fd, "description"),
     priceNaira: text(fd, "priceNaira"),
     published: bool(fd, "published"),
-    courseIds: fd.getAll("courseIds").map(String),
+    moduleIds: fd.getAll("moduleIds").map(String),
   });
 }
 
-/** Only courses of the same program may be attached to a tier. */
-async function ownCourseIds(programId: string, ids: string[]) {
-  const rows = await prisma.course.findMany({ where: { programId, id: { in: ids } }, select: { id: true } });
+/** Only modules of the same program may be attached to a tier. */
+async function ownModuleIds(programId: string, ids: string[]) {
+  const rows = await prisma.module.findMany({ where: { programId, id: { in: ids } }, select: { id: true } });
   return rows.map((r) => r.id);
 }
 
@@ -140,10 +140,10 @@ export async function createTier(programId: string, _prev: ActionState, fd: Form
   await requireAdmin();
   const parsed = parseTier(fd);
   if (!parsed.success) return { error: firstIssue(parsed.error) };
-  const { priceNaira, courseIds, ...data } = parsed.data;
+  const { priceNaira, moduleIds, ...data } = parsed.data;
   try {
     const order = await nextOrder(prisma.tier.aggregate({ where: { programId }, _max: { order: true } }));
-    const courses = await ownCourseIds(programId, courseIds);
+    const modules = await ownModuleIds(programId, moduleIds);
     const slug = await uniqueSlug(
       data.name,
       async (s) =>
@@ -157,7 +157,7 @@ export async function createTier(programId: string, _prev: ActionState, fd: Form
         programId,
         order,
         price: priceNaira * 100,
-        courses: { create: courses.map((courseId) => ({ courseId })) },
+        modules: { create: modules.map((moduleId) => ({ moduleId })) },
       },
     });
   } catch (err) {
@@ -172,14 +172,14 @@ export async function updateTier(id: string, _prev: ActionState, fd: FormData): 
   await requireAdmin();
   const parsed = parseTier(fd);
   if (!parsed.success) return { error: firstIssue(parsed.error) };
-  const { priceNaira, courseIds, ...data } = parsed.data;
+  const { priceNaira, moduleIds, ...data } = parsed.data;
   const tier = await prisma.tier.findUniqueOrThrow({ where: { id }, select: { programId: true } });
-  const courses = await ownCourseIds(tier.programId, courseIds);
+  const modules = await ownModuleIds(tier.programId, moduleIds);
   await prisma.$transaction([
-    prisma.tierCourse.deleteMany({ where: { tierId: id } }),
+    prisma.tierModule.deleteMany({ where: { tierId: id } }),
     prisma.tier.update({
       where: { id },
-      data: { ...data, price: priceNaira * 100, courses: { create: courses.map((courseId) => ({ courseId })) } },
+      data: { ...data, price: priceNaira * 100, modules: { create: modules.map((moduleId) => ({ moduleId })) } },
     }),
   ]);
   refresh();
@@ -197,11 +197,11 @@ export async function deleteTier(id: string): Promise<ActionState> {
 }
 
 /* ------------------------------------------------------------------ *
- * Courses
+ * Modules
  * ------------------------------------------------------------------ */
 
-function parseCourse(fd: FormData) {
-  return courseSchema.safeParse({
+function parseModule(fd: FormData) {
+  return moduleSchema.safeParse({
     title: text(fd, "title"),
     description: text(fd, "description"),
     published: bool(fd, "published"),
@@ -210,41 +210,41 @@ function parseCourse(fd: FormData) {
   });
 }
 
-export async function createCourse(programId: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
+export async function createModule(programId: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
   await requireAdmin();
-  const parsed = parseCourse(fd);
+  const parsed = parseModule(fd);
   if (!parsed.success) return { error: firstIssue(parsed.error) };
   let id: string;
   try {
-    const order = await nextOrder(prisma.course.aggregate({ where: { programId }, _max: { order: true } }));
+    const order = await nextOrder(prisma.module.aggregate({ where: { programId }, _max: { order: true } }));
     const { prerequisiteId, ...data } = parsed.data;
     const prereq = prerequisiteId
-      ? await prisma.course.findFirst({ where: { id: prerequisiteId, programId }, select: { id: true } })
+      ? await prisma.module.findFirst({ where: { id: prerequisiteId, programId }, select: { id: true } })
       : null;
     const slug = await uniqueSlug(
       data.title,
       async (s) =>
-        Boolean(await prisma.course.findUnique({ where: { programId_slug: { programId, slug: s } }, select: { id: true } })),
-      "course"
+        Boolean(await prisma.module.findUnique({ where: { programId_slug: { programId, slug: s } }, select: { id: true } })),
+      "module"
     );
-    const course = await prisma.course.create({
+    const mod = await prisma.module.create({
       data: { ...data, slug, programId, order, prerequisiteId: prereq?.id ?? null },
     });
-    id = course.id;
+    id = mod.id;
   } catch (err) {
-    if (isUniqueError(err)) return { error: "Another course was just saved with the same name. Try again." };
+    if (isUniqueError(err)) return { error: "Another module was just saved with the same name. Try again." };
     throw err;
   }
   refresh();
-  redirect(`/admin/courses/${id}`);
+  redirect(`/admin/modules/${id}`);
 }
 
-export async function updateCourse(id: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
+export async function updateModule(id: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
   await requireAdmin();
-  const parsed = parseCourse(fd);
+  const parsed = parseModule(fd);
   if (!parsed.success) return { error: firstIssue(parsed.error) };
   const { prerequisiteId, ...data } = parsed.data;
-  const course = await prisma.course.findUniqueOrThrow({ where: { id }, select: { programId: true } });
+  const mod = await prisma.module.findUniqueOrThrow({ where: { id }, select: { programId: true } });
 
   let prereq: string | null = null;
   if (prerequisiteId) {
@@ -252,17 +252,17 @@ export async function updateCourse(id: string, _prev: ActionState, fd: FormData)
     let cursor: string | null = prerequisiteId;
     for (let depth = 0; cursor && depth < 50; depth++) {
       if (cursor === id) return { error: "That prerequisite would create a loop." };
-      const row: { programId: string; prerequisiteId: string | null } | null = await prisma.course.findUnique({
+      const row: { programId: string; prerequisiteId: string | null } | null = await prisma.module.findUnique({
         where: { id: cursor },
         select: { programId: true, prerequisiteId: true },
       });
-      if (!row || row.programId !== course.programId) return { error: "Invalid prerequisite." };
+      if (!row || row.programId !== mod.programId) return { error: "Invalid prerequisite." };
       cursor = row.prerequisiteId;
     }
     prereq = prerequisiteId;
   }
 
-  await prisma.course.update({
+  await prisma.module.update({
     where: { id },
     data: { ...data, prerequisiteId: prereq },
   });
@@ -270,49 +270,49 @@ export async function updateCourse(id: string, _prev: ActionState, fd: FormData)
   return { ok: true };
 }
 
-export async function deleteCourse(id: string): Promise<ActionState> {
-  await requireAdmin();
-  const course = await prisma.course.findUniqueOrThrow({ where: { id }, select: { programId: true } });
-  const assets = await prisma.contentAsset.findMany({
-    where: { lesson: { module: { courseId: id } } },
-    select: { id: true, storageKey: true },
-  });
-  await prisma.course.delete({ where: { id } });
-  await removeAssetFiles(assets);
-  refresh();
-  redirect(`/admin/programs/${course.programId}`);
-}
-
-/* ------------------------------------------------------------------ *
- * Modules
- * ------------------------------------------------------------------ */
-
-export async function createModule(courseId: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
-  await requireAdmin();
-  const title = text(fd, "title").trim();
-  if (title.length < 2 || title.length > 200) return { error: "Give the module a title." };
-  const order = await nextOrder(prisma.module.aggregate({ where: { courseId }, _max: { order: true } }));
-  await prisma.module.create({ data: { courseId, title, order } });
-  refresh();
-  return { ok: true };
-}
-
-export async function renameModule(id: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
-  await requireAdmin();
-  const title = text(fd, "title").trim();
-  if (title.length < 2 || title.length > 200) return { error: "Give the module a title." };
-  await prisma.module.update({ where: { id }, data: { title } });
-  refresh();
-  return { ok: true };
-}
-
 export async function deleteModule(id: string): Promise<ActionState> {
   await requireAdmin();
+  const mod = await prisma.module.findUniqueOrThrow({ where: { id }, select: { programId: true } });
   const assets = await prisma.contentAsset.findMany({
-    where: { lesson: { moduleId: id } },
+    where: { lesson: { topic: { moduleId: id } } },
     select: { id: true, storageKey: true },
   });
   await prisma.module.delete({ where: { id } });
+  await removeAssetFiles(assets);
+  refresh();
+  redirect(`/admin/programs/${mod.programId}`);
+}
+
+/* ------------------------------------------------------------------ *
+ * Topics
+ * ------------------------------------------------------------------ */
+
+export async function createTopic(moduleId: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const title = text(fd, "title").trim();
+  if (title.length < 2 || title.length > 200) return { error: "Give the topic a title." };
+  const order = await nextOrder(prisma.topic.aggregate({ where: { moduleId }, _max: { order: true } }));
+  await prisma.topic.create({ data: { moduleId, title, order } });
+  refresh();
+  return { ok: true };
+}
+
+export async function renameTopic(id: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const title = text(fd, "title").trim();
+  if (title.length < 2 || title.length > 200) return { error: "Give the topic a title." };
+  await prisma.topic.update({ where: { id }, data: { title } });
+  refresh();
+  return { ok: true };
+}
+
+export async function deleteTopic(id: string): Promise<ActionState> {
+  await requireAdmin();
+  const assets = await prisma.contentAsset.findMany({
+    where: { lesson: { topicId: id } },
+    select: { id: true, storageKey: true },
+  });
+  await prisma.topic.delete({ where: { id } });
   await removeAssetFiles(assets);
   refresh();
   return { ok: true };
@@ -322,17 +322,17 @@ export async function deleteModule(id: string): Promise<ActionState> {
  * Lessons
  * ------------------------------------------------------------------ */
 
-export async function createLesson(moduleId: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
+export async function createLesson(topicId: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
   await requireAdmin();
   const parsed = lessonCreateSchema.safeParse({ title: text(fd, "title"), type: text(fd, "type") });
   if (!parsed.success) return { error: firstIssue(parsed.error) };
-  const order = await nextOrder(prisma.lesson.aggregate({ where: { moduleId }, _max: { order: true } }));
+  const order = await nextOrder(prisma.lesson.aggregate({ where: { topicId }, _max: { order: true } }));
   const { title, type } = parsed.data;
   // A new lesson starts empty (add parts yourself), with one part, or as the final assessment.
   const first = type === "MIXED" ? null : type === "EXAM" ? "QUIZ" : type;
   const lesson = await prisma.lesson.create({
     data: {
-      moduleId,
+      topicId,
       order,
       title,
       type: first ?? "MIXED",
@@ -362,19 +362,19 @@ export async function deleteLesson(id: string): Promise<ActionState> {
   await requireAdmin();
   const lesson = await prisma.lesson.findUniqueOrThrow({
     where: { id },
-    select: { module: { select: { courseId: true } }, assets: { select: { id: true, storageKey: true } } },
+    select: { topic: { select: { moduleId: true } }, assets: { select: { id: true, storageKey: true } } },
   });
   await prisma.lesson.delete({ where: { id } });
   await removeAssetFiles(lesson.assets);
   refresh();
-  redirect(`/admin/courses/${lesson.module.courseId}`);
+  redirect(`/admin/modules/${lesson.topic.moduleId}`);
 }
 
 /* ------------------------------------------------------------------ *
  * Ordering
  * ------------------------------------------------------------------ */
 
-const MOVABLE = ["program", "tier", "course", "module", "lesson", "question"] as const;
+const MOVABLE = ["program", "tier", "module", "topic", "lesson", "question"] as const;
 type Movable = (typeof MOVABLE)[number];
 
 /** Move an item one place up (-1) or down (+1) among its siblings. */
@@ -406,17 +406,17 @@ async function loadSiblings(kind: Movable, id: string): Promise<{ id: string }[]
       const t = await prisma.tier.findUniqueOrThrow({ where: { id }, select: { programId: true } });
       return prisma.tier.findMany({ where: { programId: t.programId }, orderBy, select: { id: true } });
     }
-    case "course": {
-      const c = await prisma.course.findUniqueOrThrow({ where: { id }, select: { programId: true } });
-      return prisma.course.findMany({ where: { programId: c.programId }, orderBy, select: { id: true } });
-    }
     case "module": {
-      const m = await prisma.module.findUniqueOrThrow({ where: { id }, select: { courseId: true } });
-      return prisma.module.findMany({ where: { courseId: m.courseId }, orderBy, select: { id: true } });
+      const c = await prisma.module.findUniqueOrThrow({ where: { id }, select: { programId: true } });
+      return prisma.module.findMany({ where: { programId: c.programId }, orderBy, select: { id: true } });
+    }
+    case "topic": {
+      const m = await prisma.topic.findUniqueOrThrow({ where: { id }, select: { moduleId: true } });
+      return prisma.topic.findMany({ where: { moduleId: m.moduleId }, orderBy, select: { id: true } });
     }
     case "lesson": {
-      const l = await prisma.lesson.findUniqueOrThrow({ where: { id }, select: { moduleId: true } });
-      return prisma.lesson.findMany({ where: { moduleId: l.moduleId }, orderBy, select: { id: true } });
+      const l = await prisma.lesson.findUniqueOrThrow({ where: { id }, select: { topicId: true } });
+      return prisma.lesson.findMany({ where: { topicId: l.topicId }, orderBy, select: { id: true } });
     }
     case "question": {
       const q = await prisma.question.findUniqueOrThrow({ where: { id }, select: { quizId: true } });

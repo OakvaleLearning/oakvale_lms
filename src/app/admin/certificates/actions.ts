@@ -6,7 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { FONTS, LAYOUTS, toDesign } from "@/lib/certificate-design";
-import { issueEligibleForCourse } from "@/lib/lms/certificates";
+import { issueEligibleForModule } from "@/lib/lms/certificates";
 
 type ActionState = { error?: string; ok?: boolean } | undefined;
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
@@ -84,17 +84,17 @@ export async function deleteTemplate(id: string): Promise<ActionState> {
   const template = await prisma.certificateTemplate.findUnique({ where: { id }, select: { isDefault: true } });
   if (!template) return { error: "Template not found." };
   if (template.isDefault) return { error: "Make another template the default first." };
-  // Courses and certificates using it fall back to the default template.
+  // Modules and certificates using it fall back to the default template.
   await prisma.certificateTemplate.delete({ where: { id } });
   refresh();
   redirect("/admin/certificates?tab=templates");
 }
 
 /* ------------------------------------------------------------------ *
- * Course certificate settings
+ * Module certificate settings
  * ------------------------------------------------------------------ */
 
-const courseCertificateSchema = z.object({
+const moduleCertificateSchema = z.object({
   certificateEnabled: z.boolean(),
   certificateTemplateId: z.string().max(40),
   certificatePassMark: z.coerce.number().int().min(0, "Pass mark is 0–100").max(100, "Pass mark is 0–100"),
@@ -103,9 +103,9 @@ const courseCertificateSchema = z.object({
   cpdHours: z.union([z.literal(""), z.coerce.number().int().min(1, "CPD hours must be at least 1").max(1000)]),
 });
 
-export async function updateCourseCertificate(courseId: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
+export async function updateModuleCertificate(moduleId: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
   await requireAdmin();
-  const parsed = courseCertificateSchema.safeParse({
+  const parsed = moduleCertificateSchema.safeParse({
     certificateEnabled: fd.get("certificateEnabled") === "on",
     certificateTemplateId: String(fd.get("certificateTemplateId") ?? ""),
     certificatePassMark: fd.get("certificatePassMark"),
@@ -117,18 +117,18 @@ export async function updateCourseCertificate(courseId: string, _prev: ActionSta
   const { certificateTemplateId, cpdHours, ...data } = parsed.data;
   if (data.cpdEnabled && !data.cpdProvider) return { error: "Name the CPD issuing body." };
 
-  await prisma.course.update({
-    where: { id: courseId },
+  await prisma.module.update({
+    where: { id: moduleId },
     data: { ...data, certificateTemplateId: certificateTemplateId || null, cpdHours: cpdHours === "" ? null : cpdHours },
   });
-  revalidatePath(`/admin/courses/${courseId}`);
+  revalidatePath(`/admin/modules/${moduleId}`);
   refresh();
   return { ok: true };
 }
 
-export async function issueEligible(courseId: string): Promise<Result<{ issued: number }>> {
+export async function issueEligible(moduleId: string): Promise<Result<{ issued: number }>> {
   await requireAdmin();
-  const issued = await issueEligibleForCourse(courseId);
+  const issued = await issueEligibleForModule(moduleId);
   refresh();
   return { ok: true, issued };
 }

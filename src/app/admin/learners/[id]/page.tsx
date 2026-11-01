@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { formatDay, formatNaira, whatsappLink } from "@/lib/utils";
-import { getCourseProgress } from "@/lib/lms/progress";
+import { getModuleProgress } from "@/lib/lms/progress";
 import { StatusBadge, PageHeader } from "@/components/dashboard/ui";
 import { ProgressBar } from "@/components/learn/ProgressBar";
 import { ActionForm, DeleteButton, Panel, Select } from "@/components/admin/forms";
@@ -19,7 +19,7 @@ export default async function LearnerPage({ params }: PageProps<"/admin/learners
       enrollments: {
         orderBy: { createdAt: "desc" },
         include: {
-          tier: { include: { program: { select: { title: true } }, courses: { include: { course: { select: { id: true, title: true } } } } } },
+          tier: { include: { program: { select: { title: true } }, modules: { include: { module: { select: { id: true, title: true } } } } } },
         },
       },
     },
@@ -27,9 +27,9 @@ export default async function LearnerPage({ params }: PageProps<"/admin/learners
   if (!learner) notFound();
 
   const active = learner.enrollments.filter((e) => e.status === "ACTIVE");
-  const courses = new Map(active.flatMap((e) => e.tier.courses.map((tc) => [tc.course.id, tc.course.title] as const)));
+  const modules = new Map(active.flatMap((e) => e.tier.modules.map((tc) => [tc.module.id, tc.module.title] as const)));
   const [progress, tiers, attempts] = await Promise.all([
-    getCourseProgress(learner.id, [...courses.keys()]),
+    getModuleProgress(learner.id, [...modules.keys()]),
     prisma.tier.findMany({ orderBy: [{ program: { order: "asc" } }, { order: "asc" }], include: { program: { select: { title: true } } } }),
     prisma.quizAttempt.findMany({
       where: { userId: learner.id },
@@ -64,15 +64,15 @@ export default async function LearnerPage({ params }: PageProps<"/admin/learners
         }
       />
 
-      <Panel title="Course progress">
-        {courses.size === 0 ? (
-          <p className="text-sm text-ink-400">Not enrolled in any courses.</p>
+      <Panel title="Module progress">
+        {modules.size === 0 ? (
+          <p className="text-sm text-ink-400">Not enrolled in any modules.</p>
         ) : (
           <ul className="space-y-4">
-            {[...courses].map(([courseId, title]) => {
-              const p = progress.get(courseId)!;
+            {[...modules].map(([moduleId, title]) => {
+              const p = progress.get(moduleId)!;
               return (
-                <li key={courseId}>
+                <li key={moduleId}>
                   <div className="mb-1.5 flex justify-between text-sm">
                     <span className="font-medium text-ink-800">{title}</span>
                     <span className="text-ink-500">
@@ -104,7 +104,7 @@ export default async function LearnerPage({ params }: PageProps<"/admin/learners
               {e.status === "ACTIVE" && (
                 <DeleteButton
                   onDelete={cancelEnrollment.bind(null, e.id)}
-                  confirmText="Cancel this enrolment? The learner loses access to its courses."
+                  confirmText="Cancel this enrolment? The learner loses access to its modules."
                   label="Cancel"
                 />
               )}

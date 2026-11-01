@@ -6,12 +6,12 @@ import { prisma } from "@/lib/prisma";
 import { appUrl } from "@/lib/email-templates";
 import { sendCertificateEmail } from "@/lib/emails";
 import { DEFAULT_DESIGN, toDesign, type TemplateDesign } from "@/lib/certificate-design";
-import { getUnlockedCourseIds } from "./access";
+import { getUnlockedModuleIds } from "./access";
 
 /**
- * Course certificates. A learner earns one when every published lesson is
- * complete and the average of their best quiz scores reaches the course's
- * pass mark. Courses with CPD also queue a CPD request, which the admin sends
+ * Module certificates. A learner earns one when every published lesson is
+ * complete and the average of their best quiz scores reaches the module's
+ * pass mark. Modules with CPD also queue a CPD request, which the admin sends
  * to the issuing body; that body emails its certificate to the learner.
  */
 
@@ -42,7 +42,7 @@ export interface CertificateProgress {
   enabled: boolean;
   lessonsDone: number;
   lessonsTotal: number;
-  /** Quizzes in the course and how many the learner has attempted. */
+  /** Quizzes in the module and how many the learner has attempted. */
   quizzes: number;
   quizzesTaken: number;
   /** Average of best quiz scores, counting untaken quizzes as 0; null without quizzes. */
@@ -51,16 +51,16 @@ export interface CertificateProgress {
   eligible: boolean;
 }
 
-/** Where a learner stands against a course's certificate requirements. */
-export async function getCertificateProgress(userId: string, courseId: string): Promise<CertificateProgress | null> {
-  const course = await prisma.course.findUnique({
-    where: { id: courseId },
+/** Where a learner stands against a module's certificate requirements. */
+export async function getCertificateProgress(userId: string, moduleId: string): Promise<CertificateProgress | null> {
+  const mod = await prisma.module.findUnique({
+    where: { id: moduleId },
     select: { certificateEnabled: true, certificatePassMark: true },
   });
-  if (!course) return null;
+  if (!mod) return null;
 
   const lessons = await prisma.lesson.findMany({
-    where: { published: true, module: { courseId } },
+    where: { published: true, topic: { moduleId } },
     select: {
       quiz: { select: { _count: { select: { questions: true } } } },
       progress: { where: { userId }, select: { status: true, score: true } },
@@ -74,33 +74,33 @@ export async function getCertificateProgress(userId: string, courseId: string): 
     : null;
 
   return {
-    enabled: course.certificateEnabled,
+    enabled: mod.certificateEnabled,
     lessonsDone,
     lessonsTotal: lessons.length,
     quizzes: quizzes.length,
     quizzesTaken: quizzes.filter((l) => l.progress[0]?.score !== null && l.progress[0]?.score !== undefined).length,
     score,
-    passMark: course.certificatePassMark,
+    passMark: mod.certificatePassMark,
     eligible:
-      course.certificateEnabled &&
+      mod.certificateEnabled &&
       lessons.length > 0 &&
       lessonsDone === lessons.length &&
-      (score === null || score >= course.certificatePassMark),
+      (score === null || score >= mod.certificatePassMark),
   };
 }
 
-/** Issue the course certificate if the learner qualifies and doesn't have one yet. */
-export async function issueCertificateIfEligible(userId: string, courseId: string) {
-  const existing = await prisma.certificate.findUnique({ where: { userId_courseId: { userId, courseId } } });
+/** Issue the module certificate if the learner qualifies and doesn't have one yet. */
+export async function issueCertificateIfEligible(userId: string, moduleId: string) {
+  const existing = await prisma.certificate.findUnique({ where: { userId_moduleId: { userId, moduleId } } });
   if (existing) return existing;
 
-  const progress = await getCertificateProgress(userId, courseId);
+  const progress = await getCertificateProgress(userId, moduleId);
   if (!progress?.eligible) return null;
 
-  const [user, course] = await Promise.all([
+  const [user, mod] = await Promise.all([
     prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { name: true, email: true, role: true } }),
-    prisma.course.findUniqueOrThrow({
-      where: { id: courseId },
+    prisma.module.findUniqueOrThrow({
+      where: { id: moduleId },
       select: {
         title: true,
         certificateTemplateId: true,
@@ -111,11 +111,11 @@ export async function issueCertificateIfEligible(userId: string, courseId: strin
       },
     }),
   ]);
-  // Admins previewing a course don't earn certificates.
+  // Admins previewing a module don't earn certificates.
   if (user.role === "ADMIN") return null;
 
   const templateId =
-    course.certificateTemplateId ??
+    mod.certificateTemplateId ??
     (await prisma.certificateTemplate.findFirst({ where: { isDefault: true }, select: { id: true } }))?.id ??
     null;
 
@@ -126,21 +126,21 @@ export async function issueCertificateIfEligible(userId: string, courseId: strin
         data: {
           serial: newSerial(),
           userId,
-          courseId,
+          moduleId,
           templateId,
           recipientName: user.name,
-          courseTitle: course.title,
-          programTitle: course.program.title,
+          moduleTitle: mod.title,
+          programTitle: mod.program.title,
           score: progress.score,
-          ...(course.cpdEnabled
-            ? { cpdStatus: "PENDING", cpdProvider: course.cpdProvider || null, cpdHours: course.cpdHours, cpdUpdatedAt: new Date() }
+          ...(mod.cpdEnabled
+            ? { cpdStatus: "PENDING", cpdProvider: mod.cpdProvider || null, cpdHours: mod.cpdHours, cpdUpdatedAt: new Date() }
             : {}),
         },
       });
     } catch (err) {
       if (!(err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002")) throw err;
       // Either the serial collided (try another) or a parallel request already issued it.
-      const raced = await prisma.certificate.findUnique({ where: { userId_courseId: { userId, courseId } } });
+      const raced = await prisma.certificate.findUnique({ where: { userId_moduleId: { userId, moduleId } } });
       if (raced) return raced;
     }
   }
@@ -152,12 +152,12 @@ export async function issueCertificateIfEligible(userId: string, courseId: strin
   return certificate;
 }
 
-/** After a lesson is completed: issue its course's certificate if that finished the course. */
+/** After a lesson is completed: issue its module's certificate if that finished the module. */
 export async function checkCertificateAfterLesson(userId: string, lessonId: string) {
-  const lesson = await prisma.lesson.findUnique({ where: { id: lessonId }, select: { module: { select: { courseId: true } } } });
+  const lesson = await prisma.lesson.findUnique({ where: { id: lessonId }, select: { topic: { select: { moduleId: true } } } });
   if (!lesson) return;
   try {
-    await issueCertificateIfEligible(userId, lesson.module.courseId);
+    await issueCertificateIfEligible(userId, lesson.topic.moduleId);
   } catch (err) {
     console.error("[certificates] issue failed:", err);
   }
@@ -165,12 +165,12 @@ export async function checkCertificateAfterLesson(userId: string, lessonId: stri
 
 /** Issue any certificates a learner qualifies for but is missing (e.g. after an admin turned them on). */
 export async function syncCertificates(userId: string) {
-  const courseIds = await getUnlockedCourseIds(userId);
-  const courses = await prisma.course.findMany({
-    where: { id: { in: [...courseIds] }, certificateEnabled: true, certificates: { none: { userId } } },
+  const moduleIds = await getUnlockedModuleIds(userId);
+  const modules = await prisma.module.findMany({
+    where: { id: { in: [...moduleIds] }, certificateEnabled: true, certificates: { none: { userId } } },
     select: { id: true },
   });
-  for (const c of courses) {
+  for (const c of modules) {
     try {
       await issueCertificateIfEligible(userId, c.id);
     } catch (err) {
@@ -179,18 +179,18 @@ export async function syncCertificates(userId: string) {
   }
 }
 
-/** Admin: issue to everyone who has already met a course's requirements. */
-export async function issueEligibleForCourse(courseId: string): Promise<number> {
+/** Admin: issue to everyone who has already met a module's requirements. */
+export async function issueEligibleForModule(moduleId: string): Promise<number> {
   const learners = await prisma.lessonProgress.findMany({
-    where: { status: "COMPLETED", lesson: { module: { courseId } }, user: { certificates: { none: { courseId } } } },
+    where: { status: "COMPLETED", lesson: { topic: { moduleId } }, user: { certificates: { none: { moduleId } } } },
     distinct: ["userId"],
     select: { userId: true },
   });
   let issued = 0;
   for (const { userId } of learners) {
-    // Only learners who can still open the course (active enrolment).
-    if (!(await getUnlockedCourseIds(userId)).has(courseId)) continue;
-    if (await issueCertificateIfEligible(userId, courseId)) issued++;
+    // Only learners who can still open the module (active enrolment).
+    if (!(await getUnlockedModuleIds(userId)).has(moduleId)) continue;
+    if (await issueCertificateIfEligible(userId, moduleId)) issued++;
   }
   return issued;
 }

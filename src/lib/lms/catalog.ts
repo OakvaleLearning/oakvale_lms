@@ -1,15 +1,15 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/auth";
-import { getCompletedCourseIds, getCourseLock, getUnlockedCourseIds, type CourseLock } from "./access";
-import { getCourseProgress } from "./progress";
+import { getCompletedModuleIds, getModuleLock, getUnlockedModuleIds, type ModuleLock } from "./access";
+import { getModuleProgress } from "./progress";
 import { absoluteCoverUrl } from "@/lib/storage";
 import type { LessonKind } from "./blocks";
 
-/** Learner home: enrolled programs → their unlocked courses with progress, plus "continue". */
+/** Learner home: enrolled programs → their unlocked modules with progress, plus "continue". */
 export async function getLearnerHome(userId: string) {
-  const unlocked = await getUnlockedCourseIds(userId);
-  const courses = await prisma.course.findMany({
+  const unlocked = await getUnlockedModuleIds(userId);
+  const modules = await prisma.module.findMany({
     where: { id: { in: [...unlocked] }, published: true, program: { published: true } },
     orderBy: [{ program: { order: "asc" } }, { order: "asc" }],
     include: {
@@ -18,15 +18,15 @@ export async function getLearnerHome(userId: string) {
     },
   });
 
-  const ids = courses.map((c) => c.id);
-  const prereqIds = courses.flatMap((c) => (c.prerequisiteId ? [c.prerequisiteId] : []));
+  const ids = modules.map((c) => c.id);
+  const prereqIds = modules.flatMap((c) => (c.prerequisiteId ? [c.prerequisiteId] : []));
   const [progress, completedPrereqs, last] = await Promise.all([
-    getCourseProgress(userId, ids),
-    getCompletedCourseIds(userId, prereqIds),
+    getModuleProgress(userId, ids),
+    getCompletedModuleIds(userId, prereqIds),
     prisma.lessonProgress.findFirst({
       where: {
         userId,
-        lesson: { published: true, module: { courseId: { in: ids } } },
+        lesson: { published: true, topic: { moduleId: { in: ids } } },
       },
       // Prefer an unfinished lesson; fall back to the most recent one.
       orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
@@ -35,17 +35,17 @@ export async function getLearnerHome(userId: string) {
           select: {
             id: true,
             title: true,
-            module: { select: { course: { select: { slug: true, title: true, program: { select: { slug: true } } } } } },
+            topic: { select: { module: { select: { slug: true, title: true, program: { select: { slug: true } } } } } },
           },
         },
       },
     }),
   ]);
 
-  const programs = new Map<string, { slug: string; title: string; courses: LearnerCourseCard[] }>();
-  for (const c of courses) {
-    const entry = programs.get(c.program.id) ?? { slug: c.program.slug, title: c.program.title, courses: [] };
-    entry.courses.push({
+  const programs = new Map<string, { slug: string; title: string; modules: LearnerModuleCard[] }>();
+  for (const c of modules) {
+    const entry = programs.get(c.program.id) ?? { slug: c.program.slug, title: c.program.title, modules: [] };
+    entry.modules.push({
       id: c.id,
       slug: c.slug,
       title: c.title,
@@ -58,46 +58,46 @@ export async function getLearnerHome(userId: string) {
     programs.set(c.program.id, entry);
   }
 
-  const course = last?.lesson.module.course;
+  const mod = last?.lesson.topic.module;
   return {
     programs: [...programs.values()],
     continueLesson:
-      last && course
+      last && mod
         ? {
-            href: `/learn/${course.program.slug}/${course.slug}/${last.lesson.id}`,
+            href: `/learn/${mod.program.slug}/${mod.slug}/${last.lesson.id}`,
             lessonId: last.lesson.id,
-            programSlug: course.program.slug,
-            courseSlug: course.slug,
+            programSlug: mod.program.slug,
+            moduleSlug: mod.slug,
             lessonTitle: last.lesson.title,
-            courseTitle: course.title,
+            moduleTitle: mod.title,
           }
         : null,
   };
 }
 
-export interface LearnerCourseCard {
+export interface LearnerModuleCard {
   id: string;
   slug: string;
   title: string;
   description: string;
   coverImage: string | null;
   progress: { completed: number; total: number; percent: number };
-  lock: CourseLock;
+  lock: ModuleLock;
   prerequisiteTitle: string | null;
 }
 
-/** A course by its program + course slug, with lock state for the current user. */
-export async function getCourseBySlugs(session: SessionPayload, programSlug: string, courseSlug: string) {
-  const course = await prisma.course.findFirst({
-    where: { slug: courseSlug, program: { slug: programSlug } },
+/** A module by its program + module slug, with lock state for the current user. */
+export async function getModuleBySlugs(session: SessionPayload, programSlug: string, moduleSlug: string) {
+  const mod = await prisma.module.findFirst({
+    where: { slug: moduleSlug, program: { slug: programSlug } },
     include: {
       program: { select: { id: true, slug: true, title: true, published: true } },
       prerequisite: { select: { title: true, slug: true } },
     },
   });
-  if (!course) return null;
-  const lock = await getCourseLock(session, course);
-  return { course, lock };
+  if (!mod) return null;
+  const lock = await getModuleLock(session, mod);
+  return { module: mod, lock };
 }
 
 export interface OutlineLesson {
@@ -112,13 +112,13 @@ export interface OutlineLesson {
 }
 
 /**
- * Modules and lessons with per-lesson status; sequential courses lock lessons
+ * Topics and lessons with per-lesson status; sequential modules lock lessons
  * after the first incomplete one. Final assessments are gathered into a last
  * "Final assessment" section, locked until every other lesson is complete.
  */
-export async function getCourseOutline(userId: string, courseId: string, opts: { sequential: boolean; isAdmin: boolean }) {
-  const modules = await prisma.module.findMany({
-    where: { courseId },
+export async function getModuleOutline(userId: string, moduleId: string, opts: { sequential: boolean; isAdmin: boolean }) {
+  const topics = await prisma.topic.findMany({
+    where: { moduleId },
     orderBy: [{ order: "asc" }, { createdAt: "asc" }],
     include: {
       lessons: {
@@ -136,7 +136,7 @@ export async function getCourseOutline(userId: string, courseId: string, opts: {
     },
   });
 
-  type Row = (typeof modules)[number]["lessons"][number];
+  type Row = (typeof topics)[number]["lessons"][number];
   const isExam = (l: Row) => l.quiz?.kind === "EXAM";
   const row = (l: Row, locked: boolean): OutlineLesson => ({
     id: l.id,
@@ -149,7 +149,7 @@ export async function getCourseOutline(userId: string, courseId: string, opts: {
   });
 
   let blocked = false;
-  const outline = modules
+  const outline = topics
     .map((m) => ({
       id: m.id,
       title: m.title,
@@ -161,7 +161,7 @@ export async function getCourseOutline(userId: string, courseId: string, opts: {
     }))
     .filter((m) => m.lessons.length > 0 || opts.isAdmin);
 
-  const exams = modules.flatMap((m) => m.lessons.filter(isExam));
+  const exams = topics.flatMap((m) => m.lessons.filter(isExam));
   if (exams.length) {
     outline.push({ id: "final-assessment", title: "Final assessment", lessons: exams.map((l) => row(l, !opts.isAdmin && blocked)) });
   }

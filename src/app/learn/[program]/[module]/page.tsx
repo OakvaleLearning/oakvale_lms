@@ -3,30 +3,30 @@ import { notFound } from "next/navigation";
 import { ArrowRight, Award, Info, Lock } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
-import { getCourseBySlugs, getCourseOutline } from "@/lib/lms/catalog";
-import { getCourseProgress } from "@/lib/lms/progress";
+import { getModuleBySlugs, getModuleOutline } from "@/lib/lms/catalog";
+import { getModuleProgress } from "@/lib/lms/progress";
 import { ButtonLink } from "@/components/ui/Button";
 import { Breadcrumbs, EmptyState, PageHeader } from "@/components/dashboard/ui";
-import { LessonStatusIcon, formatDuration } from "@/components/learn/CourseOutline";
+import { LessonStatusIcon, formatDuration } from "@/components/learn/ModuleOutline";
 import { ProgressBar } from "@/components/learn/ProgressBar";
 import { LESSON_TYPE_LABEL, LessonIcon } from "@/components/learn/LessonIcon";
 import { cn } from "@/lib/utils";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 
-export default async function CoursePage({ params, searchParams }: PageProps<"/learn/[program]/[course]">) {
-  const { program: programSlug, course: courseSlug } = await params;
+export default async function ModulePage({ params, searchParams }: PageProps<"/learn/[program]/[module]">) {
+  const { program: programSlug, module: moduleSlug } = await params;
   const { locked: lockedNotice } = await searchParams;
-  const session = await requireSession(`/learn/${programSlug}/${courseSlug}`);
+  const session = await requireSession(`/learn/${programSlug}/${moduleSlug}`);
 
-  const found = await getCourseBySlugs(session, programSlug, courseSlug);
+  const found = await getModuleBySlugs(session, programSlug, moduleSlug);
   if (!found) notFound();
-  const { course, lock } = found;
+  const { module: mod, lock } = found;
 
   if (lock !== "OPEN") {
     return (
       <EmptyState
         icon={Lock}
-        title={course.title}
+        title={mod.title}
         action={
           <ButtonLink href={lock === "PREREQUISITE" ? "/learn" : `/enroll?track=${programSlug}`}>
             {lock === "PREREQUISITE" ? "Back to my learning" : "See enrolment options"}
@@ -34,34 +34,34 @@ export default async function CoursePage({ params, searchParams }: PageProps<"/l
         }
       >
         {lock === "PREREQUISITE"
-          ? `Complete “${course.prerequisite?.title}” to unlock this course.`
-          : "You are not enrolled in this course."}
+          ? `Complete “${mod.prerequisite?.title}” to unlock this module.`
+          : "You are not enrolled in this module."}
       </EmptyState>
     );
   }
 
   const isAdmin = session.role === "ADMIN";
-  const [modules, progressMap, certificate] = await Promise.all([
-    getCourseOutline(session.userId, course.id, { sequential: course.sequential, isAdmin }),
-    getCourseProgress(session.userId, [course.id]),
+  const [topics, progressMap, certificate] = await Promise.all([
+    getModuleOutline(session.userId, mod.id, { sequential: mod.sequential, isAdmin }),
+    getModuleProgress(session.userId, [mod.id]),
     prisma.certificate.findUnique({
-      where: { userId_courseId: { userId: session.userId, courseId: course.id } },
+      where: { userId_moduleId: { userId: session.userId, moduleId: mod.id } },
       select: { serial: true, revokedAt: true },
     }),
   ]);
-  const progress = progressMap.get(course.id)!;
-  const next = modules.flatMap((m) => m.lessons).find((l) => l.status !== "COMPLETED" && !l.locked);
-  const base = `/learn/${programSlug}/${courseSlug}`;
+  const progress = progressMap.get(mod.id)!;
+  const next = topics.flatMap((m) => m.lessons).find((l) => l.status !== "COMPLETED" && !l.locked);
+  const base = `/learn/${programSlug}/${moduleSlug}`;
 
   return (
     <div className="mx-auto max-w-6xl">
-      <Breadcrumbs items={[{ label: "My learning", href: "/learn" }, { label: course.title }]} />
+      <Breadcrumbs items={[{ label: "My learning", href: "/learn" }, { label: mod.title }]} />
 
       <PageHeader
         className="mt-5"
-        eyebrow={course.program.title}
-        title={course.title}
-        description={course.description}
+        eyebrow={mod.program.title}
+        title={mod.title}
+        description={mod.description}
       />
 
       <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
@@ -71,18 +71,18 @@ export default async function CoursePage({ params, searchParams }: PageProps<"/l
               <Info className="mt-0.5 size-4 shrink-0" />
               {lockedNotice === "exam"
                 ? "Complete every lesson first. The final assessment opens once you have."
-                : "Complete the earlier lessons first. This course unlocks lessons in order."}
+                : "Complete the earlier lessons first. This module unlocks lessons in order."}
             </p>
           )}
 
-          {modules.map((m, mi) => {
+          {topics.map((m, mi) => {
             const done = m.lessons.filter((l) => l.status === "COMPLETED").length;
             return (
               <StaggerItem key={m.id} as="section" className="card overflow-hidden">
                 <div className="flex items-center justify-between gap-4 border-b border-line px-6 py-4">
                   <div className="min-w-0">
                     <div className="text-xs font-medium text-ink-500">
-                      {m.id === "final-assessment" ? "After all lessons" : `Module ${mi + 1}`}
+                      {m.id === "final-assessment" ? "After all lessons" : `Topic ${mi + 1}`}
                     </div>
                     <h2 className="mt-0.5 truncate text-[15px] font-semibold text-ink-950">{m.title}</h2>
                   </div>
@@ -180,12 +180,12 @@ export default async function CoursePage({ params, searchParams }: PageProps<"/l
             )}
             {next && (
               <ButtonLink href={`${base}/${next.id}`} className="mt-3 w-full">
-                {progress.completed === 0 ? "Start course" : "Continue learning"}
+                {progress.completed === 0 ? "Start module" : "Continue learning"}
                 <ArrowRight className="size-4" />
               </ButtonLink>
             )}
-            {course.sequential && (
-              <p className="mt-4 text-xs leading-relaxed text-ink-500">Lessons in this course unlock in order.</p>
+            {mod.sequential && (
+              <p className="mt-4 text-xs leading-relaxed text-ink-500">Lessons in this module unlock in order.</p>
             )}
             {certificate && !certificate.revokedAt ? (
               <Link
@@ -200,13 +200,13 @@ export default async function CoursePage({ params, searchParams }: PageProps<"/l
                 <ArrowRight className="size-4 shrink-0" />
               </Link>
             ) : (
-              course.certificateEnabled && (
+              mod.certificateEnabled && (
                 <p className="mt-5 flex items-start gap-2.5 border-t border-line pt-5 text-xs leading-relaxed text-ink-500">
                   <Award className="mt-px size-4 shrink-0 text-ink-400" />
                   <span>
                     Earn a certificate by completing every lesson
-                    {` with a quiz average of ${course.certificatePassMark}% or more`}.
-                    {course.cpdEnabled && ` Includes a CPD certificate from ${course.cpdProvider || "an accredited CPD body"}.`}
+                    {` with a quiz average of ${mod.certificatePassMark}% or more`}.
+                    {mod.cpdEnabled && ` Includes a CPD certificate from ${mod.cpdProvider || "an accredited CPD body"}.`}
                   </span>
                 </p>
               )

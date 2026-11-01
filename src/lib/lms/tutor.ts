@@ -92,10 +92,10 @@ export async function isOverTutorLimit(userId: string): Promise<boolean> {
 
 /** System prompt describing the tutor's role and the lesson it is helping with. */
 export async function buildTutorSystemPrompt(session: SessionPayload, lesson: AccessibleLesson): Promise<string> {
-  const course = lesson.module.course;
+  const mod = lesson.topic.module;
   const [siblings, quizNotes] = await Promise.all([
     prisma.lesson.findMany({
-      where: { moduleId: lesson.moduleId, published: true },
+      where: { topicId: lesson.topicId, published: true },
       orderBy: { order: "asc" },
       select: { title: true },
     }),
@@ -116,17 +116,17 @@ export async function buildTutorSystemPrompt(session: SessionPayload, lesson: Ac
   return `You are the Oakvale Learning tutor, helping a learner on a healthcare and caregiving training programme.
 
 The learner's first name is ${session.name.split(" ")[0]}.
-Programme: ${course.program.title}
-Course: ${course.title}
-Module: ${lesson.module.title}
-Lessons in this module: ${siblings.map((s) => s.title).join("; ")}
+Programme: ${mod.program.title}
+Module: ${mod.title}
+Topic: ${lesson.topic.title}
+Lessons in this topic: ${siblings.map((s) => s.title).join("; ")}
 Current lesson: ${lesson.title}
 
 How to help:
 - Base your answers on the lesson material below. If something is not covered there, say so briefly, then give a short general explanation and suggest they check with their instructor.
 - Explain in plain, warm English for an adult learner. Keep answers short (a few sentences or a short list) unless asked for more. Use simple markdown.
 - When asked to quiz the learner, ask one question at a time and wait for their answer.
-- Stay on the course topic. Politely steer unrelated requests back to the lesson.
+- Stay on the subject of this module. Politely steer unrelated requests back to the lesson.
 - This is training, not clinical advice. If the learner describes a real person's health or an emergency, tell them to follow their workplace procedures and speak to a supervisor, nurse or doctor (or emergency services if urgent).
 - Never invent Oakvale policies, fees, certification rules or deadlines; point them to Oakvale support for those.
 ${quizNotes ? `\n${quizNotes}\n` : ""}

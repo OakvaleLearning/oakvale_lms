@@ -4,7 +4,7 @@ import { Award, BellRing, Check, CheckCircle2, Info, Laptop, MailWarning, Shield
 import type { LucideIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession, isEmailVerified } from "@/lib/auth";
-import { getUnlockedCourseIds } from "@/lib/lms/access";
+import { getUnlockedModuleIds } from "@/lib/lms/access";
 import { cn, formatNaira } from "@/lib/utils";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/dashboard/ui";
@@ -34,9 +34,9 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
         where: { published: true },
         orderBy: { order: "asc" },
         include: {
-          courses: {
+          modules: {
             include: {
-              course: {
+              module: {
                 select: {
                   title: true,
                   published: true,
@@ -46,7 +46,7 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
                   certificateEnabled: true,
                   cpdEnabled: true,
                   cpdHours: true,
-                  modules: { select: { _count: { select: { lessons: { where: { published: true } } } } } },
+                  topics: { select: { _count: { select: { lessons: { where: { published: true } } } } } },
                 },
               },
             },
@@ -57,9 +57,9 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
   });
   const program = track ? programs.find((p) => p.slug === track) : programs[0];
 
-  // A tier whose courses the learner can already open (e.g. bought "Full")
+  // A tier whose modules the learner can already open (e.g. bought "Full")
   // has nothing left to sell them.
-  const unlocked = session ? await getUnlockedCourseIds(session.userId) : new Set<string>();
+  const unlocked = session ? await getUnlockedModuleIds(session.userId) : new Set<string>();
 
   const here = `/enroll${program ? `?track=${encodeURIComponent(program.slug)}${selectedTier ? `&tier=${encodeURIComponent(selectedTier)}` : ""}` : ""}`;
 
@@ -84,41 +84,41 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
   const shortTitle = (title: string) =>
     title.startsWith(program.title) ? title.slice(program.title.length).replace(/^\s*[:\-–—|]\s*/, "") || title : title;
 
-  // What each course costs bought on its own (the cheapest single-course tier),
+  // What each module costs bought on its own (the cheapest single-module tier),
   // so bundles can show their saving.
   const singlePrice = new Map<string, number>();
   for (const t of program.tiers) {
-    if (t.courses.length !== 1) continue;
-    const id = t.courses[0].courseId;
+    if (t.modules.length !== 1) continue;
+    const id = t.modules[0].moduleId;
     singlePrice.set(id, Math.min(singlePrice.get(id) ?? Infinity, t.price));
   }
 
   const tiers = program.tiers.map((tier) => {
-    const courses = tier.courses
-      .filter((tc) => tc.course.published)
-      .sort((a, b) => a.course.order - b.course.order);
-    const ids = new Set(courses.map((tc) => tc.courseId));
-    const separate = courses.reduce((sum, tc) => sum + (singlePrice.get(tc.courseId) ?? NaN), 0);
-    const saving = courses.length > 1 && separate > tier.price ? separate - tier.price : 0;
-    const needs = courses.find((tc) => tc.course.prerequisiteId && !ids.has(tc.course.prerequisiteId))?.course.prerequisite;
+    const modules = tier.modules
+      .filter((tc) => tc.module.published)
+      .sort((a, b) => a.module.order - b.module.order);
+    const ids = new Set(modules.map((tc) => tc.moduleId));
+    const separate = modules.reduce((sum, tc) => sum + (singlePrice.get(tc.moduleId) ?? NaN), 0);
+    const saving = modules.length > 1 && separate > tier.price ? separate - tier.price : 0;
+    const needs = modules.find((tc) => tc.module.prerequisiteId && !ids.has(tc.module.prerequisiteId))?.module.prerequisite;
     const tagline =
       tier.description ||
-      (courses.length > 1
-        ? "Every course in the programme"
+      (modules.length > 1
+        ? "Every module in the programme"
         : needs
           ? `The next step after ${shortTitle(needs.title)}`
           : "The place to start your training");
     return {
       tier,
-      courses,
+      modules,
       saving,
       needs,
       tagline,
-      enrolled: tier.courses.length > 0 && tier.courses.every((tc) => unlocked.has(tc.courseId)),
+      enrolled: tier.modules.length > 0 && tier.modules.every((tc) => unlocked.has(tc.moduleId)),
     };
   });
 
-  const biggest = tiers.reduce((best, t) => (t.courses.length > (best?.courses.length ?? 1) ? t : best), null as (typeof tiers)[number] | null);
+  const biggest = tiers.reduce((best, t) => (t.modules.length > (best?.modules.length ?? 1) ? t : best), null as (typeof tiers)[number] | null);
   const featured = tiers.find((t) => t.tier.slug === selectedTier) ?? biggest;
 
   return (
@@ -129,7 +129,7 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
           <p>
             <span className="font-semibold">Early enrolment is open.</span>{" "}
             <span className="text-primary-900/75">
-              Secure your place now and we&apos;ll email you the moment your courses are ready.
+              Secure your place now and we&apos;ll email you the moment your modules are ready.
             </span>
           </p>
         </div>
@@ -182,7 +182,7 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
           tiers.length >= 3 ? "lg:grid-cols-3" : tiers.length === 2 ? "max-w-3xl md:grid-cols-2" : "max-w-md"
         )}
       >
-        {tiers.map(({ tier, courses, saving, needs, tagline, enrolled }) => {
+        {tiers.map(({ tier, modules, saving, needs, tagline, enrolled }) => {
           const isFeatured = featured?.tier.id === tier.id;
           return (
             <StaggerItem
@@ -230,7 +230,7 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
               <div className="mt-6">
                 {enrolled ? (
                   <ButtonLink href="/learn" variant="outline" size="lg" className="w-full">
-                    {isPrelaunch() ? "You're enrolled" : "Go to my courses"}
+                    {isPrelaunch() ? "You're enrolled" : "Go to my modules"}
                   </ButtonLink>
                 ) : session && !verified ? (
                   <ButtonLink
@@ -262,20 +262,20 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
               <div className="mt-7 border-t border-line pt-6">
                 <p className="text-xs font-semibold tracking-wide text-ink-500 uppercase">What&apos;s included</p>
                 <ul className="mt-4 space-y-3.5">
-                  {courses.map((tc) => {
-                    const lessons = tc.course.modules.reduce((n, m) => n + m._count.lessons, 0);
+                  {modules.map((tc) => {
+                    const lessons = tc.module.topics.reduce((n, m) => n + m._count.lessons, 0);
                     const facts = [
                       lessons > 0 && `${lessons} ${lessons === 1 ? "lesson" : "lessons"}`,
-                      tc.course.certificateEnabled && "Certificate",
-                      tc.course.cpdEnabled && (tc.course.cpdHours ? `CPD · ${tc.course.cpdHours} hrs` : "CPD certificate"),
+                      tc.module.certificateEnabled && "Certificate",
+                      tc.module.cpdEnabled && (tc.module.cpdHours ? `CPD · ${tc.module.cpdHours} hrs` : "CPD certificate"),
                     ].filter(Boolean);
                     return (
-                      <li key={tc.courseId} className="flex gap-3">
+                      <li key={tc.moduleId} className="flex gap-3">
                         <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-600">
                           <Check className="size-3" strokeWidth={3} />
                         </span>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-ink-900">{shortTitle(tc.course.title)}</p>
+                          <p className="text-sm font-medium text-ink-900">{shortTitle(tc.module.title)}</p>
                           {facts.length > 0 && <p className="mt-0.5 text-xs text-ink-500">{facts.join(" · ")}</p>}
                         </div>
                       </li>

@@ -22,7 +22,7 @@ import {
 } from "@/components/admin/forms";
 import { cardControlsClass, cardListClass, cardRowClass } from "@/components/admin/cardList";
 import {
-  createCourse,
+  createModule,
   createTier,
   deleteProgram,
   deleteTier,
@@ -37,14 +37,14 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
   const program = await prisma.program.findUnique({
     where: { id },
     include: {
-      courses: {
+      modules: {
         orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-        include: { modules: { select: { _count: { select: { lessons: true } } } } },
+        include: { topics: { select: { _count: { select: { lessons: true } } } } },
       },
       tiers: {
         orderBy: [{ order: "asc" }, { createdAt: "asc" }],
         include: {
-          courses: { select: { courseId: true } },
+          modules: { select: { moduleId: true } },
           _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
         },
       },
@@ -52,7 +52,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
   });
   if (!program) notFound();
 
-  const courseOptions = program.courses.map((c) => ({ id: c.id, title: c.title }));
+  const moduleOptions = program.modules.map((c) => ({ id: c.id, title: c.title }));
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -66,7 +66,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
             <StatusBadge status={program.published ? "PUBLISHED" : "DRAFT"} />
           </span>
         }
-        description={`${program.courses.length} ${program.courses.length === 1 ? "course" : "courses"} · ${
+        description={`${program.modules.length} ${program.modules.length === 1 ? "module" : "modules"} · ${
           program.tiers.length
         } ${program.tiers.length === 1 ? "tier" : "tiers"}`}
         actions={
@@ -76,7 +76,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
             </a>
             <DeleteButton
               onDelete={deleteProgram.bind(null, program.id)}
-              confirmText={`Delete “${program.title}” and all of its courses and content? This cannot be undone.`}
+              confirmText={`Delete “${program.title}” and all of its modules and content? This cannot be undone.`}
               label="Delete"
             />
           </>
@@ -86,20 +86,20 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0 space-y-6">
           <Panel
-            title="Courses"
-            description="Learners see courses in this order."
+            title="Modules"
+            description="Learners see modules in this order."
             flush
             actions={
               <Dialog
-                title="Add a course"
-                description="You'll build its modules and lessons next."
+                title="Add a module"
+                description="You'll build its topics and lessons next."
                 trigger={
                   <>
-                    <Plus className="size-4" /> Add course
+                    <Plus className="size-4" /> Add module
                   </>
                 }
               >
-                <ActionForm action={createCourse.bind(null, program.id)} submitLabel="Create course" footerClassName="justify-end">
+                <ActionForm action={createModule.bind(null, program.id)} submitLabel="Create module" footerClassName="justify-end">
                   <TitleField />
                   <Field label="Description" optional>
                     <Textarea name="description" rows={3} />
@@ -108,25 +108,25 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
               </Dialog>
             }
           >
-            {program.courses.length === 0 ? (
+            {program.modules.length === 0 ? (
               <div className="px-6 py-12 text-center">
                 <BookOpen className="mx-auto size-6 text-ink-300" />
-                <p className="mt-3 text-sm text-ink-500">No courses yet. Add the first one to start building.</p>
+                <p className="mt-3 text-sm text-ink-500">No modules yet. Add the first one to start building.</p>
               </div>
             ) : (
               <ul className={cardListClass}>
-                {program.courses.map((c) => {
-                  const lessons = c.modules.reduce((n, m) => n + m._count.lessons, 0);
+                {program.modules.map((c) => {
+                  const lessons = c.topics.reduce((n, m) => n + m._count.lessons, 0);
                   return (
                     <li key={c.id} className={cardRowClass}>
                       <div className={cardControlsClass}>
-                        <MoveButtons onMove={moveItem.bind(null, "course", c.id)} />
+                        <MoveButtons onMove={moveItem.bind(null, "module", c.id)} />
                         <span className="pr-1.5 sm:hidden">
                           <StatusBadge status={c.published ? "PUBLISHED" : "DRAFT"} />
                         </span>
                       </div>
                       <Link
-                        href={`/admin/courses/${c.id}`}
+                        href={`/admin/modules/${c.id}`}
                         className="group flex min-w-0 flex-1 items-center gap-3 rounded-xl p-3 transition-colors hover:bg-canvas sm:px-2 sm:py-2.5"
                       >
                         <span className="relative grid size-11 shrink-0 place-items-center overflow-hidden rounded-lg bg-primary-50 text-primary-400">
@@ -140,7 +140,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
                         <span className="min-w-0 flex-1">
                           <span className="block text-sm font-medium text-ink-950 sm:truncate">{c.title}</span>
                           <span className="block text-xs text-ink-500">
-                            {c.modules.length} {c.modules.length === 1 ? "module" : "modules"} · {lessons}{" "}
+                            {c.topics.length} {c.topics.length === 1 ? "topic" : "topics"} · {lessons}{" "}
                             {lessons === 1 ? "lesson" : "lessons"}
                           </span>
                         </span>
@@ -158,7 +158,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
 
           <Panel
             title="Tiers & pricing"
-            description="A tier is what learners buy. Each one unlocks a set of courses."
+            description="A tier is what learners buy. Each one unlocks a set of modules."
             actions={
               <Dialog
                 title="Add a tier"
@@ -169,7 +169,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
                 }
                 triggerVariant="outline"
               >
-                <TierFields action={createTier.bind(null, program.id)} courses={courseOptions} submitLabel="Create tier" />
+                <TierFields action={createTier.bind(null, program.id)} modules={moduleOptions} submitLabel="Create tier" />
               </Dialog>
             }
           >
@@ -178,7 +178,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
             ) : (
               <div className="space-y-3">
                 {program.tiers.map((t) => {
-                  const included = new Set(t.courses.map((c) => c.courseId));
+                  const included = new Set(t.modules.map((c) => c.moduleId));
                   return (
                     <details key={t.id} className="group rounded-xl border border-line bg-white open:shadow-card">
                       <summary className="flex cursor-pointer list-none flex-col sm:flex-row sm:items-center sm:gap-1 sm:px-3 sm:py-3 [&::-webkit-details-marker]:hidden">
@@ -195,7 +195,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
                               <span className="text-sm font-medium tabular-nums text-ink-700">{formatNaira(t.price)}</span>
                             </span>
                             <span className="block text-xs text-ink-500">
-                              {included.size} {included.size === 1 ? "course" : "courses"} · {t._count.enrollments} active{" "}
+                              {included.size} {included.size === 1 ? "module" : "modules"} · {t._count.enrollments} active{" "}
                               {t._count.enrollments === 1 ? "learner" : "learners"}
                             </span>
                           </span>
@@ -206,7 +206,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
                         </span>
                       </summary>
                       <div className="border-t border-line p-4 sm:p-5">
-                        <TierFields action={updateTier.bind(null, t.id)} courses={courseOptions} tier={{ ...t, included }} />
+                        <TierFields action={updateTier.bind(null, t.id)} modules={moduleOptions} tier={{ ...t, included }} />
                         <div className="mt-4 flex justify-end border-t border-line pt-3">
                           <DeleteButton
                             onDelete={deleteTier.bind(null, t.id)}
@@ -249,12 +249,12 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
 
 function TierFields({
   action,
-  courses,
+  modules,
   tier,
   submitLabel,
 }: {
   action: Parameters<typeof ActionForm>[0]["action"];
-  courses: { id: string; title: string }[];
+  modules: { id: string; title: string }[];
   tier?: { name: string; description: string; price: number; published: boolean; included: Set<string> };
   submitLabel?: string;
 }) {
@@ -281,13 +281,13 @@ function TierFields({
         <Input name="description" defaultValue={tier?.description} placeholder="One line shown on the enrolment page" />
       </Field>
       <fieldset>
-        <legend className="mb-1.5 text-sm font-medium text-ink-800">Unlocks these courses</legend>
-        {courses.length === 0 ? (
-          <p className="rounded-xl bg-ink-50 px-3 py-2.5 text-xs text-ink-500">Add courses to this programme first.</p>
+        <legend className="mb-1.5 text-sm font-medium text-ink-800">Unlocks these modules</legend>
+        {modules.length === 0 ? (
+          <p className="rounded-xl bg-ink-50 px-3 py-2.5 text-xs text-ink-500">Add modules to this programme first.</p>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2">
-            {courses.map((c) => (
-              <CheckCard key={c.id} name="courseIds" value={c.id} label={c.title} defaultChecked={tier?.included.has(c.id)} />
+            {modules.map((c) => (
+              <CheckCard key={c.id} name="moduleIds" value={c.id} label={c.title} defaultChecked={tier?.included.has(c.id)} />
             ))}
           </div>
         )}

@@ -1,8 +1,8 @@
 // The programmes as sold on the marketing site (learners_portal
 // src/content/site.ts): titles, descriptions, tier prices (Naira) and the
-// course outline. `npm run seed` loads this into the LMS.
+// module outline. `npm run seed` loads this into the LMS.
 //
-// Each programme has two courses (Foundation → Professional). Tiers unlock:
+// Each programme has two modules (Foundation → Professional). Tiers unlock:
 // foundation → Foundation, professional → Professional, full → both.
 
 export const PROGRAMS = [
@@ -11,18 +11,18 @@ export const PROGRAMS = [
     title: "Adult & Elderly Care",
     description:
       "Turn empathy into a recognised profession. Learn how to deliver safe, dignified, and clinical care for aging adults and recovering patients.",
-    courses: {
+    modules: {
       foundation: {
         title: "The Foundation",
         description:
           "We start with the absolute basics. You will learn the core principles of duty of care, ethical communication, and how to protect a patient's dignity. This is where you build your confidence and learn what it actually means to be a professional caregiver.",
-        modules: ["Fundamental Principles & Standards", "Best Practices in Care Delivery"],
+        topics: ["Fundamental Principles & Standards", "Best Practices in Care Delivery"],
       },
       professional: {
         title: "Professional Mastery",
         description:
           "Once you have the basics, we move to clinical realities. You will master infection prevention, complex daily routines, safe lifting, and the exact standards required by premium clinics, private clients, and top-tier care agencies. Finally, we train you on how to turn these skills into a profitable career.",
-        modules: ["Core Skills & Competencies", "Employability & Micro-Entrepreneurship in Care"],
+        topics: ["Core Skills & Competencies", "Employability & Micro-Entrepreneurship in Care"],
       },
     },
     tiers: {
@@ -51,12 +51,12 @@ export const PROGRAMS = [
     title: "Childcare & Early Years",
     description:
       "From birth to five years. Master the developmental milestones and safety standards required to secure premium nursery roles, work for families, care for your own kids, or build your own childcare service.",
-    courses: {
+    modules: {
       foundation: {
         title: "Infant & Toddler Foundation (0–2 Years)",
         description:
           "Become the kind of childcare professional families trust. We start with role boundaries and global frameworks, then move deeply into the brain growth, developmental milestones, and daily routines for infants and toddlers.",
-        modules: [
+        topics: [
           "Professional Identity, Values & Responsibilities",
           "Foundations of Early Childhood Development (0 to 2 Years)",
         ],
@@ -65,7 +65,7 @@ export const PROGRAMS = [
         title: "Preschool Mastery (3–5 Years)",
         description:
           "Once you have the basics, we build confidence in supporting preschoolers. You will master school readiness, spotting developmental red flags, fire and food safety, strict safeguarding protocols, and how to structure your own childcare business.",
-        modules: ["Development, Safety & Child Protection (3 to 5 Years)", "Career Pathways & Professional Growth"],
+        topics: ["Development, Safety & Child Protection (3 to 5 Years)", "Career Pathways & Professional Growth"],
       },
     },
     tiers: {

@@ -56,14 +56,14 @@ async function loadLearners(take?: number) {
             select: {
               name: true,
               program: { select: { slug: true, title: true } },
-              courses: {
+              modules: {
                 select: {
-                  course: {
+                  module: {
                     select: {
                       title: true,
                       order: true,
                       published: true,
-                      modules: { orderBy: [{ order: "asc" }, { createdAt: "asc" }], take: 1, select: { title: true } },
+                      topics: { orderBy: [{ order: "asc" }, { createdAt: "asc" }], take: 1, select: { title: true } },
                     },
                   },
                 },
@@ -77,16 +77,16 @@ async function loadLearners(take?: number) {
 
   return users.map((u) => {
     const enrolments = u.enrollments.map((e) => {
-      const course = e.tier.courses
-        .map((tc) => tc.course)
+      const mod = e.tier.modules
+        .map((tc) => tc.module)
         .filter((c) => c.published)
         .sort((a, b) => a.order - b.order)[0];
       return {
         programSlug: e.tier.program.slug,
         programTitle: e.tier.program.title,
         tierName: e.tier.name,
-        firstCourseTitle: course?.title,
-        firstModuleTitle: course?.modules[0]?.title,
+        firstModuleTitle: mod?.title,
+        firstTopicTitle: mod?.topics[0]?.title,
       };
     });
     const enrolledAt = new Date(Math.min(...u.enrollments.map((e) => (e.activatedAt ?? e.createdAt).getTime())));

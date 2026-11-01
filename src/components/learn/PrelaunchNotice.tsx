@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { SITE } from "@/content/site";
 import { ButtonLink } from "@/components/ui/Button";
 
-/** What learners see instead of their courses while PRELAUNCH is on. */
+/** What learners see instead of their modules while PRELAUNCH is on. */
 export async function PrelaunchNotice({ userId }: { userId: string }) {
   const enrollments = await prisma.enrollment.findMany({
     where: { userId, status: "ACTIVE" },
@@ -28,7 +28,7 @@ export async function PrelaunchNotice({ userId }: { userId: string }) {
             ))}
           </ul>
           <p className="mt-6 text-sm leading-relaxed text-ink-500">
-            Our learning platform opens soon. We&apos;ll email you the moment your courses are ready, on the web
+            Our learning platform opens soon. We&apos;ll email you the moment your modules are ready, on the web
             and in the Oakvale app.
           </p>
         </>
@@ -36,7 +36,7 @@ export async function PrelaunchNotice({ userId }: { userId: string }) {
         <>
           <h2 className="mt-5 font-display text-2xl text-ink-950">Learning opens soon</h2>
           <p className="mt-2 text-sm leading-relaxed text-ink-500">
-            Early enrolment is open. Secure your place now and we&apos;ll email you as soon as courses are ready.
+            Early enrolment is open. Secure your place now and we&apos;ll email you as soon as modules are ready.
           </p>
           <ButtonLink href="/enroll" className="mt-6">
             See programmes

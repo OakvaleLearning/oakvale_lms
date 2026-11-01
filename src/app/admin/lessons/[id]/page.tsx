@@ -17,7 +17,7 @@ import { DocumentAccess } from "@/components/admin/DocumentAccess";
 import { LessonBuilder, type BuilderPart } from "@/components/admin/LessonBuilder";
 import type { EditableQuestion } from "@/components/admin/QuestionEditor";
 import { Breadcrumbs, PageHeader, StatusBadge } from "@/components/dashboard/ui";
-import { formatDuration } from "@/components/learn/CourseOutline";
+import { formatDuration } from "@/components/learn/ModuleOutline";
 import { buttonClass } from "@/components/ui/Button";
 import { deleteLesson, updateLesson } from "../../actions";
 import { QuizPartEditor } from "./QuizPartEditor";
@@ -33,12 +33,12 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
     include: {
       blocks: { orderBy: [{ order: "asc" }, { createdAt: "asc" }], include: { asset: true } },
       quiz: { include: { questions: { orderBy: [{ order: "asc" }, { id: "asc" }] } } },
-      module: { include: { course: { include: { program: { select: { id: true, slug: true, title: true } } } } } },
+      topic: { include: { module: { include: { program: { select: { id: true, slug: true, title: true } } } } } },
     },
   });
   if (!lesson) notFound();
 
-  const course = lesson.module.course;
+  const mod = lesson.topic.module;
   const questions = lesson.quiz?.questions ?? [];
   const isExam = lesson.quiz?.kind === "EXAM";
   const storageReady = isStorageConfigured();
@@ -76,8 +76,8 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
     <div className="mx-auto max-w-6xl space-y-6">
       <Breadcrumbs
         items={[
-          { label: course.program.title, href: `/admin/programs/${course.program.id}` },
-          { label: course.title, href: `/admin/courses/${course.id}` },
+          { label: mod.program.title, href: `/admin/programs/${mod.program.id}` },
+          { label: mod.title, href: `/admin/modules/${mod.id}` },
           { label: lesson.title },
         ]}
       />
@@ -94,11 +94,11 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
             <StatusBadge status={lesson.published ? "PUBLISHED" : "DRAFT"} />
           </span>
         }
-        description={lesson.module.title}
+        description={lesson.topic.title}
         actions={
           <>
             <Link
-              href={`/learn/${course.program.slug}/${course.slug}/${lesson.id}`}
+              href={`/learn/${mod.program.slug}/${mod.slug}/${lesson.id}`}
               className={buttonClass({ variant: "outline", size: "sm" })}
             >
               <Eye className="size-4" /> Preview as learner
@@ -162,8 +162,8 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
                 </div>
               )}
               <div className="flex items-center justify-between gap-3">
-                <dt className="text-ink-500">Module</dt>
-                <dd className="truncate font-medium text-ink-900">{lesson.module.title}</dd>
+                <dt className="text-ink-500">Topic</dt>
+                <dd className="truncate font-medium text-ink-900">{lesson.topic.title}</dd>
               </div>
             </dl>
           </Panel>
@@ -186,7 +186,7 @@ export default async function LessonEditorPage({ params }: PageProps<"/admin/les
               <Switch
                 name="published"
                 label="Visible to learners"
-                description="Draft lessons are hidden from the course"
+                description="Draft lessons are hidden from the module"
                 defaultChecked={lesson.published}
               />
             </ActionForm>

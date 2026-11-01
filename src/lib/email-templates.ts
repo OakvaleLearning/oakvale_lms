@@ -146,9 +146,9 @@ export interface EmailEnrolment {
   programSlug: string;
   programTitle: string;
   tierName: string;
-  /** First course and module the learner will open, if the content exists yet. */
-  firstCourseTitle?: string;
+  /** First module and topic the learner will open, if the content exists yet. */
   firstModuleTitle?: string;
+  firstTopicTitle?: string;
 }
 
 export interface LearnerEmailData {
@@ -273,7 +273,7 @@ export function toolkitEmail(learner: LearnerEmailData): RenderedEmail {
       `Get your writing materials and devices ready and set your alarm: our learning platform officially opens on **${formatLaunchDate()}**.`
     ),
     para(
-      "Keep an eye on your inbox. You will receive a follow-up email with instructions on how to access your account and find your first module."
+      "Keep an eye on your inbox. You will receive a follow-up email with instructions on how to access your account and find your first topic."
     ),
     para("We look forward to getting started with you!"),
     ...signoff(),
@@ -289,7 +289,7 @@ export function launchEveEmail(learner: LearnerEmailData): RenderedEmail {
   const base = appUrl();
   const playStore = process.env.PLAY_STORE_URL?.trim();
   const appStore = process.env.APP_STORE_URL?.trim();
-  const first = learner.enrolments.find((e) => e.firstCourseTitle) ?? learner.enrolments[0];
+  const first = learner.enrolments.find((e) => e.firstModuleTitle) ?? learner.enrolments[0];
 
   const blocks: Block[] = [
     para("The wait is over! Oakvale Learning is officially LIVE!"),
@@ -317,11 +317,11 @@ export function launchEveEmail(learner: LearnerEmailData): RenderedEmail {
       `Use the password you created when you enrolled. Forgotten it? Reset it at ${base}/forgot-password`
     ),
 
-    heading("Step 3: Start your first module"),
+    heading("Step 3: Start your first topic"),
     list(
       "Once you're in, open **My learning**.",
-      ...(first ? [`Select **${first.firstCourseTitle ?? first.programTitle}**.`] : []),
-      ...(first?.firstModuleTitle ? [`Tap **${first.firstModuleTitle}** to begin.`] : [])
+      ...(first ? [`Select **${first.firstModuleTitle ?? first.programTitle}**.`] : []),
+      ...(first?.firstTopicTitle ? [`Tap **${first.firstTopicTitle}** to begin.`] : [])
     ),
     para("That's it! You're ready to start learning. Go at your own pace."),
 

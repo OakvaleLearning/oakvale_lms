@@ -118,7 +118,7 @@ function embeddedText(source: string, depth = 0): string[] {
       for (const line of htmlToText(value).split("\n")) if (isProse(line)) found.push(line);
     }
   }
-  // Articulate Rise and others ship the whole course as base64-encoded JSON.
+  // Articulate Rise and others ship the whole module as base64-encoded JSON.
   if (depth === 0) {
     for (const [, blob] of source.matchAll(BASE64)) {
       const decoded = decodeBase64(blob);

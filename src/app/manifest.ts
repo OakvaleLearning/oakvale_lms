@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Oakvale Learning",
     short_name: "Oakvale",
-    description: "Self-paced, certified caregiving courses.",
+    description: "Self-paced, certified caregiving modules.",
     start_url: "/learn",
     scope: "/",
     display: "standalone",

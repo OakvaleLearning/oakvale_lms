@@ -162,7 +162,7 @@ export function TutorPanel({
                   <div className="flex h-full flex-col justify-end">
                     <p className="font-display text-xl leading-tight text-ink-950">How can I help with this lesson?</p>
                     <p className="mt-2 text-sm leading-relaxed text-ink-500">
-                      Ask about anything in this lesson. Answers come from your course material, so check anything
+                      Ask about anything in this lesson. Answers come from your module material, so check anything
                       important with your instructor.
                     </p>
                     <div className="mt-6 flex flex-col gap-2">

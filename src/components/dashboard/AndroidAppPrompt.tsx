@@ -92,7 +92,7 @@ export function AndroidAppPrompt() {
           </div>
         </div>
         <p className="mt-4 text-sm leading-relaxed text-ink-700">
-          Open your courses straight from your home screen and keep learning on your phone.
+          Open your modules straight from your home screen and keep learning on your phone.
         </p>
         <a ref={primary} href={APK_URL} onClick={() => remember(Date.now() + SNOOZE_MS)} className={buttonClass({ variant: "primary", size: "md" }) + " mt-4 w-full justify-center"}>
           <Download className="size-4" /> Download for Android

@@ -13,7 +13,7 @@ function NewProgrammeDialog() {
   return (
     <Dialog
       title="New programme"
-      description="You can add courses, pricing tiers and a cover image next."
+      description="You can add modules, pricing tiers and a cover image next."
       trigger={
         <>
           <Plus className="size-4" /> New programme
@@ -35,7 +35,7 @@ export default async function ProgramsPage() {
   const programs = await prisma.program.findMany({
     orderBy: [{ order: "asc" }, { createdAt: "asc" }],
     include: {
-      _count: { select: { courses: true, tiers: true } },
+      _count: { select: { modules: true, tiers: true } },
       tiers: { select: { _count: { select: { enrollments: { where: { status: "ACTIVE" } } } } } },
     },
   });
@@ -45,13 +45,13 @@ export default async function ProgramsPage() {
       <PageHeader
         eyebrow="Catalogue"
         title="Programmes"
-        description="Each programme groups its courses and the pricing tiers learners buy."
+        description="Each programme groups its modules and the pricing tiers learners buy."
         actions={programs.length > 0 && <NewProgrammeDialog />}
       />
 
       {programs.length === 0 ? (
         <EmptyState icon={Layers} title="No programmes yet" action={<NewProgrammeDialog />}>
-          Create your first programme, then add its courses and pricing.
+          Create your first programme, then add its modules and pricing.
         </EmptyState>
       ) : (
         <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -81,7 +81,7 @@ export default async function ProgramsPage() {
                     <h2 className="font-semibold leading-snug text-ink-950">{p.title}</h2>
                     <dl className="mt-5 grid grid-cols-3 gap-2 border-t border-line pt-4 text-center">
                       {[
-                        ["Courses", p._count.courses],
+                        ["Modules", p._count.modules],
                         ["Tiers", p._count.tiers],
                         ["Learners", learners],
                       ].map(([label, value]) => (

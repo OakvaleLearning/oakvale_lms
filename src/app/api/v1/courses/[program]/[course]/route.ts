@@ -1,30 +1,34 @@
 import { NextResponse } from "next/server";
-import { getCourseBySlugs, getCourseOutline } from "@/lib/lms/catalog";
-import { getCourseProgress } from "@/lib/lms/progress";
+import { getModuleBySlugs, getModuleOutline } from "@/lib/lms/catalog";
+import { getModuleProgress } from "@/lib/lms/progress";
 import { jsonError, requireApiSession } from "@/lib/api/mobile";
 
-/** Course outline: modules → lessons with status and sequential locks. */
+/**
+ * Legacy outline for app versions from before modules and topics: same data as
+ * GET /api/v1/modules/<program>/<module>, under the old names (`course` is the
+ * module, `modules` are its topics). New clients should use the modules route.
+ */
 export async function GET(_req: Request, ctx: RouteContext<"/api/v1/courses/[program]/[course]">) {
   const session = await requireApiSession();
   if (session instanceof NextResponse) return session;
-  const { program, course: courseSlug } = await ctx.params;
+  const { program, course: slug } = await ctx.params;
 
-  const found = await getCourseBySlugs(session, program, courseSlug);
+  const found = await getModuleBySlugs(session, program, slug);
   if (!found) return jsonError("Course not found", 404);
-  const { course, lock } = found;
-  const summary = {
-    id: course.id,
-    slug: course.slug,
-    title: course.title,
-    description: course.description,
-    program: { slug: course.program.slug, title: course.program.title },
-    prerequisite: course.prerequisite,
+  const { module: mod, lock } = found;
+  const course = {
+    id: mod.id,
+    slug: mod.slug,
+    title: mod.title,
+    description: mod.description,
+    program: { slug: mod.program.slug, title: mod.program.title },
+    prerequisite: mod.prerequisite,
   };
-  if (lock !== "OPEN") return NextResponse.json({ course: summary, lock, modules: [], progress: null });
+  if (lock !== "OPEN") return NextResponse.json({ course, lock, modules: [], progress: null });
 
-  const [modules, progress] = await Promise.all([
-    getCourseOutline(session.userId, course.id, { sequential: course.sequential, isAdmin: session.role === "ADMIN" }),
-    getCourseProgress(session.userId, [course.id]),
+  const [topics, progress] = await Promise.all([
+    getModuleOutline(session.userId, mod.id, { sequential: mod.sequential, isAdmin: session.role === "ADMIN" }),
+    getModuleProgress(session.userId, [mod.id]),
   ]);
-  return NextResponse.json({ course: summary, lock, modules, progress: progress.get(course.id) });
+  return NextResponse.json({ course, lock, modules: topics, progress: progress.get(mod.id) });
 }

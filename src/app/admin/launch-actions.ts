@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { isEmailConfigured } from "@/lib/email";
-import { sendCoursesOpenEmail } from "@/lib/emails";
+import { sendModulesOpenEmail } from "@/lib/emails";
 import { isPrelaunch } from "@/lib/launch";
 
 export type LaunchEmailState = { error?: string; message?: string } | undefined;
@@ -13,7 +13,7 @@ const BATCH = 100;
 // Resend's default limit is 2 requests/second.
 const pause = () => new Promise((r) => setTimeout(r, 600));
 
-/** Learners with an active enrolment who haven't had the "courses are open" email. */
+/** Learners with an active enrolment who haven't had the "modules are open" email. */
 export async function countLaunchEmailsPending() {
   return prisma.user.count({
     where: { role: "LEARNER", launchEmailSentAt: null, enrollments: { some: { status: "ACTIVE" } } },
@@ -21,7 +21,7 @@ export async function countLaunchEmailsPending() {
 }
 
 /**
- * Launch day: emails early enrolees that courses are open, up to 100 per
+ * Launch day: emails early enrolees that modules are open, up to 100 per
  * click. Each learner is claimed before sending, so a double click or a
  * second admin never emails anyone twice; a failed send is released to retry.
  */
@@ -45,7 +45,7 @@ export async function sendLaunchEmails(): Promise<LaunchEmailState> {
       data: { launchEmailSentAt: new Date() },
     });
     if (claim.count === 0) continue;
-    if (await sendCoursesOpenEmail(user)) {
+    if (await sendModulesOpenEmail(user)) {
       sent++;
     } else {
       failed++;

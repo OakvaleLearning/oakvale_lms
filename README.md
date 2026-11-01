@@ -2,7 +2,7 @@
 
 Self-paced learning app for Oakvale Learning. It has two sides:
 
-- **Admin (`/admin`)** — build **Programmes → Courses → Modules → Lessons**, set **tiers** (what learners buy), see learners, progress and payments.
+- **Admin (`/admin`)** — build **Programmes → Modules → Topics → Lessons**, set **tiers** (what learners buy), see learners, progress and payments.
 - **Learners (`/learn`)** — enrol and pay (Paystack), then study at their own pace on phone or computer. Installable as an app (PWA).
 
 Lesson types: **Video**, **Audio**, **SCORM 1.2 / 2004**, **HTML** (single file or zip) and **Quiz**.
@@ -63,7 +63,7 @@ Without Paystack keys, checkout is simulated. Without a Resend key, emails are l
 | `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_REPLY_TO` | Transactional email |
 | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` | Cloudflare R2 |
 | `R2_ENDPOINT` | Local development only — leave empty in production |
-| `PRELAUNCH` | `true` = early enrolment only: learners can enrol and pay but can't open courses yet |
+| `PRELAUNCH` | `true` = early enrolment only: learners can enrol and pay but can't open modules yet |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Optional, used by `npm run seed` |
 
 ## Cloudflare R2 setup
@@ -109,7 +109,7 @@ To take enrolments and payments before learning opens, deploy with `PRELAUNCH=tr
 
 1. Remove `PRELAUNCH` in Vercel, then redeploy.
 2. Remove `NEXT_PUBLIC_PRELAUNCH` from the marketing site and redeploy it.
-3. In the admin overview, click **"Email N learners: courses are open"**. It sends up to 100 per click and never emails anyone twice.
+3. In the admin overview, click **"Email N learners: modules are open"**. It sends up to 100 per click and never emails anyone twice.
 
 ## Mobile app API
 
@@ -119,8 +119,9 @@ The native app (`../oakvale-mobile`, Expo) uses the same logic through bearer-to
 |---|---|
 | `POST /api/v1/auth/login` | Email + password → `{ token, user }` (30-day token) |
 | `GET /api/v1/me` | Current user (token check on app start) |
-| `GET /api/v1/home` | Enrolled programmes → courses with progress, "continue" lesson |
-| `GET /api/v1/courses/<program>/<course>` | Outline with lesson status and locks |
+| `GET /api/v1/home` | Enrolled programmes → modules with progress, "continue" lesson (also repeats them as `courses` for older apps) |
+| `GET /api/v1/modules/<program>/<module>` | `{ module, lock, topics, progress }`: topics → lessons with status and locks |
+| `GET /api/v1/courses/<program>/<course>` | Legacy: the same outline under the old names (`course`, `modules`) for app versions from before the rename |
 | `GET /api/v1/lessons/<id>` | Lesson + how to play it (media URL, quiz questions, or web) |
 | `POST /api/v1/lessons/<id>/launch` | SCORM/HTML: a 2-minute ticket URL for the WebView |
 

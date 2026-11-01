@@ -49,7 +49,7 @@ export const DEFAULT_DESIGN: TemplateDesign = {
   backgroundColor: "#ffffff",
   heading: "Certificate of Completion",
   intro: "This is to certify that",
-  body: "has successfully completed {course}, part of the {programme} programme.",
+  body: "has successfully completed {module}, part of the {programme} programme.",
   footer: "",
   signatoryName: "Oakvale Learning",
   signatoryTitle: "Director of Training",
@@ -68,7 +68,7 @@ export function toDesign(t: TemplateDesign): TemplateDesign {
 export interface CertificateData {
   serial: string;
   recipientName: string;
-  courseTitle: string;
+  moduleTitle: string;
   programTitle: string;
   score: number | null;
   issuedAt: Date | string;
@@ -78,14 +78,14 @@ export interface CertificateData {
 export const SAMPLE_CERTIFICATE: CertificateData = {
   serial: "OAK-7K3Q-M9XP",
   recipientName: "Adaeze Okafor",
-  courseTitle: "Professional Child Care",
+  moduleTitle: "Professional Child Care",
   programTitle: "Child Care",
   score: 86,
   issuedAt: "2026-11-20T10:00:00Z",
   cpdHours: 12,
 };
 
-export const PLACEHOLDERS = ["{name}", "{course}", "{programme}", "{score}", "{date}", "{hours}"] as const;
+export const PLACEHOLDERS = ["{name}", "{module}", "{programme}", "{score}", "{date}", "{hours}"] as const;
 
 export function formatIssueDate(date: Date | string): string {
   return new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Lagos" });
@@ -93,19 +93,21 @@ export function formatIssueDate(date: Date | string): string {
 
 /**
  * Split template text into plain and filled-in parts, so the renderer can
- * emphasise the values ("{course}" → **Professional Child Care**).
+ * emphasise the values ("{module}" → **Professional Child Care**).
  */
 export function fillPlaceholders(text: string, data: CertificateData): { text: string; value: boolean }[] {
   const values: Record<string, string> = {
     "{name}": data.recipientName,
-    "{course}": data.courseTitle,
+    "{module}": data.moduleTitle,
+    // Old name for {module}, from before courses were renamed modules.
+    "{course}": data.moduleTitle,
     "{programme}": data.programTitle,
     "{score}": data.score === null ? "" : `${data.score}%`,
     "{date}": formatIssueDate(data.issuedAt),
     "{hours}": data.cpdHours === null ? "" : String(data.cpdHours),
   };
   return text
-    .split(/(\{(?:name|course|programme|score|date|hours)\})/g)
+    .split(/(\{(?:name|module|course|programme|score|date|hours)\})/g)
     .filter(Boolean)
     .map((part) => (part in values ? { text: values[part], value: true } : { text: part, value: false }));
 }

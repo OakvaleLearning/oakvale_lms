@@ -9,7 +9,7 @@ import { TEAM, appUrl, button, enrolmentConfirmedEmail, escape, layout, p } from
 /**
  * Sent once when an enrolment becomes ACTIVE (payment verified). Before launch
  * this is "Email 1" of the pre-launch sequence; after launch, a short
- * "your courses are ready" note.
+ * "your modules are ready" note.
  */
 export async function sendEnrolledEmail(
   user: { name: string; email: string },
@@ -21,7 +21,7 @@ export async function sendEnrolledEmail(
 
   const link = `${appUrl()}/learn`;
   const what = `${info.programTitle} (${info.tierName})`;
-  const next = "Your courses are open now. Learn at your own pace, on your phone or computer.";
+  const next = "Your modules are open now. Learn at your own pace, on your phone or computer.";
 
   const bodyHtml =
     p(`Dear ${escape(user.name)},`) +
@@ -44,25 +44,25 @@ ${TEAM}`;
   return sendEmail({
     to: user.email,
     subject: `You're enrolled: ${what}`,
-    html: layout("Welcome! Your courses are ready", bodyHtml),
+    html: layout("Welcome! Your modules are ready", bodyHtml),
     text,
   });
 }
 
-/** Launch day: tells an early enrolee their courses are open. */
-export async function sendCoursesOpenEmail(user: { name: string; email: string }): Promise<boolean> {
+/** Launch day: tells an early enrolee their modules are open. */
+export async function sendModulesOpenEmail(user: { name: string; email: string }): Promise<boolean> {
   const link = `${appUrl()}/learn`;
 
   const bodyHtml =
     p(`Dear ${escape(user.name)},`) +
-    p(`The wait is over: your ${SITE.name} courses are now open.`) +
+    p(`The wait is over: your ${SITE.name} modules are now open.`) +
     p(`Sign in with the email and password you enrolled with and start learning at your own pace, on your phone or computer.`) +
     button(link, "Start learning") +
     p(`Warm regards,<br/>${TEAM}`);
 
   const text = `Dear ${user.name},
 
-The wait is over: your ${SITE.name} courses are now open.
+The wait is over: your ${SITE.name} modules are now open.
 
 Sign in with the email and password you enrolled with and start learning at your own pace: ${link}
 
@@ -71,8 +71,8 @@ ${TEAM}`;
 
   return sendEmail({
     to: user.email,
-    subject: `Your ${SITE.name} courses are open`,
-    html: layout("Your courses are open", bodyHtml),
+    subject: `Your ${SITE.name} modules are open`,
+    html: layout("Your modules are open", bodyHtml),
     text,
   });
 }
@@ -90,7 +90,7 @@ export async function sendVerificationEmail(
 
   const bodyHtml =
     p(`Dear ${escape(user.name)},`) +
-    p(`Welcome to ${SITE.name}! We're glad you're here. Please confirm your email address so we can send you your course updates and certificates.`) +
+    p(`Welcome to ${SITE.name}! We're glad you're here. Please confirm your email address so we can send you your module updates and certificates.`) +
     button(link, "Confirm my email") +
     p(`This link expires in <strong>${VERIFY_TOKEN_TTL_HOURS} hours</strong>. Once you've confirmed, you can enrol and start learning.`) +
     p(`If you didn't create an account, you can ignore this email.`) +
@@ -98,7 +98,7 @@ export async function sendVerificationEmail(
 
   const text = `Dear ${user.name},
 
-Welcome to ${SITE.name}! Please confirm your email address so we can send you your course updates and certificates.
+Welcome to ${SITE.name}! Please confirm your email address so we can send you your module updates and certificates.
 
 Confirm your email here: ${link}
 
@@ -191,19 +191,19 @@ ${TEAM}`;
   });
 }
 
-/** Sent when a learner earns a course certificate; mentions the CPD certificate when the course has one. */
+/** Sent when a learner earns a module certificate; mentions the CPD certificate when the module has one. */
 export async function sendCertificateEmail(
   user: { name: string; email: string },
-  cert: { serial: string; courseTitle: string; cpdStatus: string; cpdProvider: string | null; link: string }
+  cert: { serial: string; moduleTitle: string; cpdStatus: string; cpdProvider: string | null; link: string }
 ): Promise<boolean> {
   const cpd =
     cert.cpdStatus === "NONE"
       ? ""
-      : `This course also carries a CPD certificate. We will pass your details to ${cert.cpdProvider || "the CPD issuing body"}, who will email it to you directly.`;
+      : `This module also carries a CPD certificate. We will pass your details to ${cert.cpdProvider || "the CPD issuing body"}, who will email it to you directly.`;
 
   const bodyHtml =
     p(`Dear ${escape(user.name)},`) +
-    p(`Congratulations! You have completed <strong>${escape(cert.courseTitle)}</strong> and earned your ${SITE.name} certificate.`) +
+    p(`Congratulations! You have completed <strong>${escape(cert.moduleTitle)}</strong> and earned your ${SITE.name} certificate.`) +
     button(cert.link, "View and download") +
     p(`Your certificate ID is <strong>${cert.serial}</strong>. Anyone can check it is genuine by scanning its QR code or visiting ${appUrl()}/verify.`) +
     (cpd ? p(escape(cpd)) : "") +
@@ -211,7 +211,7 @@ export async function sendCertificateEmail(
 
   const text = `Dear ${user.name},
 
-Congratulations! You have completed ${cert.courseTitle} and earned your ${SITE.name} certificate.
+Congratulations! You have completed ${cert.moduleTitle} and earned your ${SITE.name} certificate.
 
 View and download it: ${cert.link}
 
@@ -222,7 +222,7 @@ ${TEAM}`;
 
   return sendEmail({
     to: user.email,
-    subject: `Your certificate: ${cert.courseTitle}`,
+    subject: `Your certificate: ${cert.moduleTitle}`,
     html: layout("You've earned a certificate", bodyHtml),
     text,
   });

@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     default: "Oakvale Learning",
     template: "%s | Oakvale Learning",
   },
-  description: "Self-paced, certified caregiving courses from Oakvale Learning.",
+  description: "Self-paced, certified caregiving modules from Oakvale Learning.",
   appleWebApp: { capable: true, title: "Oakvale", statusBarStyle: "default" },
 };
 

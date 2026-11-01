@@ -1,7 +1,7 @@
 // Oakvale LMS - Prisma schema
 //
-// Catalogue:  Program → Course → Module → Lesson (SCORM | HTML | VIDEO | AUDIO | QUIZ)
-// Commerce:   Program → Tier (priced) → TierCourse (which courses a tier unlocks)
+// Catalogue:  Program → Module → Topic → Lesson (built from parts: video, document, quiz…)
+// Commerce:   Program → Tier (priced) → TierModule (which modules a tier unlocks)
 //             User buys a Tier → Enrollment (+ Payment via Paystack)
 // Learning:   LessonProgress / ScormState / QuizAttempt per user
 generator client {
@@ -25,20 +25,20 @@ enum Role {
 }
 
 model User {
-  id                String               @id @default(cuid())
+  id                String                   @id @default(cuid())
   name              String
-  email             String               @unique
+  email             String                   @unique
   // WhatsApp / phone number, stored normalised (e.g. "+2348108189514").
   phone             String?
   passwordHash      String
-  role              Role                 @default(LEARNER)
+  role              Role                     @default(LEARNER)
   // Set when the learner clicks the link in their sign-up email (or resets
   // their password by email). Required before paying or opening lessons.
   emailVerifiedAt   DateTime?
-  // When the "courses are open" email went out (sent once, after pre-launch).
+  // When the "modules are open" email went out (sent once, after pre-launch).
   launchEmailSentAt DateTime?
-  createdAt         DateTime             @default(now())
-  updatedAt         DateTime             @updatedAt
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
   resetTokens       PasswordResetToken[]
   verifyTokens      EmailVerificationToken[]
   enrollments       Enrollment[]
@@ -59,8 +59,8 @@ model User {
   reactions         Reaction[]
   eventRsvps        EventRsvp[]
   eventsCreated     CommunityEvent[]
-  notifications     Notification[]       @relation("NotificationRecipient")
-  notificationsSent Notification[]       @relation("NotificationActor")
+  notifications     Notification[]           @relation("NotificationRecipient")
+  notificationsSent Notification[]           @relation("NotificationActor")
   reports           PostReport[]
 }
 
@@ -107,19 +107,19 @@ model PasswordResetToken {
  */
 
 model Program {
-  id          String   @id @default(cuid())
+  id          String           @id @default(cuid())
   // Matches the marketing site's slugs ("adult-care", "child-care") so its
   // tier CTAs (/enroll?track=<slug>&tier=<tier>) resolve here.
-  slug        String   @unique
+  slug        String           @unique
   title       String
-  description String   @default("")
+  description String           @default("")
   coverImage  String?
-  published   Boolean  @default(false)
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  published   Boolean          @default(false)
+  order       Int              @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
   tiers       Tier[]
-  courses     Course[]
+  modules     Module[]
   groups      CommunityGroup[]
 
   @@index([published, order])
@@ -127,18 +127,18 @@ model Program {
 
 /// A purchasable level of a program (e.g. Foundation / Professional / Full).
 model Tier {
-  id          String       @id @default(cuid())
-  program     Program      @relation(fields: [programId], references: [id], onDelete: Cascade)
+  id          String           @id @default(cuid())
+  program     Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
   programId   String
   slug        String
   name        String
-  description String       @default("")
+  description String           @default("")
   price       Int // kobo (NGN * 100), to match Paystack
-  order       Int          @default(0)
-  published   Boolean      @default(true)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  courses     TierCourse[]
+  order       Int              @default(0)
+  published   Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  modules     TierModule[]
   enrollments Enrollment[]
   groups      CommunityGroup[]
 
@@ -146,18 +146,20 @@ model Tier {
   @@index([programId, order])
 }
 
-/// Which courses a tier unlocks.
-model TierCourse {
+/// Which modules a tier unlocks.
+model TierModule {
   tier     Tier   @relation(fields: [tierId], references: [id], onDelete: Cascade)
   tierId   String
-  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  courseId String
+  module   Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  moduleId String
 
-  @@id([tierId, courseId])
-  @@index([courseId])
+  @@id([tierId, moduleId])
+  @@index([moduleId])
 }
 
-model Course {
+/// The top level of a programme (e.g. Foundation / Professional). Tiers unlock
+/// modules, and certificates are issued per module.
+model Module {
   id                    String               @id @default(cuid())
   program               Program              @relation(fields: [programId], references: [id], onDelete: Cascade)
   programId             String
@@ -169,40 +171,41 @@ model Course {
   published             Boolean              @default(false)
   // When true, each lesson unlocks only after the previous one is completed.
   sequential            Boolean              @default(false)
-  // Course that must be completed first (e.g. Professional requires Foundation).
-  prerequisite          Course?              @relation("CoursePrerequisite", fields: [prerequisiteId], references: [id], onDelete: SetNull)
+  // Module that must be completed first (e.g. Professional requires Foundation).
+  prerequisite          Module?              @relation("ModulePrerequisite", fields: [prerequisiteId], references: [id], onDelete: SetNull)
   prerequisiteId        String?
-  dependents            Course[]             @relation("CoursePrerequisite")
+  dependents            Module[]             @relation("ModulePrerequisite")
   // Certificate issued once every lesson is done and the quiz average reaches the pass mark.
   certificateEnabled    Boolean              @default(true)
   certificateTemplate   CertificateTemplate? @relation(fields: [certificateTemplateId], references: [id], onDelete: SetNull)
   certificateTemplateId String?
-  certificatePassMark   Int                  @default(70) // percent, average of the course's quizzes
+  certificatePassMark   Int                  @default(70) // percent, average of the module's quizzes
   // CPD certificate, sent to the learner directly by an outside issuing body.
   cpdEnabled            Boolean              @default(false)
   cpdProvider           String               @default("")
   cpdHours              Int?
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
-  modules               Module[]
-  tiers                 TierCourse[]
+  topics                Topic[]
+  tiers                 TierModule[]
   certificates          Certificate[]
 
   @@unique([programId, slug])
   @@index([programId, order])
 }
 
-model Module {
+/// A group of lessons inside a module.
+model Topic {
   id        String   @id @default(cuid())
-  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  courseId  String
+  module    Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  moduleId  String
   title     String
   order     Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   lessons   Lesson[]
 
-  @@index([courseId, order])
+  @@index([moduleId, order])
 }
 
 enum QuizKind {
@@ -238,8 +241,8 @@ enum BlockType {
 
 model Lesson {
   id           String           @id @default(cuid())
-  module       Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  moduleId     String
+  topic        Topic            @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  topicId      String
   title        String
   // Derived from the lesson's parts (see lessonTypeFor); never edited directly.
   type         LessonType
@@ -262,33 +265,33 @@ model Lesson {
   scormStates  ScormState[]
   tutorThreads TutorThread[]
 
-  @@index([moduleId, order])
+  @@index([topicId, order])
 }
 
 /// One part of a lesson: a video, a document, some text, a quiz…
 /// A lesson holds at most one SCORM part and one QUIZ part, because SCORM
 /// state and quiz attempts are kept per lesson.
 model LessonBlock {
-  id          String          @id @default(cuid())
-  lesson      Lesson          @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  lessonId    String
-  type        BlockType
+  id            String          @id @default(cuid())
+  lesson        Lesson          @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId      String
+  type          BlockType
   // Optional heading shown above the part.
-  title       String          @default("")
-  order       Int             @default(0)
+  title         String          @default("")
+  order         Int             @default(0)
   // Learners must complete required parts for the lesson to count as done.
-  required    Boolean         @default(true)
+  required      Boolean         @default(true)
   // TEXT parts: the written content, as Markdown.
   // EMBED parts: the https URL shown in the iframe (see normalizeEmbedUrl).
-  body        String          @default("")
+  body          String          @default("")
   // DOCUMENT parts: whether learners get Download / Open-in-new-tab buttons.
   // Either way the file is viewable in the lesson.
-  allowDownload Boolean       @default(true)
-  durationSec Int?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  asset       ContentAsset?
-  progress    BlockProgress[]
+  allowDownload Boolean         @default(true)
+  durationSec   Int?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  asset         ContentAsset?
+  progress      BlockProgress[]
 
   @@index([lessonId, order])
 }
@@ -620,7 +623,7 @@ enum CertificateFont {
   SANS
 }
 
-/// How an issued certificate looks. Courses pick one; the default is used otherwise.
+/// How an issued certificate looks. Modules pick one; the default is used otherwise.
 model CertificateTemplate {
   id              String            @id @default(cuid())
   name            String
@@ -632,8 +635,8 @@ model CertificateTemplate {
   backgroundColor String            @default("#ffffff")
   heading         String            @default("Certificate of Completion")
   intro           String            @default("This is to certify that")
-  // Placeholders: {name} {course} {programme} {score} {date} {hours}
-  body            String            @default("has successfully completed {course}, part of the {programme} programme.")
+  // Placeholders: {name} {module} {programme} {score} {date} {hours} ({course} is an old alias of {module})
+  body            String            @default("has successfully completed {module}, part of the {programme} programme.")
   footer          String            @default("")
   signatoryName   String            @default("")
   signatoryTitle  String            @default("")
@@ -644,33 +647,33 @@ model CertificateTemplate {
   showBarcode     Boolean           @default(true)
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
-  courses         Course[]
+  modules         Module[]
   certificates    Certificate[]
 }
 
 enum CpdStatus {
-  NONE // course has no CPD certificate
+  NONE // module has no CPD certificate
   PENDING // learner qualified; details not yet sent to the issuing body
   SUBMITTED // details sent; the body emails the learner directly
   ISSUED // the body has issued it
 }
 
 /// A certificate earned by a learner. Names and titles are copied at issue so
-/// the certificate still verifies if the course is renamed or deleted.
+/// the certificate still verifies if the module is renamed or deleted.
 model Certificate {
   id            String               @id @default(cuid())
   // Public ID printed on the certificate and encoded in its QR code and barcode.
   serial        String               @unique
   user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId        String
-  course        Course?              @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  courseId      String?
+  module        Module?              @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  moduleId      String?
   template      CertificateTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   templateId    String?
   recipientName String
-  courseTitle   String
+  moduleTitle   String
   programTitle  String
-  score         Int? // quiz average in percent; null when the course has no quizzes
+  score         Int? // quiz average in percent; null when the module has no quizzes
   cpdStatus     CpdStatus            @default(NONE)
   cpdProvider   String?
   cpdHours      Int?
@@ -680,7 +683,7 @@ model Certificate {
   revokedReason String?
   emailSentAt   DateTime?
 
-  @@unique([userId, courseId])
+  @@unique([userId, moduleId])
   @@index([cpdStatus, issuedAt])
   @@index([issuedAt])
 }

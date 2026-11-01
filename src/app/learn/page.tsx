@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, BookOpen, CheckCircle2, Lock, PlayCircle } from "lucide-react";
 import { requireSession } from "@/lib/auth";
-import { getLearnerHome, type LearnerCourseCard } from "@/lib/lms/catalog";
+import { getLearnerHome, type LearnerModuleCard } from "@/lib/lms/catalog";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState, PageHeader } from "@/components/dashboard/ui";
 import { ProgressBar } from "@/components/learn/ProgressBar";
@@ -12,25 +12,25 @@ import { CommunityCard } from "@/components/community/CommunityCard";
 
 export const metadata: Metadata = { title: "My learning" };
 
-type CourseState = "LOCKED" | "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
+type ModuleState = "LOCKED" | "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
 
-function courseState(course: LearnerCourseCard): CourseState {
-  if (course.lock !== "OPEN") return "LOCKED";
-  if (course.progress.total > 0 && course.progress.percent >= 100) return "COMPLETED";
-  return course.progress.completed > 0 ? "IN_PROGRESS" : "NOT_STARTED";
+function moduleState(mod: LearnerModuleCard): ModuleState {
+  if (mod.lock !== "OPEN") return "LOCKED";
+  if (mod.progress.total > 0 && mod.progress.percent >= 100) return "COMPLETED";
+  return mod.progress.completed > 0 ? "IN_PROGRESS" : "NOT_STARTED";
 }
 
-const STATE_CHIP: Record<CourseState, { label: string; className: string }> = {
+const STATE_CHIP: Record<ModuleState, { label: string; className: string }> = {
   LOCKED: { label: "Locked", className: "bg-ink-100 text-ink-600" },
   NOT_STARTED: { label: "Not started", className: "bg-ink-100 text-ink-700" },
   IN_PROGRESS: { label: "In progress", className: "bg-primary-50 text-primary-700" },
   COMPLETED: { label: "Completed", className: "bg-emerald-50 text-emerald-700" },
 };
 
-const STATE_ACTION: Record<Exclude<CourseState, "LOCKED">, string> = {
-  NOT_STARTED: "Start course",
+const STATE_ACTION: Record<Exclude<ModuleState, "LOCKED">, string> = {
+  NOT_STARTED: "Start module",
   IN_PROGRESS: "Continue",
-  COMPLETED: "Review course",
+  COMPLETED: "Review module",
 };
 
 export default async function LearnHome() {
@@ -44,21 +44,21 @@ export default async function LearnHome() {
         <PageHeader eyebrow="My learning" title={`Welcome, ${firstName}`} />
         <EmptyState
           icon={BookOpen}
-          title="No courses yet"
+          title="No modules yet"
           action={<ButtonLink href="/enroll">Browse programmes</ButtonLink>}
         >
-          Once you enrol in a programme, your courses will appear here.
+          Once you enrol in a programme, your modules will appear here.
         </EmptyState>
       </div>
     );
   }
 
-  const courses = programs.flatMap((p) => p.courses);
-  const completedCourses = courses.filter((c) => courseState(c) === "COMPLETED").length;
-  const lessonsDone = courses.reduce((n, c) => n + c.progress.completed, 0);
-  const lessonsTotal = courses.reduce((n, c) => n + c.progress.total, 0);
+  const modules = programs.flatMap((p) => p.modules);
+  const completedModules = modules.filter((c) => moduleState(c) === "COMPLETED").length;
+  const lessonsDone = modules.reduce((n, c) => n + c.progress.completed, 0);
+  const lessonsTotal = modules.reduce((n, c) => n + c.progress.total, 0);
   const overall = lessonsTotal ? Math.round((lessonsDone / lessonsTotal) * 100) : 0;
-  const continueCourse = continueLesson && courses.find((c) => c.slug === continueLesson.courseSlug);
+  const continueModule = continueLesson && modules.find((c) => c.slug === continueLesson.moduleSlug);
 
   return (
     <div className="mx-auto max-w-5xl space-y-10">
@@ -85,10 +85,10 @@ export default async function LearnHome() {
             </dd>
           </div>
           <div className="p-4 sm:p-5">
-            <dt className="text-xs text-ink-500 sm:text-sm">Courses completed</dt>
+            <dt className="text-xs text-ink-500 sm:text-sm">Modules completed</dt>
             <dd className="mt-1 font-display text-xl tabular-nums text-ink-950 sm:text-2xl">
-              {completedCourses}
-              <span className="text-sm font-medium text-ink-400 sm:text-base"> / {courses.length}</span>
+              {completedModules}
+              <span className="text-sm font-medium text-ink-400 sm:text-base"> / {modules.length}</span>
             </dd>
           </div>
         </dl>
@@ -106,16 +106,16 @@ export default async function LearnHome() {
             <div className="min-w-0 flex-1">
               <div className="text-sm text-primary-200">Continue where you left off</div>
               <div className="mt-1 font-display text-2xl leading-tight">{continueLesson.lessonTitle}</div>
-              <div className="mt-1 truncate text-sm text-white/60">{continueLesson.courseTitle}</div>
-              {continueCourse && (
+              <div className="mt-1 truncate text-sm text-white/60">{continueLesson.moduleTitle}</div>
+              {continueModule && (
                 <div className="mt-4 flex max-w-sm items-center gap-3 text-xs text-white/70">
                   <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/15">
                     <div
                       className="h-full rounded-full bg-white"
-                      style={{ width: `${continueCourse.progress.percent}%` }}
+                      style={{ width: `${continueModule.progress.percent}%` }}
                     />
                   </div>
-                  <span className="tabular-nums">{continueCourse.progress.percent}% of course</span>
+                  <span className="tabular-nums">{continueModule.progress.percent}% of module</span>
                 </div>
               )}
             </div>
@@ -136,14 +136,14 @@ export default async function LearnHome() {
           <div className="flex items-baseline justify-between gap-4">
             <h2 className="font-display text-xl text-ink-950">{program.title}</h2>
             <span className="text-sm text-ink-500">
-              {program.courses.length} {program.courses.length === 1 ? "course" : "courses"}
+              {program.modules.length} {program.modules.length === 1 ? "module" : "modules"}
             </span>
           </div>
 
           <Stagger className="mt-4 grid gap-4 sm:grid-cols-2">
-            {program.courses.map((course) => (
-              <StaggerItem key={course.id} className="flex">
-                <CourseCard course={course} href={`/learn/${program.slug}/${course.slug}`} />
+            {program.modules.map((mod) => (
+              <StaggerItem key={mod.id} className="flex">
+                <ModuleCard module={mod} href={`/learn/${program.slug}/${mod.slug}`} />
               </StaggerItem>
             ))}
           </Stagger>
@@ -153,10 +153,10 @@ export default async function LearnHome() {
   );
 }
 
-function CourseCard({ course, href }: { course: LearnerCourseCard; href: string }) {
-  const state = courseState(course);
+function ModuleCard({ module: mod, href }: { module: LearnerModuleCard; href: string }) {
+  const state = moduleState(mod);
   const chip = STATE_CHIP[state];
-  const { completed, total, percent } = course.progress;
+  const { completed, total, percent } = mod.progress;
 
   const body = (
     <>
@@ -170,16 +170,16 @@ function CourseCard({ course, href }: { course: LearnerCourseCard; href: string 
           {total} {total === 1 ? "lesson" : "lessons"}
         </span>
       </div>
-      <h3 className="mt-4 text-[17px] font-semibold leading-snug tracking-tight text-ink-950">{course.title}</h3>
-      {course.description && (
-        <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-ink-500">{course.description}</p>
+      <h3 className="mt-4 text-[17px] font-semibold leading-snug tracking-tight text-ink-950">{mod.title}</h3>
+      {mod.description && (
+        <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-ink-500">{mod.description}</p>
       )}
       <div className="mt-auto pt-6">
         {state === "LOCKED" ? (
           <p className="rounded-lg bg-ink-50 px-3 py-2.5 text-xs leading-relaxed text-ink-600">
-            {course.prerequisiteTitle
-              ? `Complete “${course.prerequisiteTitle}” to unlock this course.`
-              : "Complete the previous course to unlock this one."}
+            {mod.prerequisiteTitle
+              ? `Complete “${mod.prerequisiteTitle}” to unlock this module.`
+              : "Complete the previous module to unlock this one."}
           </p>
         ) : (
           <>

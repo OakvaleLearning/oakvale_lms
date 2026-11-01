@@ -130,7 +130,7 @@ export async function recordProgress(userId: string, lessonId: string, update: P
       update: data,
       create: { userId, lessonId, ...data },
     });
-    // Finishing a lesson, or raising a quiz score, may complete the course certificate.
+    // Finishing a lesson, or raising a quiz score, may complete the module certificate.
     const certify = completed && (existing?.status !== "COMPLETED" || (score ?? 0) > (existing?.score ?? 0));
     return { saved, certify };
   });
@@ -183,21 +183,21 @@ export async function getBlockProgress(userId: string, lessonId: string) {
   return new Map(rows.map((r) => [r.blockId, r]));
 }
 
-/** Completed / total published lessons for each course, for progress bars. */
-export async function getCourseProgress(userId: string, courseIds: string[]) {
+/** Completed / total published lessons for each module, for progress bars. */
+export async function getModuleProgress(userId: string, moduleIds: string[]) {
   const result = new Map<string, { completed: number; total: number; percent: number }>();
-  if (courseIds.length === 0) return result;
+  if (moduleIds.length === 0) return result;
 
   const lessons = await prisma.lesson.findMany({
-    where: { published: true, module: { courseId: { in: courseIds } } },
+    where: { published: true, topic: { moduleId: { in: moduleIds } } },
     select: {
-      module: { select: { courseId: true } },
+      topic: { select: { moduleId: true } },
       progress: { where: { userId, status: "COMPLETED" }, select: { lessonId: true } },
     },
   });
-  for (const id of courseIds) result.set(id, { completed: 0, total: 0, percent: 0 });
+  for (const id of moduleIds) result.set(id, { completed: 0, total: 0, percent: 0 });
   for (const l of lessons) {
-    const r = result.get(l.module.courseId)!;
+    const r = result.get(l.topic.moduleId)!;
     r.total += 1;
     if (l.progress.length) r.completed += 1;
   }

@@ -20,7 +20,7 @@ export function QuizPartEditor({
   questions: EditableQuestion[];
   settings: { kind: "QUIZ" | "EXAM"; passMark: number; maxAttempts: number | null; shuffle: boolean };
   sources: { kind: "QUIZ" | "EXAM"; sources: SourceLesson[] } | null;
-  /** Only a lesson made of just this quiz can be the course's final assessment. */
+  /** Only a lesson made of just this quiz can be the module's final assessment. */
   canBeExam: boolean;
 }) {
   const isExam = settings.kind === "EXAM";
@@ -33,7 +33,7 @@ export function QuizPartEditor({
         </summary>
         <div className="border-t border-line p-4 sm:p-5">
           <p className="mb-4 text-xs text-ink-500">
-            Drafts questions, answers and explanations from this course&apos;s lessons. You can edit every question afterwards.
+            Drafts questions, answers and explanations from this module&apos;s lessons. You can edit every question afterwards.
           </p>
           {sources ? (
             <QuizGenerator
@@ -104,7 +104,7 @@ export function QuizPartEditor({
                 hint={
                   isExam
                     ? "Shown after every other lesson; learners open it once they've completed them all."
-                    : "Shown where you place it in the course, after the lessons it checks."
+                    : "Shown where you place it in the module, after the lessons it checks."
                 }
               >
                 <Select name="kind" defaultValue={settings.kind}>

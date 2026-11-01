@@ -25,13 +25,13 @@ export async function GET(req: Request) {
     include: { user: { select: { email: true, phone: true } } },
   });
 
-  const header = ["Full name", "Email", "Phone", "Course", "Programme", "CPD hours", "Issuing body", "Completed on", "Score (%)", "Oakvale certificate ID", "Verification link"];
+  const header = ["Full name", "Email", "Phone", "Module", "Programme", "CPD hours", "Issuing body", "Completed on", "Score (%)", "Oakvale certificate ID", "Verification link"];
   const lines = certificates.map((c) =>
     [
       c.recipientName,
       c.user.email,
       c.user.phone,
-      c.courseTitle,
+      c.moduleTitle,
       c.programTitle,
       c.cpdHours,
       c.cpdProvider,

@@ -4,7 +4,7 @@ import type { OutlineLesson } from "@/lib/lms/catalog";
 import { ProgressBar } from "@/components/learn/ProgressBar";
 import { cn } from "@/lib/utils";
 
-type OutlineModule = { id: string; title: string; lessons: OutlineLesson[] };
+type OutlineTopic = { id: string; title: string; lessons: OutlineLesson[] };
 
 export function formatDuration(sec: number | null) {
   if (!sec) return null;
@@ -19,14 +19,14 @@ export function LessonStatusIcon({ lesson, className }: { lesson: OutlineLesson;
   return <Circle className={cn("size-4 shrink-0 text-ink-300", className)} />;
 }
 
-/** Compact list of every lesson in the course, shown beside the lesson being studied. */
-export function CourseOutline({
-  modules,
+/** Compact list of every lesson in the module, shown beside the lesson being studied. */
+export function ModuleOutline({
+  topics,
   base,
   currentId,
   progress,
 }: {
-  modules: OutlineModule[];
+  topics: OutlineTopic[];
   base: string;
   currentId: string;
   progress: { completed: number; total: number; percent: number };
@@ -35,7 +35,7 @@ export function CourseOutline({
     <aside className="card overflow-hidden">
       <div className="border-b border-line p-5">
         <div className="flex items-baseline justify-between text-sm">
-          <span className="font-medium text-ink-950">Course contents</span>
+          <span className="font-medium text-ink-950">Module contents</span>
           <span className="tabular-nums text-ink-500">
             {progress.completed}/{progress.total} done
           </span>
@@ -43,7 +43,7 @@ export function CourseOutline({
         <ProgressBar percent={progress.percent} className="mt-3" />
       </div>
       <div className="max-h-[60vh] overflow-y-auto py-2 lg:max-h-[calc(100vh-14rem)]">
-        {modules.map((m, mi) => (
+        {topics.map((m, mi) => (
           <section key={m.id} className="py-2">
             <h3 className="truncate px-5 pb-1.5 text-xs font-medium text-ink-500">
               {m.id === "final-assessment" ? m.title : `${mi + 1}. ${m.title}`}

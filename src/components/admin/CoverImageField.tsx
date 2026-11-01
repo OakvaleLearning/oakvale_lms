@@ -25,7 +25,7 @@ function putWithProgress(url: string, file: File, contentType: string, onProgres
   });
 }
 
-/** Cover image for a programme or course: drop or pick an image, uploaded straight to the bucket. */
+/** Cover image for a programme or module: drop or pick an image, uploaded straight to the bucket. */
 export function CoverImageField({ target, current }: { target: CoverTarget; current: string | null }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);

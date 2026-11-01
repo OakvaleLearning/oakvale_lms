@@ -8,14 +8,14 @@ import { LESSON_TYPE_LABEL, LessonIcon } from "@/components/learn/LessonIcon";
 import { LessonParts } from "@/components/learn/LessonParts";
 import { TutorPanel } from "@/components/learn/TutorPanel";
 import { getTutorAvailability } from "@/lib/lms/tutor";
-import { getCourseOutline } from "@/lib/lms/catalog";
-import { getBlockProgress, getCourseProgress } from "@/lib/lms/progress";
-import { CourseOutline } from "@/components/learn/CourseOutline";
+import { getModuleOutline } from "@/lib/lms/catalog";
+import { getBlockProgress, getModuleProgress } from "@/lib/lms/progress";
+import { ModuleOutline } from "@/components/learn/ModuleOutline";
 import { Breadcrumbs } from "@/components/dashboard/ui";
 
-export default async function LessonPage({ params }: PageProps<"/learn/[program]/[course]/[lessonId]">) {
-  const { program: programSlug, course: courseSlug, lessonId } = await params;
-  const base = `/learn/${programSlug}/${courseSlug}`;
+export default async function LessonPage({ params }: PageProps<"/learn/[program]/[module]/[lessonId]">) {
+  const { program: programSlug, module: moduleSlug, lessonId } = await params;
+  const base = `/learn/${programSlug}/${moduleSlug}`;
   const session = await requireSession(`${base}/${lessonId}`);
 
   const access = await checkLessonAccess(session, lessonId);
@@ -25,17 +25,17 @@ export default async function LessonPage({ params }: PageProps<"/learn/[program]
     redirect(access.reason === "SEQUENTIAL" ? `${base}?locked=1` : access.reason === "EXAM_LOCKED" ? `${base}?locked=exam` : base);
   }
   const { lesson } = access;
-  const course = lesson.module.course;
-  if (course.slug !== courseSlug || course.program.slug !== programSlug) notFound();
+  const mod = lesson.topic.module;
+  if (mod.slug !== moduleSlug || mod.program.slug !== programSlug) notFound();
 
   const isAdmin = session.role === "ADMIN";
-  const [ordered, progress, partProgress, tutor, outline, courseProgress] = await Promise.all([
-    getOrderedLessons(course.id, isAdmin),
+  const [ordered, progress, partProgress, tutor, outline, moduleProgress] = await Promise.all([
+    getOrderedLessons(mod.id, isAdmin),
     prisma.lessonProgress.findUnique({ where: { userId_lessonId: { userId: session.userId, lessonId } } }),
     getBlockProgress(session.userId, lessonId),
     getTutorAvailability(session, lesson),
-    getCourseOutline(session.userId, course.id, { sequential: course.sequential, isAdmin }),
-    getCourseProgress(session.userId, [course.id]),
+    getModuleOutline(session.userId, mod.id, { sequential: mod.sequential, isAdmin }),
+    getModuleProgress(session.userId, [mod.id]),
   ]);
   const index = ordered.findIndex((l) => l.id === lessonId);
   const prev = ordered[index - 1];
@@ -47,7 +47,7 @@ export default async function LessonPage({ params }: PageProps<"/learn/[program]
       <Breadcrumbs
         items={[
           { label: "My learning", href: "/learn" },
-          { label: course.title, href: base },
+          { label: mod.title, href: base },
           { label: lesson.title },
         ]}
       />
@@ -59,7 +59,7 @@ export default async function LessonPage({ params }: PageProps<"/learn/[program]
               <LessonIcon type={lesson.type} className="size-3.5" />
               {lesson.type === "MIXED" ? `Multi-part · ${lesson.blocks.length} parts` : LESSON_TYPE_LABEL[lesson.type]}
             </span>
-            <span className="truncate">{lesson.module.title}</span>
+            <span className="truncate">{lesson.topic.title}</span>
           </div>
           <h1 className="mt-3 font-display text-3xl leading-tight text-ink-950">{lesson.title}</h1>
         </div>
@@ -74,10 +74,10 @@ export default async function LessonPage({ params }: PageProps<"/learn/[program]
           </span>
           <Link
             href={next ? `${base}/${next.id}` : base}
-            title={next ? next.title : "Back to course overview"}
+            title={next ? next.title : "Back to module overview"}
             className="group inline-flex h-10 items-center gap-1.5 rounded-xl bg-primary-600 pl-4 pr-3 font-medium text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.12)] transition-colors hover:bg-primary-700"
           >
-            {next ? "Next lesson" : "Finish course"}
+            {next ? "Next lesson" : "Finish module"}
             <ChevronRight className="size-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
           </Link>
         </div>
@@ -111,11 +111,11 @@ export default async function LessonPage({ params }: PageProps<"/learn/[program]
         </div>
 
         <div className="lg:sticky lg:top-8">
-          <CourseOutline
-            modules={outline}
+          <ModuleOutline
+            topics={outline}
             base={base}
             currentId={lesson.id}
-            progress={courseProgress.get(course.id)!}
+            progress={moduleProgress.get(mod.id)!}
           />
         </div>
       </div>

@@ -234,7 +234,7 @@ const MIME: Record<string, string> = {
 };
 
 /* ------------------------------------------------------------------ *
- * Cover images (programmes and courses)
+ * Cover images (programmes and modules)
  * ------------------------------------------------------------------ */
 
 /** Bucket prefix for cover images; these are served publicly via /media/. */

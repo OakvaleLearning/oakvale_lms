@@ -10,7 +10,7 @@ const START = [
   { value: "TEXT", hint: "Starts with written content" },
   { value: "SCORM", hint: "A package from an authoring tool" },
   { value: "HTML", hint: "A web page or .zip of one" },
-  { value: "EMBED", hint: "A Genially or other online course, by link" },
+  { value: "EMBED", hint: "A Genially or other online module, by link" },
   { value: "QUIZ", hint: "Checks the lessons before it" },
   { value: "EXAM", hint: "Final assessment, after all lessons" },
 ] as const;

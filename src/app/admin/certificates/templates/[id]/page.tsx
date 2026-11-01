@@ -37,7 +37,7 @@ export default async function TemplatePage({ params }: PageProps<"/admin/certifi
           !template.isDefault && (
             <DeleteButton
               onDelete={deleteTemplate.bind(null, template.id)}
-              confirmText={`Delete “${template.name}”? Courses and certificates using it switch to the default template.`}
+              confirmText={`Delete “${template.name}”? Modules and certificates using it switch to the default template.`}
               label="Delete"
             />
           )

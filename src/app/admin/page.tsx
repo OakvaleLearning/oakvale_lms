@@ -50,7 +50,7 @@ export default async function AdminOverview() {
           <div>
             <div className="font-semibold">Pre-launch mode is on</div>
             <p className="mt-1 text-amber-900/80">
-              Learners can enrol and pay, but can&apos;t open courses yet. They see &ldquo;your place is
+              Learners can enrol and pay, but can&apos;t open modules yet. They see &ldquo;your place is
               secured&rdquo;. You can build and preview everything. On launch day, remove the{" "}
               <code className="rounded bg-amber-100 px-1 py-0.5 font-mono text-xs">PRELAUNCH</code> environment
               variable and redeploy.
@@ -65,7 +65,7 @@ export default async function AdminOverview() {
               <Rocket className="size-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <div className="font-semibold text-ink-950">Courses are open</div>
+              <div className="font-semibold text-ink-950">Modules are open</div>
               <p className="mt-0.5 text-ink-500">Let learners who enrolled before launch know they can start.</p>
             </div>
             <LaunchEmailButton pending={launchPending} />

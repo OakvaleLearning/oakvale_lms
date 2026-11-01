@@ -74,10 +74,10 @@ export const tierSchema = z.object({
   description: z.string().trim().max(1000).default(""),
   priceNaira: z.coerce.number().int("Whole Naira only").min(0).max(100_000_000),
   published: z.boolean().default(true),
-  courseIds: z.array(z.string().max(40)).max(200).default([]),
+  moduleIds: z.array(z.string().max(40)).max(200).default([]),
 });
 
-export const courseSchema = z.object({
+export const moduleSchema = z.object({
   title: z.string().trim().min(2, "Title is too short").max(160),
   description: z.string().trim().max(4000).default(""),
   published: z.boolean().default(false),
@@ -87,13 +87,13 @@ export const courseSchema = z.object({
 
 /**
  * What a new lesson starts with: nothing (add parts yourself), one part of a
- * kind, or the course's final assessment.
+ * kind, or the module's final assessment.
  */
 export const LESSON_STARTS = ["MIXED", ...BLOCK_TYPES, "EXAM"] as const;
 
 export const lessonCreateSchema = z.object({
   title: z.string().trim().min(2, "Title is too short").max(200),
-  // "EXAM" creates a quiz lesson that is the course's final assessment.
+  // "EXAM" creates a quiz lesson that is the module's final assessment.
   type: z.enum(LESSON_STARTS),
 });
 

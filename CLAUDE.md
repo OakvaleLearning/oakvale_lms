@@ -1,5 +1,12 @@
 @AGENTS.md
 
+## Catalogue: Programme → Module → Topic → Lesson
+
+- `Module` is the top level of a programme (e.g. Foundation / Professional): tiers unlock modules (`TierModule`), and prerequisites, `sequential`, certificates and CPD are all per module. `Topic` groups lessons inside a module. These were called Course and Module before November 2026 (migration `20261101120000_module_topic_rename`).
+- Never name a local variable `module` (Next's lint rule forbids it, and it shadows Node's global); use `mod`.
+- The mobile API keeps the old names alongside the new ones for older app versions: `/api/v1/courses/...` (legacy outline), `programs[].courses`, `continueLesson.courseSlug/courseTitle`, and `lesson.course` / `lesson.moduleTitle` (the topic's title) in `/api/v1/lessons/[id]`. New fields: `/api/v1/modules/...`, `programs[].modules`, `lesson.module`, `lesson.topicTitle`. Don't remove the old ones until the app no longer reads them.
+- Certificate templates use `{module}`; `{course}` still works as an alias. `/admin/courses/:id` redirects to `/admin/modules/:id` (`next.config.ts`).
+
 ## Lessons are built from parts
 
 - A `Lesson` holds ordered `LessonBlock`s ("parts"): VIDEO, AUDIO, DOCUMENT, TEXT, EMBED, SCORM, HTML, QUIZ.
