@@ -158,6 +158,30 @@ const fillBlankQuestionSchema = z
 export const questionSchema = z.discriminatedUnion("type", [choiceQuestionSchema, fillBlankQuestionSchema]);
 
 /* ------------------------------------------------------------------ *
+ * Question banks and tier pre-assessments
+ * ------------------------------------------------------------------ */
+
+export const questionBankSchema = z.object({
+  title: z.string().trim().min(2, "Title is too short").max(120),
+  description: z.string().trim().max(1000).default(""),
+});
+
+export const preAssessmentSchema = z
+  .object({
+    enabled: z.boolean().default(false),
+    instructions: z.string().trim().max(2000).default(""),
+    questionCount: z.coerce.number().int().min(1, "Ask at least one question").max(200),
+    passMark: z.coerce.number().int().min(0).max(100),
+    maxAttempts: z.coerce.number().int().min(1).max(100).optional(),
+    retakeAfterHours: z.coerce.number().int().min(0).max(720).default(0),
+    bankIds: z.array(z.string().max(40)).max(50).default([]),
+  })
+  .refine((a) => !a.enabled || a.bankIds.length > 0, {
+    message: "Choose at least one question bank before switching it on",
+    path: ["bankIds"],
+  });
+
+/* ------------------------------------------------------------------ *
  * Community
  * ------------------------------------------------------------------ */
 

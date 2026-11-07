@@ -9,6 +9,7 @@ import {
   LogOut,
   LayoutDashboard,
   BookOpen,
+  ClipboardList,
   Layers,
   Receipt,
   Users,
@@ -57,6 +58,7 @@ const NAV: Record<"learner" | "admin", { section: string; items: NavItem[] }> = 
     items: [
       { label: "Overview", href: "/admin", icon: LayoutDashboard },
       { label: "Programmes", href: "/admin/programs", icon: Layers },
+      { label: "Question banks", href: "/admin/question-banks", icon: ClipboardList },
       { label: "Learners", href: "/admin/learners", icon: Users },
       { label: "Payments", href: "/admin/payments", icon: Receipt },
       { label: "Certificates", href: "/admin/certificates", icon: Award },

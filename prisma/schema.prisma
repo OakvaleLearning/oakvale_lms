@@ -4,6 +4,7 @@
 // Commerce:   Program → Tier (priced) → TierModule (which modules a tier unlocks)
 //             User buys a Tier → Enrollment (+ Payment via Paystack)
 // Learning:   LessonProgress / ScormState / QuizAttempt per user
+// Entry:      Tier → PreAssessment (draws from QuestionBanks) → must pass before checkout
 generator client {
   provider = "prisma-client-js"
 }
@@ -25,43 +26,44 @@ enum Role {
 }
 
 model User {
-  id                String                   @id @default(cuid())
-  name              String
-  email             String                   @unique
+  id                    String                   @id @default(cuid())
+  name                  String
+  email                 String                   @unique
   // WhatsApp / phone number, stored normalised (e.g. "+2348108189514").
-  phone             String?
-  passwordHash      String
-  role              Role                     @default(LEARNER)
+  phone                 String?
+  passwordHash          String
+  role                  Role                     @default(LEARNER)
   // Set when the learner clicks the link in their sign-up email (or resets
   // their password by email). Required before paying or opening lessons.
-  emailVerifiedAt   DateTime?
+  emailVerifiedAt       DateTime?
   // When the "modules are open" email went out (sent once, after pre-launch).
-  launchEmailSentAt DateTime?
-  createdAt         DateTime                 @default(now())
-  updatedAt         DateTime                 @updatedAt
-  resetTokens       PasswordResetToken[]
-  verifyTokens      EmailVerificationToken[]
-  enrollments       Enrollment[]
-  payments          Payment[]
-  progress          LessonProgress[]
-  blockProgress     BlockProgress[]
-  scormStates       ScormState[]
-  quizAttempts      QuizAttempt[]
-  tutorThreads      TutorThread[]
-  supportChat       SupportConversation?
-  supportMessages   SupportMessage[]
-  emailDeliveries   EmailDelivery[]
-  certificates      Certificate[]
-  communityProfile  CommunityProfile?
-  groupAdminOf      GroupAdmin[]
-  posts             Post[]
-  comments          Comment[]
-  reactions         Reaction[]
-  eventRsvps        EventRsvp[]
-  eventsCreated     CommunityEvent[]
-  notifications     Notification[]           @relation("NotificationRecipient")
-  notificationsSent Notification[]           @relation("NotificationActor")
-  reports           PostReport[]
+  launchEmailSentAt     DateTime?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  resetTokens           PasswordResetToken[]
+  verifyTokens          EmailVerificationToken[]
+  enrollments           Enrollment[]
+  payments              Payment[]
+  progress              LessonProgress[]
+  blockProgress         BlockProgress[]
+  scormStates           ScormState[]
+  quizAttempts          QuizAttempt[]
+  preAssessmentAttempts PreAssessmentAttempt[]
+  tutorThreads          TutorThread[]
+  supportChat           SupportConversation?
+  supportMessages       SupportMessage[]
+  emailDeliveries       EmailDelivery[]
+  certificates          Certificate[]
+  communityProfile      CommunityProfile?
+  groupAdminOf          GroupAdmin[]
+  posts                 Post[]
+  comments              Comment[]
+  reactions             Reaction[]
+  eventRsvps            EventRsvp[]
+  eventsCreated         CommunityEvent[]
+  notifications         Notification[]           @relation("NotificationRecipient")
+  notificationsSent     Notification[]           @relation("NotificationActor")
+  reports               PostReport[]
 }
 
 /// Single-use, time-limited password reset tokens. Only the SHA-256 hash of the
@@ -138,23 +140,100 @@ model Program {
 
 /// A purchasable level of a program (e.g. Foundation / Professional / Full).
 model Tier {
-  id          String           @id @default(cuid())
-  program     Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
-  programId   String
-  slug        String
-  name        String
-  description String           @default("")
-  price       Int // kobo (NGN * 100), to match Paystack
-  order       Int              @default(0)
-  published   Boolean          @default(true)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  modules     TierModule[]
-  enrollments Enrollment[]
-  groups      CommunityGroup[]
+  id            String           @id @default(cuid())
+  program       Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
+  programId     String
+  slug          String
+  name          String
+  description   String           @default("")
+  price         Int // kobo (NGN * 100), to match Paystack
+  order         Int              @default(0)
+  published     Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  modules       TierModule[]
+  enrollments   Enrollment[]
+  groups        CommunityGroup[]
+  // Entry test learners must pass before they can pay for this tier.
+  preAssessment PreAssessment?
 
   @@unique([programId, slug])
   @@index([programId, order])
+}
+
+/**
+ * ------------------------------------------------------------------ *
+ * Pre-assessments (entry tests before enrolment)
+ * ------------------------------------------------------------------
+ */
+
+/// A named, reusable set of questions that tier pre-assessments draw from.
+model QuestionBank {
+  id          String          @id @default(cuid())
+  title       String
+  description String          @default("")
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  questions   BankQuestion[]
+  assessments PreAssessment[]
+}
+
+/// A question in a bank. Same shape as a lesson quiz's Question.
+model BankQuestion {
+  id          String       @id @default(cuid())
+  bank        QuestionBank @relation(fields: [bankId], references: [id], onDelete: Cascade)
+  bankId      String
+  order       Int          @default(0)
+  type        QuestionType
+  prompt      String
+  options     Json // [{ id, text }]
+  correct     Json // [optionId], or one accepted-answers string per blank — never sent to learners
+  explanation String?
+  points      Int          @default(1)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([bankId, order])
+}
+
+/// A tier's entry test. While enabled (and its banks hold questions), learners
+/// must pass it before checkout opens. Admin-granted enrolments skip it.
+model PreAssessment {
+  id               String                 @id @default(cuid())
+  tier             Tier                   @relation(fields: [tierId], references: [id], onDelete: Cascade)
+  tierId           String                 @unique
+  enabled          Boolean                @default(false)
+  // Shown to learners before they start.
+  instructions     String                 @default("")
+  // Drawn at random from the banks for each attempt (all of them if the banks hold fewer).
+  questionCount    Int                    @default(20)
+  passMark         Int                    @default(70) // percent
+  maxAttempts      Int? // null = unlimited
+  // How long a learner waits after a failed attempt before retaking. 0 = straight away.
+  retakeAfterHours Int                    @default(24)
+  banks            QuestionBank[]
+  attempts         PreAssessmentAttempt[]
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+}
+
+/// One sitting of a pre-assessment. The questions are drawn when it starts,
+/// so reloading the page shows the same ones.
+model PreAssessmentAttempt {
+  id           String        @id @default(cuid())
+  assessment   PreAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  assessmentId String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  questionIds  Json // BankQuestion ids, in the order shown
+  answers      Json? // { [questionId]: string[] }
+  score        Int? // percent; null until submitted
+  passed       Boolean       @default(false)
+  startedAt    DateTime      @default(now())
+  submittedAt  DateTime?
+
+  @@index([assessmentId, userId])
+  @@index([userId])
 }
 
 /// Which modules a tier unlocks.

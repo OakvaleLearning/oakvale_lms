@@ -21,6 +21,14 @@
 - Admin editor: `src/app/admin/lessons/[id]/` (server actions in `actions.ts`, client builder in `src/components/admin/LessonBuilder.tsx`). Learner view: `src/components/learn/LessonParts.tsx`. Mobile API: `/api/v1/lessons/[id]` returns `parts[]` (plus `content` for older clients).
 - Changing the schema: write a Prisma migration by hand only if `prisma migrate dev` can't run; run `npx prisma generate` before type-checking.
 
+## Pre-assessments gate enrolment
+
+- A tier can have a `PreAssessment` (an entry test). While it is `enabled` and its question banks hold at least one question (`activeAssessmentWhere`), a learner must pass it before checkout opens for that tier. `/api/enroll` enforces this with `needsPreAssessment` and returns `{ preAssessment: "/pre-assessment/<tierId>" }`, which `EnrollButton` follows. Admin-granted enrolments skip it, and existing enrolments are unaffected. The mobile API has no checkout, so it has no gate.
+- Questions live in reusable `QuestionBank`s (`BankQuestion`, same shape and the same four types as a lesson quiz's `Question`). A pre-assessment uses one or more banks (implicit m2m). Each attempt draws `questionCount` questions at random when it starts and stores their ids on `PreAssessmentAttempt.questionIds`, so reloading shows the same questions. Attempts are marked on the server and learners see only their score, never the answers.
+- Retakes: `maxAttempts` (null = unlimited) counts every attempt started; `retakeAfterHours` is the wait after a failed one. A pass never expires and is per tier.
+- Logic: `src/lib/lms/pre-assessment.ts`. Learner page: `src/app/(checkout)/pre-assessment/[tierId]/` (adds an "Assessment" step to `CheckoutSteps`). Admin: `/admin/question-banks` (banks, questions, copy from a lesson quiz) and `/admin/tiers/[id]/pre-assessment` (settings, results, reset a learner's attempts), linked from each tier on the programme page. Actions: `src/app/admin/question-banks/actions.ts`.
+- Marking is shared with lesson quizzes: `gradeAnswers` and `toLearnerQuestion` in `src/lib/lms/quiz.ts`. The answering UI is shared too: `QuestionCard` in `src/components/learn/QuestionCard.tsx`. `QuestionEditor` takes a bound `save` action (`saveQuestion` for lessons, `saveBankQuestion` for banks).
+
 ## Community groups and group admins
 
 - Group membership is derived, not stored (`src/lib/community/access.ts`): an active enrolment matching the group's audience plus a verified email. Site admins (`User.role = ADMIN`) are in every group and show as the Oakvale Team.

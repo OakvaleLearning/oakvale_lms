@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession, isEmailVerified } from "@/lib/auth";
 import { generateReference, initializeTransaction } from "@/lib/paystack";
+import { needsPreAssessment } from "@/lib/lms/pre-assessment";
 
 const enrollSchema = z.object({ tierId: z.string().min(1).max(40) });
 
@@ -36,6 +37,12 @@ export async function POST(req: Request) {
     const existing = await prisma.enrollment.findUnique({ where: identity });
     if (existing?.status === "ACTIVE") {
       return NextResponse.json({ error: "You are already enrolled.", enrolled: true }, { status: 409 });
+    }
+    if (await needsPreAssessment(session.userId, tier.id)) {
+      return NextResponse.json(
+        { error: "Please pass the pre-assessment for this tier first.", preAssessment: `/pre-assessment/${tier.id}` },
+        { status: 403 }
+      );
     }
 
     const reference = generateReference();

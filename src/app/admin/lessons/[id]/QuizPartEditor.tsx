@@ -5,7 +5,7 @@ import { QuizGenerator } from "@/components/admin/QuizGenerator";
 import { displayBlankPrompt } from "@/lib/lms/fill-blank";
 import type { SourceLesson } from "@/lib/lms/quiz-generator";
 import { moveItem } from "../../actions";
-import { deleteQuestion, updateQuizSettings } from "./actions";
+import { deleteQuestion, saveQuestion, updateQuizSettings } from "./actions";
 
 const QUESTION_TYPE: Record<EditableQuestion["type"], string> = {
   SINGLE: "Single answer",
@@ -70,7 +70,7 @@ export function QuizPartEditor({
               <ChevronDown className="size-4 shrink-0 text-ink-400 transition-transform group-open:rotate-180" />
             </summary>
             <div className="border-t border-line p-4 sm:p-5">
-              <QuestionEditor lessonId={lessonId} question={q} />
+              <QuestionEditor save={saveQuestion.bind(null, lessonId)} question={q} />
               <div className="mt-4 flex justify-end border-t border-line pt-3">
                 <DeleteButton
                   onDelete={deleteQuestion.bind(null, lessonId, q.id)}
@@ -89,7 +89,7 @@ export function QuizPartEditor({
             <Plus className="size-4" /> Add a question
           </summary>
           <div className="border-t border-line p-4 sm:p-5">
-            <QuestionEditor lessonId={lessonId} />
+            <QuestionEditor save={saveQuestion.bind(null, lessonId)} />
           </div>
         </details>
       </div>

@@ -33,13 +33,63 @@ export interface QuestionResult {
   explanation?: string | null;
 }
 
-function shuffled<T>(items: T[]): T[] {
+export function shuffled<T>(items: T[]): T[] {
   const a = [...items];
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+/** The fields of a stored question that marking and the learner view need (Question and BankQuestion both fit). */
+export interface StoredQuestion {
+  id: string;
+  type: LearnerQuestion["type"];
+  prompt: string;
+  options: unknown;
+  correct: unknown;
+  explanation: string | null;
+  points: number;
+}
+
+/** A stored question as learners see it, with the answers stripped. */
+export function toLearnerQuestion(q: StoredQuestion, shuffleOptions = false): LearnerQuestion {
+  if (q.type === "FILL_BLANK") {
+    return {
+      id: q.id,
+      type: q.type,
+      prompt: displayBlankPrompt(q.prompt),
+      options: [],
+      segments: blankSegments(q.prompt),
+      points: q.points,
+    };
+  }
+  const options = q.options as QuizOption[];
+  return { id: q.id, type: q.type, prompt: q.prompt, options: shuffleOptions ? shuffled(options) : options, points: q.points };
+}
+
+/** Mark answers against stored questions. The score is the share of points earned, as a whole percent. */
+export function gradeAnswers<Q extends StoredQuestion>(questions: Q[], answers: Record<string, string[]>) {
+  let earned = 0;
+  let possible = 0;
+  const graded = questions.map((q) => {
+    possible += q.points;
+    if (q.type === "FILL_BLANK") {
+      // One mark per blank: a question with three blanks and two right earns two thirds of its points.
+      const correct = q.correct as string[];
+      const blanks = correct.map((accepted, i) => blankMatches(answers[q.id]?.[i], accepted));
+      const right = blanks.filter(Boolean).length;
+      earned += correct.length ? (q.points * right) / correct.length : 0;
+      return { q, correct, blanks, isRight: right === correct.length };
+    }
+    const correct = [...(q.correct as string[])].sort();
+    const given = [...new Set(answers[q.id] ?? [])].sort();
+    const isRight = correct.length === given.length && correct.every((c, i) => c === given[i]);
+    if (isRight) earned += q.points;
+    return { q, correct, blanks: undefined as boolean[] | undefined, isRight };
+  });
+  return { score: possible ? Math.round((earned / possible) * 100) : 0, graded };
 }
 
 export async function getQuizForLearner(lessonId: string, userId: string) {
@@ -55,24 +105,7 @@ export async function getQuizForLearner(lessonId: string, userId: string) {
     select: { score: true, passed: true, createdAt: true },
   });
 
-  const questions: LearnerQuestion[] = quiz.questions.map((q) =>
-    q.type === "FILL_BLANK"
-      ? {
-          id: q.id,
-          type: q.type,
-          prompt: displayBlankPrompt(q.prompt),
-          options: [],
-          segments: blankSegments(q.prompt),
-          points: q.points,
-        }
-      : {
-          id: q.id,
-          type: q.type,
-          prompt: q.prompt,
-          options: quiz.shuffle ? shuffled(q.options as unknown as QuizOption[]) : (q.options as unknown as QuizOption[]),
-          points: q.points,
-        }
-  );
+  const questions = quiz.questions.map((q) => toLearnerQuestion(q, quiz.shuffle));
 
   return {
     id: quiz.id,
@@ -113,26 +146,7 @@ export async function submitQuiz(
     return { ok: false, error: "You have used all your attempts for this quiz." };
   }
 
-  let earned = 0;
-  let possible = 0;
-  const graded = quiz.questions.map((q) => {
-    possible += q.points;
-    if (q.type === "FILL_BLANK") {
-      // One mark per blank: a question with three blanks and two right earns two thirds of its points.
-      const correct = q.correct as string[];
-      const blanks = correct.map((accepted, i) => blankMatches(answers[q.id]?.[i], accepted));
-      const right = blanks.filter(Boolean).length;
-      earned += correct.length ? (q.points * right) / correct.length : 0;
-      return { q, correct, blanks, isRight: right === correct.length };
-    }
-    const correct = [...(q.correct as string[])].sort();
-    const given = [...new Set(answers[q.id] ?? [])].sort();
-    const isRight = correct.length === given.length && correct.every((c, i) => c === given[i]);
-    if (isRight) earned += q.points;
-    return { q, correct, blanks: undefined, isRight };
-  });
-
-  const score = possible ? Math.round((earned / possible) * 100) : 0;
+  const { score, graded } = gradeAnswers(quiz.questions, answers);
   const passed = score >= quiz.passMark;
 
   await prisma.quizAttempt.create({

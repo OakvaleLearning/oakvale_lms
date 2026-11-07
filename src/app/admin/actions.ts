@@ -374,7 +374,7 @@ export async function deleteLesson(id: string): Promise<ActionState> {
  * Ordering
  * ------------------------------------------------------------------ */
 
-const MOVABLE = ["program", "tier", "module", "topic", "lesson", "question"] as const;
+const MOVABLE = ["program", "tier", "module", "topic", "lesson", "question", "bankQuestion"] as const;
 type Movable = (typeof MOVABLE)[number];
 
 /** Move an item one place up (-1) or down (+1) among its siblings. */
@@ -421,6 +421,10 @@ async function loadSiblings(kind: Movable, id: string): Promise<{ id: string }[]
     case "question": {
       const q = await prisma.question.findUniqueOrThrow({ where: { id }, select: { quizId: true } });
       return prisma.question.findMany({ where: { quizId: q.quizId }, orderBy, select: { id: true } });
+    }
+    case "bankQuestion": {
+      const q = await prisma.bankQuestion.findUniqueOrThrow({ where: { id }, select: { bankId: true } });
+      return prisma.bankQuestion.findMany({ where: { bankId: q.bankId }, orderBy, select: { id: true } });
     }
   }
 }

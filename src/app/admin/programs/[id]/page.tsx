@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BookOpen, ChevronDown, ChevronRight, ExternalLink, Plus } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronRight, ClipboardCheck, ExternalLink, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { formatNaira } from "@/lib/utils";
@@ -48,6 +48,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
         orderBy: [{ order: "asc" }, { createdAt: "asc" }],
         include: {
           modules: { select: { moduleId: true } },
+          preAssessment: { select: { enabled: true } },
           _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
         },
       },
@@ -208,6 +209,7 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
                             <span className="block text-xs text-ink-500">
                               {included.size} {included.size === 1 ? "module" : "modules"} · {t._count.enrollments} active{" "}
                               {t._count.enrollments === 1 ? "learner" : "learners"}
+                              {t.preAssessment?.enabled && " · pre-assessment"}
                             </span>
                           </span>
                           <span className="hidden sm:block">
@@ -218,7 +220,14 @@ export default async function ProgramPage({ params }: PageProps<"/admin/programs
                       </summary>
                       <div className="border-t border-line p-4 sm:p-5">
                         <TierFields action={updateTier.bind(null, t.id)} modules={moduleOptions} tier={{ ...t, included }} />
-                        <div className="mt-4 flex justify-end border-t border-line pt-3">
+                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
+                          <Link
+                            href={`/admin/tiers/${t.id}/pre-assessment`}
+                            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-700 hover:text-primary-900"
+                          >
+                            <ClipboardCheck className="size-4" />
+                            Pre-assessment: {t.preAssessment?.enabled ? "on" : "off"}
+                          </Link>
                           <DeleteButton
                             onDelete={deleteTier.bind(null, t.id)}
                             confirmText={`Delete the “${t.name}” tier?`}

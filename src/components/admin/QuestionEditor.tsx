@@ -4,7 +4,6 @@ import { useState, useTransition } from "react";
 import { Check, Loader2, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
-import { saveQuestion } from "@/app/admin/lessons/[id]/actions";
 import { blankSegments, parseBlankText, toBlankText } from "@/lib/lms/fill-blank";
 import { Field, Input, Textarea } from "./forms";
 
@@ -41,7 +40,18 @@ const blankOptions = () => [
   { id: newId(), text: "" },
 ];
 
-export function QuestionEditor({ lessonId, question }: { lessonId: string; question?: EditableQuestion }) {
+/** Saves the question (new when `questionId` is null), e.g. a lesson's saveQuestion bound to its id. */
+export type SaveQuestion = (questionId: string | null, input: unknown) => Promise<{ ok: true } | { ok: false; error: string }>;
+
+export function QuestionEditor({
+  save: saveAction,
+  question,
+  explanationHint = "Shown after the learner passes or runs out of attempts. Optional.",
+}: {
+  save: SaveQuestion;
+  question?: EditableQuestion;
+  explanationHint?: string;
+}) {
   const [type, setType] = useState<QType>(question?.type ?? "SINGLE");
   // Fill-in-the-blank prompts are edited with their answers in [brackets].
   const [prompt, setPrompt] = useState(
@@ -80,8 +90,7 @@ export function QuestionEditor({ lessonId, question }: { lessonId: string; quest
   function save() {
     setError("");
     start(async () => {
-      const res = await saveQuestion(
-        lessonId,
+      const res = await saveAction(
         question?.id ?? null,
         type === "FILL_BLANK"
           ? { type, prompt, explanation, points }
@@ -214,7 +223,7 @@ export function QuestionEditor({ lessonId, question }: { lessonId: string; quest
         </fieldset>
       )}
 
-      <Field label="Explanation" hint="Shown after the learner passes or runs out of attempts. Optional.">
+      <Field label="Explanation" hint={explanationHint}>
         <Textarea rows={2} value={explanation} onChange={(e) => setExplanation(e.target.value)} />
       </Field>
 

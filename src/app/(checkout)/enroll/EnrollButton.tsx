@@ -35,6 +35,10 @@ export function EnrollButton({
         router.push("/learn");
         return;
       }
+      if (json.preAssessment) {
+        router.push(json.preAssessment);
+        return;
+      }
       if (!res.ok) throw new Error(json.error ?? "Could not start checkout");
       window.location.href = json.authorizationUrl;
     } catch (err) {

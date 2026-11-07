@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Award, BellRing, Check, CheckCircle2, Info, Laptop, MailWarning, ShieldCheck } from "lucide-react";
+import { Award, BellRing, Check, CheckCircle2, ClipboardCheck, Info, Laptop, MailWarning, ShieldCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getSession, isEmailVerified } from "@/lib/auth";
 import { getUnlockedModuleIds } from "@/lib/lms/access";
+import { getEnrolmentGates } from "@/lib/lms/pre-assessment";
 import { cn, formatNaira } from "@/lib/utils";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/dashboard/ui";
@@ -57,6 +58,10 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
   // A tier whose modules the learner can already open (e.g. bought "Full")
   // has nothing left to sell them.
   const unlocked = session ? await getUnlockedModuleIds(session.userId) : new Set<string>();
+  // Tiers with an entry test: checkout opens once the learner has passed it.
+  const gates = program
+    ? await getEnrolmentGates(session?.userId ?? null, program.tiers.map((t) => t.id))
+    : new Map<string, { passed: boolean }>();
 
   const here = `/enroll${program ? `?track=${encodeURIComponent(program.slug)}${selectedTier ? `&tier=${encodeURIComponent(selectedTier)}` : ""}` : ""}`;
 
@@ -111,6 +116,7 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
       saving,
       needs,
       tagline,
+      gate: gates.get(tier.id),
       enrolled: tier.modules.length > 0 && tier.modules.every((tc) => unlocked.has(tc.moduleId)),
     };
   });
@@ -179,7 +185,7 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
           tiers.length >= 3 ? "lg:grid-cols-3" : tiers.length === 2 ? "max-w-3xl md:grid-cols-2" : "max-w-md"
         )}
       >
-        {tiers.map(({ tier, modules, saving, needs, tagline, enrolled }) => {
+        {tiers.map(({ tier, modules, saving, needs, tagline, gate, enrolled }) => {
           const isFeatured = featured?.tier.id === tier.id;
           return (
             <StaggerItem
@@ -229,6 +235,15 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
                   <ButtonLink href="/learn" variant="outline" size="lg" className="w-full">
                     {isPrelaunch() ? "You're enrolled" : "Go to my modules"}
                   </ButtonLink>
+                ) : session && gate && !gate.passed ? (
+                  <ButtonLink
+                    href={`/pre-assessment/${tier.id}`}
+                    variant={isFeatured ? "primary" : "outline"}
+                    size="lg"
+                    className="w-full"
+                  >
+                    Take the pre-assessment
+                  </ButtonLink>
                 ) : session && !verified ? (
                   <ButtonLink
                     href={`/verify-email?next=${encodeURIComponent(here)}`}
@@ -255,6 +270,24 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
                   </ButtonLink>
                 )}
               </div>
+
+              {gate && !enrolled && (
+                <p
+                  className={cn(
+                    "mt-3 flex items-start gap-2 text-xs leading-relaxed",
+                    gate.passed ? "text-emerald-700" : "text-ink-500"
+                  )}
+                >
+                  {gate.passed ? (
+                    <CheckCircle2 className="mt-px size-3.5 shrink-0" />
+                  ) : (
+                    <ClipboardCheck className="mt-px size-3.5 shrink-0 text-ink-400" />
+                  )}
+                  {gate.passed
+                    ? "Pre-assessment passed. You can enrol."
+                    : "Pass a short pre-assessment to unlock enrolment."}
+                </p>
+              )}
 
               <div className="mt-7 border-t border-line pt-6">
                 <p className="text-xs font-semibold tracking-wide text-ink-500 uppercase">What&apos;s included</p>

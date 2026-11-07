@@ -5,15 +5,19 @@ import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STEPS = ["Choose plan", "Account", "Payment"];
+// Tiers with a pre-assessment add a step before payment.
+const ASSESSED_STEPS = ["Choose plan", "Account", "Assessment", "Payment"];
 
-/** Choose plan → Account → Payment, worked out from the route and whether the visitor has a confirmed account. */
+/** Choose plan → Account → (Assessment) → Payment, worked out from the route and whether the visitor has a confirmed account. */
 export function CheckoutSteps({ verified }: { verified: boolean }) {
   const pathname = usePathname();
-  const current = pathname.startsWith("/payment") ? 2 : pathname.startsWith("/verify-email") ? 1 : 0;
+  const assessing = pathname.startsWith("/pre-assessment");
+  const steps = assessing ? ASSESSED_STEPS : STEPS;
+  const current = assessing ? 2 : pathname.startsWith("/payment") ? 2 : pathname.startsWith("/verify-email") ? 1 : 0;
 
   return (
     <ol className="hidden items-center gap-2 text-xs font-medium sm:flex" aria-label="Checkout progress">
-      {STEPS.map((label, i) => {
+      {steps.map((label, i) => {
         const done = i < current || (i === 1 && verified);
         const active = i === current;
         return (
