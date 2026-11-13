@@ -4,6 +4,7 @@ import { SITE } from "@/content/site";
 import { getSession, isEmailVerified } from "@/lib/auth";
 import { PageTransition } from "@/components/motion";
 import { CheckoutSteps } from "./CheckoutSteps";
+import { GuideTour } from "@/components/guide/GuideTour";
 
 export default async function CheckoutLayout({ children }: LayoutProps<"/">) {
   const session = await getSession();
@@ -36,6 +37,8 @@ export default async function CheckoutLayout({ children }: LayoutProps<"/">) {
           </p>
         </div>
       </footer>
+      {/* Carries on a walkthrough started in the dashboard (e.g. "Enrol in a programme"). */}
+      {session && <GuideTour />}
     </div>
   );
 }

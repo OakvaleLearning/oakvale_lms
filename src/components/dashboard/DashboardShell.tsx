@@ -32,6 +32,8 @@ import { AndroidAppPrompt } from "@/components/dashboard/AndroidAppPrompt";
 import { SUPPORT_READ_EVENT } from "@/components/support/SupportChat";
 import { COMMUNITY_READ_EVENT } from "@/components/community/NotificationsRead";
 import { Avatar } from "@/components/community/Avatar";
+import { GuideNavButton, GuidePanel, GuideTopbarButton } from "@/components/guide/GuidePanel";
+import { GuideTour } from "@/components/guide/GuideTour";
 
 interface NavItem {
   label: string;
@@ -117,6 +119,7 @@ export function DashboardShell({
                 <Link
                   href={item.href}
                   onClick={() => setOpen(false)}
+                  data-guide-nav={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "relative flex h-9 items-center gap-3 rounded-lg px-3 text-sm transition-colors",
@@ -148,6 +151,7 @@ export function DashboardShell({
       </nav>
 
       <div className="space-y-3 p-3">
+        <GuideNavButton onOpen={() => setOpen(false)} />
         <a
           href={SITE.marketingUrl}
           className="flex h-9 items-center justify-between rounded-lg px-3 text-sm text-ink-600 transition-colors hover:bg-ink-900/[0.04] hover:text-ink-900"
@@ -228,10 +232,12 @@ export function DashboardShell({
             onClick={() => setOpen(true)}
             className="grid size-9 place-items-center rounded-lg text-ink-700 hover:bg-ink-100"
             aria-label="Open menu"
+            data-guide="menu"
           >
             <Menu className="size-5" />
           </button>
           <span className="flex-1 text-sm font-medium text-ink-900">{title}</span>
+          <GuideTopbarButton />
           {unread > 0 && (
             <Link
               href={variant === "admin" ? "/admin/support" : "/support"}
@@ -248,6 +254,9 @@ export function DashboardShell({
           <PageTransition>{children}</PageTransition>
         </main>
       </div>
+
+      <GuidePanel audience={variant} />
+      <GuideTour />
     </div>
   );
 }

@@ -170,7 +170,7 @@ export default async function TierPreAssessmentPage({ params }: PageProps<"/admi
                 )}
               </fieldset>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Questions per attempt" hint={pool ? `Drawn at random from ${pool}` : undefined}>
+                <Field label="Questions per attempt" hint={pool ? `Drawn at random, spread evenly across the banks (${pool} in total)` : undefined}>
                   <Input name="questionCount" type="number" min={1} max={200} required defaultValue={a?.questionCount ?? 20} />
                 </Field>
                 <Field label="Pass mark (%)">

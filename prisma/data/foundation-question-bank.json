@@ -1,0 +1,3495 @@
+{
+ "source": "Oakvale_Foundation_Question_Bank_Refined_Context_and_Ethics.xlsx",
+ "banks": [
+  {
+   "topic": "Confidentiality and data protection",
+   "module": "Module 1: Caregiving – Fundamental Principles and Standards",
+   "lessons": "Lessons 1–3: Privacy, legal frameworks and workplace best practice",
+   "coverage": "Protect privacy; distinguish concepts; apply secure handling and disclosure principles",
+   "ids": "FND-001 to FND-020",
+   "questions": [
+    {
+     "id": "FND-001",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A person asks that their health information not be discussed with neighbours. Which principle is the caregiver respecting?",
+     "options": {
+      "a": "Privacy",
+      "b": "Manual handling",
+      "c": "Incident reporting",
+      "d": "Food hygiene"
+     },
+     "correct": "a",
+     "explanation": "Privacy includes the person's right to control who has access to their personal space and information.",
+     "blindSpot": "Assuming that family, neighbours or colleagues may receive information simply because they ask; confusing privacy, confidentiality and data protection.",
+     "critical": false
+    },
+    {
+     "id": "FND-002",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver has been told sensitive information by a client. What is the caregiver’s responsibility to keep it private called?",
+     "options": {
+      "a": "Consent",
+      "b": "Confidentiality",
+      "c": "Data minimisation",
+      "d": "Advocacy"
+     },
+     "correct": "b",
+     "explanation": "Confidentiality is the caregiver's professional duty to protect information shared in the care relationship.",
+     "blindSpot": "Assuming that family, neighbours or colleagues may receive information simply because they ask; confusing privacy, confidentiality and data protection.",
+     "critical": false
+    },
+    {
+     "id": "FND-003",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which action is an example of protecting personal information?",
+     "options": {
+      "a": "Avoiding all conversations with clients",
+      "b": "Allowing relatives to read records",
+      "c": "Using secure storage and access controls for records",
+      "d": "Keeping information only in memory"
+     },
+     "correct": "c",
+     "explanation": "Data protection refers to the safeguards and systems used to store, share and use information responsibly.",
+     "blindSpot": "Assuming that family, neighbours or colleagues may receive information simply because they ask; confusing privacy, confidentiality and data protection.",
+     "critical": false
+    },
+    {
+     "id": "FND-004",
+     "difficulty": "Foundation",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A neighbour asks what diagnosis a client received. What should the caregiver say?",
+     "options": {
+      "a": "Give a small hint without naming the person",
+      "b": "Confirm the diagnosis but share no other details",
+      "c": "Explain that they cannot disclose the client's information",
+      "d": "Share the information but ask the neighbour not to repeat it"
+     },
+     "correct": "c",
+     "explanation": "A caregiver should not disclose a client's health information to an not approved to do so person.",
+     "blindSpot": "Assuming that family, neighbours or colleagues may receive information simply because they ask; confusing privacy, confidentiality and data protection.",
+     "critical": false
+    },
+    {
+     "id": "FND-005",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which of these details must be kept private?",
+     "options": {
+      "a": "A public bus timetable",
+      "b": "A client's home address",
+      "c": "A published care-sector report",
+      "d": "A clinic's public opening hours"
+     },
+     "correct": "b",
+     "explanation": "Identifiable information such as a home address must be protected.",
+     "blindSpot": "Assuming that family, neighbours or colleagues may receive information simply because they ask; confusing privacy, confidentiality and data protection.",
+     "critical": false
+    },
+    {
+     "id": "FND-006",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client shares their HIV status and asks that their family not be told. What is the best first response?",
+     "options": {
+      "a": "Respect confidentiality and follow workplace policy if a safety concern arises",
+      "b": "Tell the family because they are close relatives",
+      "c": "Discuss the case with neighbours but leave out the client’s name",
+      "d": "Promise that no one will ever be told, whatever happens"
+     },
+     "correct": "a",
+     "explanation": "Respect confidentiality while recognising that disclosure may be required in defined circumstances, such as safeguarding, and should follow policy and supervision.",
+     "blindSpot": "Assuming that family, neighbours or colleagues may receive information simply because they ask; confusing privacy, confidentiality and data protection.",
+     "critical": false
+    },
+    {
+     "id": "FND-007",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which statement explains the difference between these three ideas?",
+     "options": {
+      "a": "Privacy is a law, confidentiality is a device, data protection is a feeling",
+      "b": "Privacy is the person's right, confidentiality is the caregiver's duty, data protection is the system of safeguards",
+      "c": "They all mean exactly the same thing",
+      "d": "Confidentiality applies only to paper records"
+     },
+     "correct": "b",
+     "explanation": "The course distinguishes the individual's right, the professional duty and the safeguards that protect information.",
+     "blindSpot": "Assuming that family, neighbours or colleagues may receive information simply because they ask; confusing privacy, confidentiality and data protection.",
+     "critical": false
+    },
+    {
+     "id": "FND-008",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver leaves a client file open where visitors can read it. This is:",
+     "options": {
+      "a": "Acceptable if no one asks questions",
+      "b": "A potential confidentiality breach",
+      "c": "Only a problem if a diagnosis is visible",
+      "d": "Acceptable during a busy shift"
+     },
+     "correct": "b",
+     "explanation": "Records must be secured so not approved to do so people cannot see personal information.",
+     "blindSpot": "Assuming that family, neighbours or colleagues may receive information simply because they ask; confusing privacy, confidentiality and data protection.",
+     "critical": false
+    },
+    {
+     "id": "FND-009",
+     "difficulty": "Foundation",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which practice is safest when using an electronic care record?",
+     "options": {
+      "a": "Share a colleague's password",
+      "b": "Leave the device unlocked",
+      "c": "Use approved access controls and keep login details private",
+      "d": "Photograph the screen for personal reference"
+     },
+     "correct": "c",
+     "explanation": "Approved access controls and secure credentials help prevent not approved to do so access.",
+     "blindSpot": "Assuming that family, neighbours or colleagues may receive information simply because they ask; confusing privacy, confidentiality and data protection.",
+     "critical": false
+    },
+    {
+     "id": "FND-010",
+     "difficulty": "Applied judgement",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A care worker discusses a client's condition in a crowded lift but does not use the client's name. Is this safe?",
+     "options": {
+      "a": "Yes, because the name was omitted",
+      "b": "Yes, if the discussion is brief",
+      "c": "No, contextual details may still identify the person",
+      "d": "Only doctors must avoid this"
+     },
+     "correct": "c",
+     "explanation": "Information can identify someone even when their name is not mentioned, particularly in small communities.",
+     "blindSpot": "Assuming that family, neighbours or colleagues may receive information simply because they ask; confusing privacy, confidentiality and data protection.",
+     "critical": false
+    },
+    {
+     "id": "FND-011",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which is an example of data minimisation?",
+     "options": {
+      "a": "Collecting every detail about a client just in case",
+      "b": "Collecting only information needed for the care purpose",
+      "c": "Sharing the whole file with every staff member",
+      "d": "Keeping duplicate records indefinitely"
+     },
+     "correct": "b",
+     "explanation": "Data minimisation means limiting collection and use to what is necessary for the stated purpose.",
+     "blindSpot": "Assuming that family, neighbours or colleagues may receive information simply because they ask; confusing privacy, confidentiality and data protection.",
+     "critical": false
+    },
+    {
+     "id": "FND-012",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client asks to see information held about them. Which course principle is relevant?",
+     "options": {
+      "a": "The right to access records, subject to applicable procedures",
+      "b": "The caregiver's right to withhold all records",
+      "c": "The rule that only relatives may see records",
+      "d": "The rule that records cannot be amended"
+     },
+     "correct": "a",
+     "explanation": "The course identifies rights of access and amendment within relevant legal frameworks and procedures.",
+     "blindSpot": "Assuming that family, neighbours or colleagues may receive information simply because they ask; confusing privacy, confidentiality and data protection.",
+     "critical": false
+    },
+    {
+     "id": "FND-013",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "When may confidential information need to be shared without the client's usual permission?",
+     "options": {
+      "a": "Whenever a neighbour is curious",
+      "b": "When a safeguarding or serious safety concern requires action under policy",
+      "c": "Whenever a staff member is interested",
+      "d": "When it would make a good training story"
+     },
+     "correct": "b",
+     "explanation": "The course identifies safeguarding and other defined legal circumstances as possible exceptions to confidentiality.",
+     "blindSpot": "Assuming that family, neighbours or colleagues may receive information simply because they ask; confusing privacy, confidentiality and data protection.",
+     "critical": false
+    },
+    {
+     "id": "FND-014",
+     "difficulty": "Foundation",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which action is appropriate when disposing of paper records containing personal data?",
+     "options": {
+      "a": "Put them in an open waste bin",
+      "b": "Leave them beside the printer",
+      "c": "Use the organisation's secure disposal process",
+      "d": "Take them home for later disposal"
+     },
+     "correct": "c",
+     "explanation": "Information must remain protected throughout its lifecycle, including disposal.",
+     "blindSpot": "Assuming that family, neighbours or colleagues may receive information simply because they ask; confusing privacy, confidentiality and data protection.",
+     "critical": false
+    },
+    {
+     "id": "FND-015",
+     "difficulty": "Applied judgement",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver needs to hand over information about a client's care. What is the best approach?",
+     "options": {
+      "a": "Discuss it in a public corridor",
+      "b": "Share only relevant information with the approved to do so care team in a private setting",
+      "c": "Send it to a personal group chat",
+      "d": "Tell any staff member who asks"
+     },
+     "correct": "b",
+     "explanation": "Information should be shared appropriately with approved to do so colleagues and handled discreetly.",
+     "blindSpot": "Assuming that family, neighbours or colleagues may receive information simply because they ask; confusing privacy, confidentiality and data protection.",
+     "critical": false
+    },
+    {
+     "id": "FND-016",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which type of information should be treated as sensitive?",
+     "options": {
+      "a": "A client's counselling notes",
+      "b": "A public weather forecast",
+      "c": "A published bus route",
+      "d": "A public hospital address"
+     },
+     "correct": "a",
+     "explanation": "Mental health and counselling information is among the confidential categories identified in the course.",
+     "blindSpot": "Assuming that family, neighbours or colleagues may receive information simply because they ask; confusing privacy, confidentiality and data protection.",
+     "critical": false
+    },
+    {
+     "id": "FND-017",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver wants to use a client's photograph in a social media post about their work. What should they do?",
+     "options": {
+      "a": "Post it if the face is partly hidden",
+      "b": "Ask a colleague to approve it informally",
+      "c": "Follow organisational rules and obtain valid permission where appropriate; do not post without authorisation",
+      "d": "Post it after the client has left"
+     },
+     "correct": "c",
+     "explanation": "Photographs and recordings can be personal data and must be handled under consent, confidentiality and workplace rules.",
+     "blindSpot": "Assuming that family, neighbours or colleagues may receive information simply because they ask; confusing privacy, confidentiality and data protection.",
+     "critical": false
+    },
+    {
+     "id": "FND-018",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "Which is the safest way to discuss a client's care with another professional?",
+     "options": {
+      "a": "Use a private, appropriate channel and disclose only what is needed for care",
+      "b": "Discuss it in a public café",
+      "c": "Use an open social media account",
+      "d": "Share the entire record with anyone in the building"
+     },
+     "correct": "a",
+     "explanation": "The course emphasises secure communication, appropriate access and limiting disclosure.",
+     "blindSpot": "Assuming that family, neighbours or colleagues may receive information simply because they ask; confusing privacy, confidentiality and data protection.",
+     "critical": false
+    },
+    {
+     "id": "FND-019",
+     "difficulty": "Foundation",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver notices that a record has been accessed by someone without authorisation. What should happen?",
+     "options": {
+      "a": "Take no action because nothing seems to be missing",
+      "b": "Report the concern through the organisation's procedure",
+      "c": "Delete the record",
+      "d": "Confront the client"
+     },
+     "correct": "b",
+     "explanation": "Potential breaches should be reported through workplace procedures so they can be addressed.",
+     "blindSpot": "Assuming that family, neighbours or colleagues may receive information simply because they ask; confusing privacy, confidentiality and data protection.",
+     "critical": false
+    },
+    {
+     "id": "FND-020",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which statement about confidentiality is correct?",
+     "options": {
+      "a": "It ends when a shift ends",
+      "b": "It applies only inside hospitals",
+      "c": "It continues outside work and after a person's care has ended",
+      "d": "It applies only to written information"
+     },
+     "correct": "c",
+     "explanation": "The course states that confidentiality is an ongoing responsibility, including off duty and after care ends.",
+     "blindSpot": "Assuming that family, neighbours or colleagues may receive information simply because they ask; confusing privacy, confidentiality and data protection.",
+     "critical": false
+    }
+   ]
+  },
+  {
+   "topic": "Communication skills in care",
+   "module": "Module 1: Caregiving – Fundamental Principles and Standards",
+   "lessons": "Lessons 1–4: Foundations, listening and empathy, person-centred communication, advanced techniques",
+   "coverage": "Active listening, empathy, inclusive and person-centred communication, ISBAR and SPIKES",
+   "ids": "FND-021 to FND-040",
+   "questions": [
+    {
+     "id": "FND-021",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client is explaining a concern. Which response shows that the caregiver is listening carefully?",
+     "options": {
+      "a": "Interrupt to offer a solution",
+      "b": "Maintain attention, allow them to finish and clarify what you heard",
+      "c": "Look at your phone while they speak",
+      "d": "Change the subject to reduce distress"
+     },
+     "correct": "b",
+     "explanation": "Active listening involves attention, allowing the person to speak and checking understanding.",
+     "blindSpot": "Assuming that speaking is the same as communicating; overlooking listening, non-verbal cues, culture, understanding or a safe handover.",
+     "critical": false
+    },
+    {
+     "id": "FND-022",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client speaks a language the caregiver does not understand well. What is the best first approach?",
+     "options": {
+      "a": "Pretend to understand",
+      "b": "Use respectful plain language and seek appropriate language support",
+      "c": "Speak much louder",
+      "d": "Ask another client to interpret sensitive details"
+     },
+     "correct": "b",
+     "explanation": "Communication should be adapted respectfully and appropriate support used where needed.",
+     "blindSpot": "Assuming that speaking is the same as communicating; overlooking listening, non-verbal cues, culture, understanding or a safe handover.",
+     "critical": false
+    },
+    {
+     "id": "FND-023",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which of these is a form of communication without words?",
+     "options": {
+      "a": "A progress note",
+      "b": "A facial expression",
+      "c": "A medication chart",
+      "d": "A written referral"
+     },
+     "correct": "b",
+     "explanation": "Facial expression, posture, eye contact and physical space are non-verbal cues.",
+     "blindSpot": "Assuming that speaking is the same as communicating; overlooking listening, non-verbal cues, culture, understanding or a safe handover.",
+     "critical": false
+    },
+    {
+     "id": "FND-024",
+     "difficulty": "Foundation",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A person with dementia becomes distressed during bathing. What should the caregiver do?",
+     "options": {
+      "a": "Continue quickly so the task is completed",
+      "b": "Pause, speak calmly, acknowledge the distress and offer reassurance",
+      "c": "Tell the person they are being difficult",
+      "d": "Ignore the person's reaction"
+     },
+     "correct": "b",
+     "explanation": "A calm, validating response can reduce distress and support cooperation.",
+     "blindSpot": "Assuming that speaking is the same as communicating; overlooking listening, non-verbal cues, culture, understanding or a safe handover.",
+     "critical": false
+    },
+    {
+     "id": "FND-025",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "What does empathy mean in a care interaction?",
+     "options": {
+      "a": "Agreeing with every decision",
+      "b": "Understanding and acknowledging how another person may feel",
+      "c": "Taking control of the person's choices",
+      "d": "Avoiding emotional conversations"
+     },
+     "correct": "b",
+     "explanation": "Empathy is about understanding feelings, not necessarily agreeing with opinions or choices.",
+     "blindSpot": "Assuming that speaking is the same as communicating; overlooking listening, non-verbal cues, culture, understanding or a safe handover.",
+     "critical": false
+    },
+    {
+     "id": "FND-026",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which wording is most likely to support understanding?",
+     "options": {
+      "a": "Use complex clinical terminology",
+      "b": "Use simple, respectful language and check understanding",
+      "c": "Give several instructions at once",
+      "d": "Treat silence as permission to continue"
+     },
+     "correct": "b",
+     "explanation": "Clear language and frequent checks of understanding support inclusive communication.",
+     "blindSpot": "Assuming that speaking is the same as communicating; overlooking listening, non-verbal cues, culture, understanding or a safe handover.",
+     "critical": false
+    },
+    {
+     "id": "FND-027",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client appears not to understand an instruction. What should the caregiver do?",
+     "options": {
+      "a": "Repeat the same words more loudly",
+      "b": "Rephrase simply, demonstrate if useful and ask the person to explain or show their understanding",
+      "c": "Continue without checking",
+      "d": "Assume the client is refusing"
+     },
+     "correct": "b",
+     "explanation": "The caregiver should adapt communication and verify understanding rather than assume.",
+     "blindSpot": "Assuming that speaking is the same as communicating; overlooking listening, non-verbal cues, culture, understanding or a safe handover.",
+     "critical": false
+    },
+    {
+     "id": "FND-028",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "Which response puts the person and their preferences at the centre of the conversation?",
+     "options": {
+      "a": "Tell the client what will happen without discussion",
+      "b": "Ask about the person's preferences and explain available choices",
+      "c": "Use the same script with everyone",
+      "d": "Speak only to the family"
+     },
+     "correct": "b",
+     "explanation": "Person-centred communication recognises the individual and involves them in decisions.",
+     "blindSpot": "Assuming that speaking is the same as communicating; overlooking listening, non-verbal cues, culture, understanding or a safe handover.",
+     "critical": false
+    },
+    {
+     "id": "FND-029",
+     "difficulty": "Foundation",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver is preparing for a sensitive conversation. Which environment is most appropriate?",
+     "options": {
+      "a": "A busy reception area",
+      "b": "A quiet, private place with enough time",
+      "c": "A corridor during shift change",
+      "d": "A room where visitors can overhear"
+     },
+     "correct": "b",
+     "explanation": "Privacy and an appropriate environment help the person feel safe and respected.",
+     "blindSpot": "Assuming that speaking is the same as communicating; overlooking listening, non-verbal cues, culture, understanding or a safe handover.",
+     "critical": false
+    },
+    {
+     "id": "FND-030",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which framework is used in the course for structured handover?",
+     "options": {
+      "a": "SOAP",
+      "b": "ISBAR",
+      "c": "IDDSI",
+      "d": "COSHH"
+     },
+     "correct": "b",
+     "explanation": "ISBAR structures handover around Identify, Situation, Background, Assessment and Recommendation.",
+     "blindSpot": "Assuming that speaking is the same as communicating; overlooking listening, non-verbal cues, culture, understanding or a safe handover.",
+     "critical": false
+    },
+    {
+     "id": "FND-031",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "In ISBAR, what does the 'B' represent?",
+     "options": {
+      "a": "Behaviour",
+      "b": "Background",
+      "c": "Best practice",
+      "d": "Briefing"
+     },
+     "correct": "b",
+     "explanation": "The Background section provides relevant history and context for the handover.",
+     "blindSpot": "Assuming that speaking is the same as communicating; overlooking listening, non-verbal cues, culture, understanding or a safe handover.",
+     "critical": false
+    },
+    {
+     "id": "FND-032",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver is giving a handover about a change in a client's condition. Which information is most useful?",
+     "options": {
+      "a": "Personal opinions about the client",
+      "b": "Relevant observations, background and recommended next action",
+      "c": "Unrelated details about the caregiver's day",
+      "d": "Rumours from other residents"
+     },
+     "correct": "b",
+     "explanation": "A safe handover is factual, relevant and structured to support continuity of care.",
+     "blindSpot": "Assuming that speaking is the same as communicating; overlooking listening, non-verbal cues, culture, understanding or a safe handover.",
+     "critical": false
+    },
+    {
+     "id": "FND-033",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A person asks a difficult question about a serious illness. Which response is most therapeutic for a caregiver?",
+     "options": {
+      "a": "Dismiss the question",
+      "b": "Acknowledge the difficulty and invite the person to share what is worrying them",
+      "c": "Offer a definite medical prediction",
+      "d": "Change the subject immediately"
+     },
+     "correct": "b",
+     "explanation": "The course encourages gentle openness, empathy and exploration of the person's concerns.",
+     "blindSpot": "Assuming that speaking is the same as communicating; overlooking listening, non-verbal cues, culture, understanding or a safe handover.",
+     "critical": false
+    },
+    {
+     "id": "FND-034",
+     "difficulty": "Foundation",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "What is the purpose of the SPIKES approach covered in advanced communication?",
+     "options": {
+      "a": "To structure the delivery of difficult news around the person's needs",
+      "b": "To record medication administration",
+      "c": "To assess food temperatures",
+      "d": "To transfer a person from bed to chair"
+     },
+     "correct": "a",
+     "explanation": "SPIKES provides a structured, sensitive approach to communicating difficult news.",
+     "blindSpot": "Assuming that speaking is the same as communicating; overlooking listening, non-verbal cues, culture, understanding or a safe handover.",
+     "critical": false
+    },
+    {
+     "id": "FND-035",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which action can help communication when literacy or technology access is limited?",
+     "options": {
+      "a": "Use only written instructions",
+      "b": "Use visual aids and gestures, plain language and checks for understanding",
+      "c": "Avoid checking comprehension",
+      "d": "Use technical terms to save time"
+     },
+     "correct": "b",
+     "explanation": "The course highlights visual aids, gestures, simple language and verification of understanding.",
+     "blindSpot": "Assuming that speaking is the same as communicating; overlooking listening, non-verbal cues, culture, understanding or a safe handover.",
+     "critical": false
+    },
+    {
+     "id": "FND-036",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client avoids eye contact during a conversation. What should the caregiver do?",
+     "options": {
+      "a": "Assume the client is dishonest",
+      "b": "Consider cultural and individual differences and avoid making assumptions",
+      "c": "Demand eye contact",
+      "d": "End the conversation"
+     },
+     "correct": "b",
+     "explanation": "Eye contact and personal space can have different meanings; communication should be culturally sensitive.",
+     "blindSpot": "Assuming that speaking is the same as communicating; overlooking listening, non-verbal cues, culture, understanding or a safe handover.",
+     "critical": false
+    },
+    {
+     "id": "FND-037",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which statement about touch in communication is most appropriate?",
+     "options": {
+      "a": "Touch is always reassuring",
+      "b": "Touch should be appropriate, respectful and sensitive to the person's preferences and consent",
+      "c": "Touch replaces verbal explanation",
+      "d": "Touch is never part of communication"
+     },
+     "correct": "b",
+     "explanation": "Touch is a non-verbal cue but must respect personal boundaries, dignity and consent.",
+     "blindSpot": "Assuming that speaking is the same as communicating; overlooking listening, non-verbal cues, culture, understanding or a safe handover.",
+     "critical": false
+    },
+    {
+     "id": "FND-038",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver is frustrated and speaks sharply to a client. What is the best next step?",
+     "options": {
+      "a": "Blame the client",
+      "b": "Regain composure, acknowledge the impact where appropriate and communicate respectfully",
+      "c": "Continue in the same tone",
+      "d": "Ask another client to intervene"
+     },
+     "correct": "b",
+     "explanation": "Professional communication requires self-awareness and respectful interaction.",
+     "blindSpot": "Assuming that speaking is the same as communicating; overlooking listening, non-verbal cues, culture, understanding or a safe handover.",
+     "critical": false
+    },
+    {
+     "id": "FND-039",
+     "difficulty": "Foundation",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "Which approach best supports a person who is anxious?",
+     "options": {
+      "a": "Give rapid instructions",
+      "b": "Use a calm tone, listen, acknowledge feelings and explain one step at a time",
+      "c": "Tell them there is nothing to worry about",
+      "d": "Avoid them until they settle"
+     },
+     "correct": "b",
+     "explanation": "Calm, clear and empathetic communication helps reduce anxiety.",
+     "blindSpot": "Assuming that speaking is the same as communicating; overlooking listening, non-verbal cues, culture, understanding or a safe handover.",
+     "critical": false
+    },
+    {
+     "id": "FND-040",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "What is the main purpose of a structured handover?",
+     "options": {
+      "a": "To reduce conversation between staff",
+      "b": "To communicate relevant information clearly so care remains safe and continuous",
+      "c": "To replace care records",
+      "d": "To pass responsibility without explanation"
+     },
+     "correct": "b",
+     "explanation": "Structured handover reduces omissions and supports continuity and safety.",
+     "blindSpot": "Assuming that speaking is the same as communicating; overlooking listening, non-verbal cues, culture, understanding or a safe handover.",
+     "critical": false
+    }
+   ]
+  },
+  {
+   "topic": "Record-keeping and documentation",
+   "module": "Module 1: Caregiving – Fundamental Principles and Standards",
+   "lessons": "Lessons 1–4: Foundations, documentation skills, legal and ethical standards, complex situations",
+   "coverage": "Accurate, timely, objective and confidential records; SOAP, DAR, ABC; reporting and corrections",
+   "ids": "FND-041 to FND-060",
+   "questions": [
+    {
+     "id": "FND-041",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which is a central purpose of care documentation?",
+     "options": {
+      "a": "To create paperwork for its own sake",
+      "b": "To provide an accurate record that supports continuity, communication and accountability",
+      "c": "To replace direct communication",
+      "d": "To record personal opinions"
+     },
+     "correct": "b",
+     "explanation": "Care records communicate what happened and support safe, coordinated and accountable care.",
+     "blindSpot": "Recording opinions instead of facts; delaying notes; assuming that informal messages or memory are enough.",
+     "critical": false
+    },
+    {
+     "id": "FND-042",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which set contains the four core principles of documentation identified in the course?",
+     "options": {
+      "a": "Accuracy, timeliness, objectivity and confidentiality",
+      "b": "Speed, detail, humour and persuasion",
+      "c": "Privacy, nutrition, mobility and hydration",
+      "d": "Consent, diagnosis, treatment and discharge"
+     },
+     "correct": "a",
+     "explanation": "The course identifies accuracy, timeliness, objectivity and confidentiality as core principles.",
+     "blindSpot": "Recording opinions instead of facts; delaying notes; assuming that informal messages or memory are enough.",
+     "critical": false
+    },
+    {
+     "id": "FND-043",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which record is most directly used to record medication administration?",
+     "options": {
+      "a": "MAR chart",
+      "b": "Visitor book",
+      "c": "Staff rota",
+      "d": "Kitchen cleaning checklist"
+     },
+     "correct": "a",
+     "explanation": "A Medication Administration Record (MAR) records medication administration and related information.",
+     "blindSpot": "Recording opinions instead of facts; delaying notes; assuming that informal messages or memory are enough.",
+     "critical": false
+    },
+    {
+     "id": "FND-044",
+     "difficulty": "Foundation",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver writes, 'Client was horrible and difficult today.' What is the main problem?",
+     "options": {
+      "a": "It is too brief",
+      "b": "It is judgemental and not factual",
+      "c": "It uses third person",
+      "d": "It is written during the shift"
+     },
+     "correct": "b",
+     "explanation": "Care notes should use factual, professional language rather than labels or personal judgements.",
+     "blindSpot": "Recording opinions instead of facts; delaying notes; assuming that informal messages or memory are enough.",
+     "critical": false
+    },
+    {
+     "id": "FND-045",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which note is most factual?",
+     "options": {
+      "a": "She was being silly",
+      "b": "He seemed lazy",
+      "c": "At 10:15, the client declined the shower and said, 'I feel tired'",
+      "d": "She always complains"
+     },
+     "correct": "c",
+     "explanation": "The note records time, observable action and the person's own words without judgement.",
+     "blindSpot": "Recording opinions instead of facts; delaying notes; assuming that informal messages or memory are enough.",
+     "critical": false
+    },
+    {
+     "id": "FND-046",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "When should care notes generally be completed?",
+     "options": {
+      "a": "At the end of the month",
+      "b": "As soon as practicable after the event, in line with workplace procedures",
+      "c": "Only when a supervisor asks",
+      "d": "Whenever the caregiver remembers"
+     },
+     "correct": "b",
+     "explanation": "completed without unnecessary delay recording improves accuracy and supports continuity of care.",
+     "blindSpot": "Recording opinions instead of facts; delaying notes; assuming that informal messages or memory are enough.",
+     "critical": false
+    },
+    {
+     "id": "FND-047",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which format is used to structure Subjective, factual, Assessment and Plan information?",
+     "options": {
+      "a": "SOAP",
+      "b": "ISBAR",
+      "c": "SPIKES",
+      "d": "IDDSI"
+     },
+     "correct": "a",
+     "explanation": "SOAP is a structured documentation format: Subjective, factual, Assessment and Plan.",
+     "blindSpot": "Recording opinions instead of facts; delaying notes; assuming that informal messages or memory are enough.",
+     "critical": false
+    },
+    {
+     "id": "FND-048",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "In the DAR format, what does 'R' stand for?",
+     "options": {
+      "a": "Review",
+      "b": "Response",
+      "c": "Risk",
+      "d": "Record"
+     },
+     "correct": "b",
+     "explanation": "DAR records Data, Action and Response.",
+     "blindSpot": "Recording opinions instead of facts; delaying notes; assuming that informal messages or memory are enough.",
+     "critical": false
+    },
+    {
+     "id": "FND-049",
+     "difficulty": "Foundation",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "The ABC format in care documentation refers to:",
+     "options": {
+      "a": "Activity, Behaviour, Consequence",
+      "b": "Assessment, Background, Care",
+      "c": "Accuracy, Brevity, Confidentiality",
+      "d": "Action, Belief, Consent"
+     },
+     "correct": "a",
+     "explanation": "The course uses ABC to describe Activity, Behaviour and Consequence.",
+     "blindSpot": "Recording opinions instead of facts; delaying notes; assuming that informal messages or memory are enough.",
+     "critical": false
+    },
+    {
+     "id": "FND-050",
+     "difficulty": "Applied judgement",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client refuses a prescribed medicine and explains why. What should the caregiver do?",
+     "options": {
+      "a": "Force the medicine",
+      "b": "Record the refusal and the client's stated reason, and report it according to the care plan and workplace procedure",
+      "c": "Delete the medication entry",
+      "d": "Ask another client to persuade them"
+     },
+     "correct": "b",
+     "explanation": "Refusal should be documented accurately and escalated through the appropriate care process.",
+     "blindSpot": "Recording opinions instead of facts; delaying notes; assuming that informal messages or memory are enough.",
+     "critical": false
+    },
+    {
+     "id": "FND-051",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver makes an error in a paper record. What is the appropriate action?",
+     "options": {
+      "a": "Erase the entry so no one can see it",
+      "b": "Follow the approved correction procedure so the original entry and correction remain clear",
+      "c": "Ask a colleague to rewrite the whole page",
+      "d": "Leave the error unaddressed"
+     },
+     "correct": "b",
+     "explanation": "Documentation errors should be corrected transparently in line with the applicable protocol.",
+     "blindSpot": "Recording opinions instead of facts; delaying notes; assuming that informal messages or memory are enough.",
+     "critical": false
+    },
+    {
+     "id": "FND-052",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which detail belongs in an incident report?",
+     "options": {
+      "a": "Speculation about who is to blame",
+      "b": "Factual description of what happened, when, where and the action taken",
+      "c": "Unrelated personal information",
+      "d": "An emotional judgement"
+     },
+     "correct": "b",
+     "explanation": "Incident records should provide clear factual information to support follow-up and review.",
+     "blindSpot": "Recording opinions instead of facts; delaying notes; assuming that informal messages or memory are enough.",
+     "critical": false
+    },
+    {
+     "id": "FND-053",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Why should caregivers avoid unapproved abbreviations?",
+     "options": {
+      "a": "They make notes too long",
+      "b": "They can be misunderstood and create risks to care",
+      "c": "They are always illegal",
+      "d": "They are difficult to type"
+     },
+     "correct": "b",
+     "explanation": "Unclear abbreviations can lead to misunderstanding and errors.",
+     "blindSpot": "Recording opinions instead of facts; delaying notes; assuming that informal messages or memory are enough.",
+     "critical": false
+    },
+    {
+     "id": "FND-054",
+     "difficulty": "Foundation",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver uses voice-to-text to document care. What should they do?",
+     "options": {
+      "a": "Assume the software is always accurate",
+      "b": "Check the generated text for accuracy and protect the information using approved systems",
+      "c": "Send the transcript to a personal email",
+      "d": "Record in a public place"
+     },
+     "correct": "b",
+     "explanation": "Technology can support documentation, but the caregiver remains responsible for accuracy and security.",
+     "blindSpot": "Recording opinions instead of facts; delaying notes; assuming that informal messages or memory are enough.",
+     "critical": false
+    },
+    {
+     "id": "FND-055",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Who may need to read care notes?",
+     "options": {
+      "a": "Only the caregiver who wrote them",
+      "b": "approved to do so members of the multidisciplinary care team and others with legitimate access",
+      "c": "Any visitor",
+      "d": "The caregiver's friends"
+     },
+     "correct": "b",
+     "explanation": "Care documentation supports communication across approved to do so members of the care team.",
+     "blindSpot": "Recording opinions instead of facts; delaying notes; assuming that informal messages or memory are enough.",
+     "critical": false
+    },
+    {
+     "id": "FND-056",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client discloses possible emotional abuse. What should the caregiver record?",
+     "options": {
+      "a": "A personal theory about the alleged perpetrator",
+      "b": "The person's words as accurately as possible, relevant observations, actions taken and reporting",
+      "c": "Only that the client was upset",
+      "d": "Nothing until the allegation is proven"
+     },
+     "correct": "b",
+     "explanation": "Safeguarding concerns should be documented promptly and objectively, preserving the person's account and actions taken.",
+     "blindSpot": "Recording opinions instead of facts; delaying notes; assuming that informal messages or memory are enough.",
+     "critical": false
+    },
+    {
+     "id": "FND-057",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which statement about confidentiality in documentation is correct?",
+     "options": {
+      "a": "Records may be left visible if staff are nearby",
+      "b": "Records must be stored and accessed securely, whether paper or electronic",
+      "c": "Only electronic records need protection",
+      "d": "A caregiver may take records home"
+     },
+     "correct": "b",
+     "explanation": "Both paper and digital records require appropriate security and access controls.",
+     "blindSpot": "Recording opinions instead of facts; delaying notes; assuming that informal messages or memory are enough.",
+     "critical": false
+    },
+    {
+     "id": "FND-058",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver is asked to write notes at the end of a long shift from memory. What is the key risk?",
+     "options": {
+      "a": "The notes will be too detailed",
+      "b": "Details may be forgotten or recorded inaccurately",
+      "c": "The client will automatically see them",
+      "d": "The record becomes confidential"
+     },
+     "correct": "b",
+     "explanation": "Delayed recording can undermine accuracy and timeliness.",
+     "blindSpot": "Recording opinions instead of facts; delaying notes; assuming that informal messages or memory are enough.",
+     "critical": false
+    },
+    {
+     "id": "FND-059",
+     "difficulty": "Foundation",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "Why is it important to document a change in a client's condition?",
+     "options": {
+      "a": "It makes the file longer",
+      "b": "It helps the care team understand what changed and decide what follow-up is needed",
+      "c": "It avoids speaking to a supervisor",
+      "d": "It proves the caregiver is busy"
+     },
+     "correct": "b",
+     "explanation": "Accurate records support communication, monitoring, decisions and accountability.",
+     "blindSpot": "Recording opinions instead of facts; delaying notes; assuming that informal messages or memory are enough.",
+     "critical": false
+    },
+    {
+     "id": "FND-060",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "How can documentation support professional development?",
+     "options": {
+      "a": "It replaces practical competence",
+      "b": "It provides evidence of work, reflection and developing competence",
+      "c": "It guarantees promotion",
+      "d": "It removes the need for supervision"
+     },
+     "correct": "b",
+     "explanation": "The course links good documentation to reflection, audit readiness and evidence of competence.",
+     "blindSpot": "Recording opinions instead of facts; delaying notes; assuming that informal messages or memory are enough.",
+     "critical": false
+    }
+   ]
+  },
+  {
+   "topic": "Ethical and professional standards, duty of care, equality and diversity",
+   "module": "Module 1: Caregiving – Fundamental Principles and Standards",
+   "lessons": "Ethical and professional standards; Duty of care; Equality and diversity",
+   "coverage": "Autonomy, dignity, accountability, scope, risk awareness, inclusion and reflective practice",
+   "ids": "FND-061 to FND-080",
+   "questions": [
+    {
+     "id": "FND-061",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client who is able to make decisions tells the caregiver that they would rather have a shower in the evening than in the morning. The care plan gives a usual morning routine. What should the caregiver do?",
+     "options": {
+      "a": "Explain that the morning routine must always be followed",
+      "b": "Ask about the client's preference, consider any relevant risks and agree an appropriate change in line with the care plan",
+      "c": "Ask the family to decide without involving the client",
+      "d": "Record that the client is refusing care"
+     },
+     "correct": "b",
+     "explanation": "A person who has capacity to make the decision should be involved in choices about their care. The caregiver should explore the preference and check whether a change can be made safely, rather than treating the routine as more important than the person.",
+     "blindSpot": "Tests whether the learner can balance an established routine with autonomy and safe, person-centred care.",
+     "critical": false
+    },
+    {
+     "id": "FND-062",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client says they do not want help with bathing today. They are calm, understand the support being offered and have not indicated an immediate risk. What is the most appropriate response?",
+     "options": {
+      "a": "Insist because bathing is included in the daily care plan",
+      "b": "Explore the reason, explain available options and respect the decision; record and report any relevant concern",
+      "c": "Ask a relative to persuade the client to agree",
+      "d": "Leave without documenting the refusal"
+     },
+     "correct": "b",
+     "explanation": "Consent must be sought and a person can refuse care. The caregiver should listen, offer alternatives without pressure and follow reporting and recording procedures where needed.",
+     "blindSpot": "Tests informed consent, respect for refusal and appropriate follow-up.",
+     "critical": false
+    },
+    {
+     "id": "FND-063",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver notices that a client's walking frame is damaged and that the client is about to use it to go to the bathroom. What does duty of care require the caregiver to do?",
+     "options": {
+      "a": "Allow the client to use it because replacing equipment is not the caregiver's responsibility",
+      "b": "Take reasonable immediate steps to prevent harm, support the client safely and report the damaged equipment",
+      "c": "Hide the frame so the client cannot move around",
+      "d": "Attempt to repair the frame even if not trained or authorised"
+     },
+     "correct": "b",
+     "explanation": "Duty of care requires reasonable action to reduce foreseeable harm. The caregiver should not ignore the risk or carry out repairs beyond their competence.",
+     "blindSpot": "Tests recognition of foreseeable harm and action within role boundaries.",
+     "critical": true
+    },
+    {
+     "id": "FND-064",
+     "difficulty": "Foundation",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client's relative asks a caregiver to give an injection because the nurse is delayed. The caregiver has not been trained or authorised to give injections. What should the caregiver do?",
+     "options": {
+      "a": "Give the injection because the relative has requested it",
+      "b": "Ask the client to confirm that the caregiver should proceed",
+      "c": "Explain that the task is outside their competence, contact the appropriate senior or clinician and continue any support they are trained to provide",
+      "d": "Search online for instructions and then give the injection"
+     },
+     "correct": "c",
+     "explanation": "Duty of care does not mean doing every task requested. It includes recognising limits, seeking qualified support and avoiding unsafe practice.",
+     "blindSpot": "Tests the difference between taking responsibility and working beyond competence.",
+     "critical": true
+    },
+    {
+     "id": "FND-065",
+     "difficulty": "Applied judgement",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver realises that they recorded a visit as completed, although they left before carrying out one of the planned tasks. What is the appropriate professional response?",
+     "options": {
+      "a": "Leave the record unchanged because the client was otherwise well",
+      "b": "Delete the entry and say nothing",
+      "c": "Tell a colleague privately but do not inform a supervisor",
+      "d": "Correct the record in line with procedure, report the omission promptly and explain what happened honestly"
+     },
+     "correct": "d",
+     "explanation": "Accountability requires honesty and openness when something has gone wrong. Records should be corrected transparently and concerns reported through the proper process.",
+     "blindSpot": "Tests honesty, accountability and accurate record-keeping.",
+     "critical": true
+    },
+    {
+     "id": "FND-066",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "During a home visit, a client develops a new symptom and asks the caregiver to recommend a medicine. The caregiver is not qualified to assess or prescribe. What should the caregiver do?",
+     "options": {
+      "a": "Suggest a medicine based on what has helped another client",
+      "b": "Explain the limits of their role and promptly contact the appropriate health professional, following the service's escalation procedure",
+      "c": "Tell the client to wait until the next routine visit",
+      "d": "Ask a family member to choose a medicine"
+     },
+     "correct": "b",
+     "explanation": "Caregivers should not diagnose or prescribe unless specifically qualified and authorised. They should recognise changes, communicate them and seek appropriate clinical advice.",
+     "blindSpot": "Tests safe escalation and role boundaries.",
+     "critical": true
+    },
+    {
+     "id": "FND-067",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver is helping a client wash in a home where other family members are moving in and out of the room. The client appears uncomfortable. Which action best protects the client's dignity?",
+     "options": {
+      "a": "Continue quickly so the task is finished before visitors return",
+      "b": "Ask the family to remain because they may want to help",
+      "c": "Check what the client prefers, arrange privacy, explain each step and keep the person covered as much as possible",
+      "d": "Discuss the client's personal hygiene needs with the family while washing"
+     },
+     "correct": "c",
+     "explanation": "Dignity involves privacy, respectful communication, consent and involving family only in ways the client agrees to, subject to relevant care arrangements.",
+     "blindSpot": "Tests practical application of dignity and privacy in a shared household.",
+     "critical": false
+    },
+    {
+     "id": "FND-068",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver hears a colleague repeatedly referring to a client as 'dirty' and 'stubborn' because the client needs extra time and assistance with personal care. What should the caregiver do?",
+     "options": {
+      "a": "Join in so that the colleague does not feel criticised",
+      "b": "Ignore the comments because no physical harm has occurred",
+      "c": "Challenge or report the disrespectful behaviour through the appropriate procedure and ensure the client is treated respectfully",
+      "d": "Tell the client that staff are under pressure"
+     },
+     "correct": "c",
+     "explanation": "Disrespectful language can undermine dignity and may be an indicator of poor practice. Caregivers should take concerns seriously and use appropriate reporting routes.",
+     "blindSpot": "Tests whether the learner recognises verbal disrespect as a professional concern.",
+     "critical": true
+    },
+    {
+     "id": "FND-069",
+     "difficulty": "Foundation",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A home-care service has two clients who need help to attend appointments. One client uses a wheelchair and needs an accessible vehicle; the other can use the service's usual transport. A staff member says that arranging different transport is unfair because everyone should receive the same service. Which response best reflects equality?",
+     "options": {
+      "a": "Give both clients the same transport, even if one cannot use it",
+      "b": "Arrange support that enables each client to access the service fairly, taking account of their individual needs",
+      "c": "Give priority to the client who is easiest to transport",
+      "d": "Ask the client who uses a wheelchair to arrange their own transport"
+     },
+     "correct": "b",
+     "explanation": "Equality does not always mean treating everyone identically. Fair access may require different or adjusted support so that people can participate on an equitable basis.",
+     "blindSpot": "Tests the distinction between identical treatment and equitable access.",
+     "critical": false
+    },
+    {
+     "id": "FND-070",
+     "difficulty": "Applied judgement",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client asks for a caregiver of the same gender to assist with bathing because of their personal and religious beliefs. The service can arrange this without leaving the client without essential care. What should the care team do?",
+     "options": {
+      "a": "Explain that staff preferences always take priority",
+      "b": "Treat the request as unreasonable and record the client as difficult",
+      "c": "Explore the request respectfully and make a reasonable arrangement where possible, while discussing any practical limitations honestly",
+      "d": "Ask the client's relatives to tell them to accept the available caregiver"
+     },
+     "correct": "c",
+     "explanation": "Care should respect individual beliefs and preferences where reasonably possible. The service should discuss practical constraints rather than dismissing or stereotyping the person.",
+     "blindSpot": "Tests respectful accommodation without assuming that every request can always be met.",
+     "critical": false
+    },
+    {
+     "id": "FND-071",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client who is deaf attends a community health appointment. Staff continue speaking while facing the computer and then complain that the client is not responding. What would be the most appropriate adjustment?",
+     "options": {
+      "a": "Speak more loudly without changing how information is presented",
+      "b": "Face the client, establish their preferred communication method and arrange suitable communication support if needed",
+      "c": "Ask the client's companion to answer every question",
+      "d": "Assume the client cannot understand complex information"
+     },
+     "correct": "b",
+     "explanation": "Inclusive communication requires staff to identify and respond to the person's communication needs, rather than interpreting a communication barrier as lack of understanding.",
+     "blindSpot": "Tests practical inclusion and reasonable communication adjustments.",
+     "critical": false
+    },
+    {
+     "id": "FND-072",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client has difficulty reading the standard written care instructions. They explain that they understand information better when it is read aloud and discussed in their preferred language. What should the caregiver do?",
+     "options": {
+      "a": "Continue using the standard document because all clients receive the same information",
+      "b": "Ask a relative to make decisions on the client's behalf",
+      "c": "Adapt how the information is explained and seek appropriate language or communication support, checking the client's understanding",
+      "d": "Skip the explanation to avoid causing embarrassment"
+     },
+     "correct": "c",
+     "explanation": "People should receive information in a form they can understand. The caregiver should support communication without making assumptions about the person's ability to decide.",
+     "blindSpot": "Tests accessible communication and informed participation.",
+     "critical": false
+    },
+    {
+     "id": "FND-073",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client has been feeling isolated and says they would like to attend a weekly community activity. The caregiver knows that the client will need help planning safe transport, but the activity is not part of the usual daily routine. Which response best reflects beneficence?",
+     "options": {
+      "a": "Dismiss the request because it is not on the usual schedule",
+      "b": "Explore the client's goal, discuss it with the care team and help identify safe options within the caregiver's role",
+      "c": "Promise to take the client personally, even though this has not been authorised",
+      "d": "Tell the client that social activities are not part of care"
+     },
+     "correct": "b",
+     "explanation": "Beneficence means acting to promote a person's wellbeing. The caregiver should take the person's wishes seriously and work with the team to explore safe, authorised support.",
+     "blindSpot": "Tests how wellbeing, choice and role boundaries can be considered together.",
+     "critical": false
+    },
+    {
+     "id": "FND-074",
+     "difficulty": "Foundation",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver is asked to use a cleaning product on a client's skin because a family member believes it will treat a rash. The product is not intended for skin use. Which principle is most directly relevant to refusing this request?",
+     "options": {
+      "a": "Autonomy, because the family should make all care decisions",
+      "b": "Non-maleficence, because the caregiver must avoid actions that could cause harm",
+      "c": "Efficiency, because the task should be completed quickly",
+      "d": "Confidentiality, because the request was made privately"
+     },
+     "correct": "b",
+     "explanation": "Non-maleficence is the principle of avoiding harm. The caregiver should not use an unsafe product and should raise the skin concern with an appropriate health professional.",
+     "blindSpot": "Tests recognition of a foreseeable harm and the ethical principle involved.",
+     "critical": true
+    },
+    {
+     "id": "FND-075",
+     "difficulty": "Applied judgement",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver notices that a client's prescribed walking support is not being used because it has been left in another room. The client is preparing to walk unaided and has fallen before. What should the caregiver do?",
+     "options": {
+      "a": "Allow the client to walk because they have the right to make choices",
+      "b": "Take reasonable steps to reduce the immediate risk, discuss the support with the client and report any concern in line with the care plan",
+      "c": "Physically restrain the client without authority",
+      "d": "Wait until the next team meeting to mention it"
+     },
+     "correct": "b",
+     "explanation": "The caregiver should respect the client's choices while taking reasonable steps to address a foreseeable risk. Any continuing concern should be communicated and recorded appropriately.",
+     "blindSpot": "Tests balanced judgement between autonomy and foreseeable risk.",
+     "critical": true
+    },
+    {
+     "id": "FND-076",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "After a difficult visit, a caregiver thinks about how they responded when a client became distressed. They identify what helped, what made the situation harder and what they could do differently next time. What is this an example of?",
+     "options": {
+      "a": "Avoiding responsibility",
+      "b": "Reflective practice",
+      "c": "Delegation",
+      "d": "Whistleblowing"
+     },
+     "correct": "b",
+     "explanation": "Reflective practice involves considering an experience, learning from it and identifying how future practice can improve.",
+     "blindSpot": "Tests understanding of reflection as a practical learning process.",
+     "critical": false
+    },
+    {
+     "id": "FND-077",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver has completed induction training but is now supporting a client whose needs have changed. The caregiver asks for further training before taking on new responsibilities. Which term best describes this ongoing learning?",
+     "options": {
+      "a": "Continuous Professional Development",
+      "b": "Confidential Personal Data",
+      "c": "Care Plan Delegation",
+      "d": "Clinical Prescribing Duty"
+     },
+     "correct": "a",
+     "explanation": "Continuous Professional Development (CPD) is the ongoing learning and development that helps workers maintain and improve their knowledge and competence.",
+     "blindSpot": "Tests understanding of ongoing professional learning.",
+     "critical": false
+    },
+    {
+     "id": "FND-078",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client is able to make decisions about their daily care. Their adult children insist that the caregiver should decide when the client eats and which clothes they wear. What should the caregiver do?",
+     "options": {
+      "a": "Follow the children's instructions because they are family",
+      "b": "Ask the children to sign a form giving them control",
+      "c": "Involve the client in decisions and respect their choices, while considering any relevant care-plan or safety issues",
+      "d": "Avoid discussing the matter with the client"
+     },
+     "correct": "c",
+     "explanation": "Family members may provide valuable support, but their preferences do not automatically replace the decisions of an adult who can make those decisions. The client should remain central to their care.",
+     "blindSpot": "Tests respect for the person's decision-making rights in a family-centred setting.",
+     "critical": false
+    },
+    {
+     "id": "FND-079",
+     "difficulty": "Foundation",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client offers a caregiver an expensive gift and says they will be offended if it is refused. What should the caregiver do?",
+     "options": {
+      "a": "Accept it to avoid upsetting the client",
+      "b": "Accept it but keep it secret from the service",
+      "c": "Explain the professional boundaries kindly and follow the organisation's policy on gifts, seeking guidance if unsure",
+      "d": "Ask the client for cash instead"
+     },
+     "correct": "c",
+     "explanation": "Gifts can affect professional boundaries or create a sense of obligation. The caregiver should respond respectfully and follow the service's policy rather than making a private decision.",
+     "blindSpot": "Tests professional boundaries and policy-based decision-making.",
+     "critical": false
+    },
+    {
+     "id": "FND-080",
+     "difficulty": "Applied judgement",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client who has limited mobility has missed several community appointments because the venue has steps and no accessible entrance. The client says they are tired of asking for help. What should the caregiver do?",
+     "options": {
+      "a": "Assume the client is no longer interested in attending",
+      "b": "Explain that the venue is the same for everyone",
+      "c": "Recognise the access barrier, discuss the client's wishes and raise the need for an accessible arrangement with the appropriate person",
+      "d": "Advise the client to stay at home"
+     },
+     "correct": "c",
+     "explanation": "Equality and inclusion require barriers to be recognised and addressed where possible. The caregiver should not interpret inaccessible arrangements as a lack of interest from the client.",
+     "blindSpot": "Tests whether the learner can identify an environmental barrier rather than blaming the person.",
+     "critical": false
+    }
+   ]
+  },
+  {
+   "topic": "Fundamentals of physical care and support",
+   "module": "Module 2: Best Practices in Care Delivery",
+   "lessons": "Topic 1, Lessons 1–2.1–2.4: Physical needs, personal care, mobility, feeding and continence",
+   "coverage": "Mobility, transfers, personal care, feeding, hydration and continence support",
+   "ids": "FND-081 to FND-100",
+   "questions": [
+    {
+     "id": "FND-081",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "Before helping a person transfer from a chair, what should the caregiver do?",
+     "options": {
+      "a": "Pull them up immediately",
+      "b": "Check the environment, explain the procedure and follow the care plan",
+      "c": "Lift under their arms",
+      "d": "Ask them to hold the caregiver's neck"
+     },
+     "correct": "b",
+     "explanation": "Preparation, explanation and hazard checks reduce risk and support consent.",
+     "blindSpot": "Taking over instead of promoting independence; rushing; overlooking consent, safe equipment, swallowing risk or changes in condition.",
+     "critical": false
+    },
+    {
+     "id": "FND-082",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A person cannot bear weight during a transfer. Which equipment is identified in the course for this situation?",
+     "options": {
+      "a": "A walking stick",
+      "b": "A mechanical hoist",
+      "c": "A dining chair",
+      "d": "A shower mat"
+     },
+     "correct": "b",
+     "explanation": "The course matches a person who cannot bear weight with a hoist, used by trained staff according to the plan.",
+     "blindSpot": "Taking over instead of promoting independence; rushing; overlooking consent, safe equipment, swallowing risk or changes in condition.",
+     "critical": false
+    },
+    {
+     "id": "FND-083",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "Why should a caregiver avoid lifting a person under the arms?",
+     "options": {
+      "a": "It takes too long",
+      "b": "It can cause injury to the person",
+      "c": "It is uncomfortable for the caregiver only",
+      "d": "It makes the person independent"
+     },
+     "correct": "b",
+     "explanation": "Lifting under the arms can injure the person; safe techniques and appropriate aids should be used.",
+     "blindSpot": "Taking over instead of promoting independence; rushing; overlooking consent, safe equipment, swallowing risk or changes in condition.",
+     "critical": false
+    },
+    {
+     "id": "FND-084",
+     "difficulty": "Foundation",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A person can stand but needs support to pivot during a transfer. Which aid is identified in the course?",
+     "options": {
+      "a": "Gait belt",
+      "b": "PEG tube",
+      "c": "Barrier cream",
+      "d": "Denture cup"
+     },
+     "correct": "a",
+     "explanation": "The course identifies a gait belt as an aid for weight-bearing assistance and pivot transfers.",
+     "blindSpot": "Taking over instead of promoting independence; rushing; overlooking consent, safe equipment, swallowing risk or changes in condition.",
+     "critical": false
+    },
+    {
+     "id": "FND-085",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "What should be checked before using a hoist?",
+     "options": {
+      "a": "Only the colour of the sling",
+      "b": "The person's care plan, consent, equipment condition and safe operating requirements",
+      "c": "Whether the person is in a hurry",
+      "d": "Whether the hoist is the nearest one"
+     },
+     "correct": "b",
+     "explanation": "Hoist use requires preparation, consent, equipment checks and appropriate training.",
+     "blindSpot": "Taking over instead of promoting independence; rushing; overlooking consent, safe equipment, swallowing risk or changes in condition.",
+     "critical": false
+    },
+    {
+     "id": "FND-086",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client uses a Zimmer frame. What is an appropriate way to support them when walking?",
+     "options": {
+      "a": "Walk alongside and provide guidance as required",
+      "b": "Pull the frame forward while they sit",
+      "c": "Carry the frame away",
+      "d": "Hold both arms and move quickly"
+     },
+     "correct": "a",
+     "explanation": "The course recommends walking alongside and guiding a person who uses a walking aid.",
+     "blindSpot": "Taking over instead of promoting independence; rushing; overlooking consent, safe equipment, swallowing risk or changes in condition.",
+     "critical": false
+    },
+    {
+     "id": "FND-087",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which action best promotes independence during personal care?",
+     "options": {
+      "a": "Do everything for the person without asking",
+      "b": "Encourage the person to do what they can and assist only where needed",
+      "c": "Avoid offering any support",
+      "d": "Choose the person's clothes without consultation"
+     },
+     "correct": "b",
+     "explanation": "Care should be matched to ability and encourage participation rather than taking over.",
+     "blindSpot": "Taking over instead of promoting independence; rushing; overlooking consent, safe equipment, swallowing risk or changes in condition.",
+     "critical": false
+    },
+    {
+     "id": "FND-088",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A person is anxious about having a bed bath. What should the caregiver do?",
+     "options": {
+      "a": "Proceed without speaking",
+      "b": "Reassure them, explain each step and seek consent",
+      "c": "Tell them there is no reason to be anxious",
+      "d": "Leave the person uncovered"
+     },
+     "correct": "b",
+     "explanation": "Explanation, reassurance and consent protect dignity and reduce distress.",
+     "blindSpot": "Taking over instead of promoting independence; rushing; overlooking consent, safe equipment, swallowing risk or changes in condition.",
+     "critical": false
+    },
+    {
+     "id": "FND-089",
+     "difficulty": "Foundation",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Why should a clean cloth be used for each new body area during washing?",
+     "options": {
+      "a": "To save water",
+      "b": "To reduce the risk of cross-contamination",
+      "c": "To make the task faster",
+      "d": "To avoid documenting the care"
+     },
+     "correct": "b",
+     "explanation": "Using a clean cloth helps prevent the transfer of germs between body areas.",
+     "blindSpot": "Taking over instead of promoting independence; rushing; overlooking consent, safe equipment, swallowing risk or changes in condition.",
+     "critical": false
+    },
+    {
+     "id": "FND-090",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which action supports privacy during toileting?",
+     "options": {
+      "a": "Leave the door open",
+      "b": "Use respectful language, provide privacy and explain assistance",
+      "c": "Discuss the person's continence with visitors",
+      "d": "Rush the person"
+     },
+     "correct": "b",
+     "explanation": "Continence support should protect dignity, privacy and comfort.",
+     "blindSpot": "Taking over instead of promoting independence; rushing; overlooking consent, safe equipment, swallowing risk or changes in condition.",
+     "critical": false
+    },
+    {
+     "id": "FND-091",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client with arthritis can eat independently but struggles to open packaging. What is the most suitable support?",
+     "options": {
+      "a": "Feed the person regardless of ability",
+      "b": "Provide help with packaging and meal preparation while allowing independent eating",
+      "c": "Remove the meal",
+      "d": "Use a feeding tube"
+     },
+     "correct": "b",
+     "explanation": "Support should address the specific difficulty while preserving independence.",
+     "blindSpot": "Taking over instead of promoting independence; rushing; overlooking consent, safe equipment, swallowing risk or changes in condition.",
+     "critical": false
+    },
+    {
+     "id": "FND-092",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A person with hand tremors struggles to use standard cutlery. Which adaptation is described in the course?",
+     "options": {
+      "a": "Weighted or wide-handled adaptive utensils",
+      "b": "A smaller plate only",
+      "c": "A straw used for all foods",
+      "d": "A mechanical hoist"
+     },
+     "correct": "a",
+     "explanation": "Adaptive utensils with wide or weighted handles can support people with fine motor difficulties.",
+     "blindSpot": "Taking over instead of promoting independence; rushing; overlooking consent, safe equipment, swallowing risk or changes in condition.",
+     "critical": false
+    },
+    {
+     "id": "FND-093",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "When spoon-feeding a person with dementia, where should the caregiver position themselves?",
+     "options": {
+      "a": "Standing behind the person",
+      "b": "At eye level",
+      "c": "Across the room",
+      "d": "At the doorway"
+     },
+     "correct": "b",
+     "explanation": "Sitting at eye level supports dignity, communication and a calm mealtime experience.",
+     "blindSpot": "Taking over instead of promoting independence; rushing; overlooking consent, safe equipment, swallowing risk or changes in condition.",
+     "critical": false
+    },
+    {
+     "id": "FND-094",
+     "difficulty": "Foundation",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A person coughs repeatedly while being fed. What should the caregiver do?",
+     "options": {
+      "a": "Continue feeding quickly",
+      "b": "Pause and assess for swallowing or choking risk, then follow the care plan and seek help as required",
+      "c": "Offer larger spoonfuls",
+      "d": "Leave the person alone"
+     },
+     "correct": "b",
+     "explanation": "Coughing may indicate swallowing difficulty or aspiration risk and should not be ignored.",
+     "blindSpot": "Taking over instead of promoting independence; rushing; overlooking consent, safe equipment, swallowing risk or changes in condition.",
+     "critical": false
+    },
+    {
+     "id": "FND-095",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "What is a key safety measure when supporting PEG feeding, as described in the course?",
+     "options": {
+      "a": "Position the person flat",
+      "b": "Position the person upright and follow the prescribed feeding plan",
+      "c": "Change the feed type independently",
+      "d": "Skip hygiene steps"
+     },
+     "correct": "b",
+     "explanation": "Upright positioning helps reduce aspiration risk; feed type and volume must follow the care plan.",
+     "blindSpot": "Taking over instead of promoting independence; rushing; overlooking consent, safe equipment, swallowing risk or changes in condition.",
+     "critical": false
+    },
+    {
+     "id": "FND-096",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "What should a caregiver do if unsure about a person's prescribed food texture or drink thickness?",
+     "options": {
+      "a": "Choose what seems right by looking at it",
+      "b": "Follow the specified plan and seek advice from an appropriate health professional",
+      "c": "Use any available thickener",
+      "d": "Give ordinary food to test swallowing"
+     },
+     "correct": "b",
+     "explanation": "The course stresses following the prescribed texture and not improvising IDDSI levels or thickeners.",
+     "blindSpot": "Taking over instead of promoting independence; rushing; overlooking consent, safe equipment, swallowing risk or changes in condition.",
+     "critical": false
+    },
+    {
+     "id": "FND-097",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client uses incontinence pads. What is good practice?",
+     "options": {
+      "a": "Change only when the client complains",
+      "b": "Check and change at appropriate intervals, use PPE and maintain privacy",
+      "c": "Delay care until the next shift",
+      "d": "Reuse a soiled pad if it looks dry"
+     },
+     "correct": "b",
+     "explanation": "Regular checks, hygiene, PPE and discretion protect comfort and reduce skin and infection risks.",
+     "blindSpot": "Taking over instead of promoting independence; rushing; overlooking consent, safe equipment, swallowing risk or changes in condition.",
+     "critical": false
+    },
+    {
+     "id": "FND-098",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A catheter drainage tube is visibly kinked. What should the caregiver do?",
+     "options": {
+      "a": "Ignore it",
+      "b": "Follow training and care instructions to address the issue safely and report concerns",
+      "c": "Pull the catheter out",
+      "d": "Disconnect the system without guidance"
+     },
+     "correct": "b",
+     "explanation": "The course highlights checking that tubing is secure and not kinked and reporting concerns appropriately.",
+     "blindSpot": "Taking over instead of promoting independence; rushing; overlooking consent, safe equipment, swallowing risk or changes in condition.",
+     "critical": false
+    },
+    {
+     "id": "FND-099",
+     "difficulty": "Foundation",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which may indicate a catheter-related infection or concern that should be reported?",
+     "options": {
+      "a": "Cloudy urine, unusual odour or pain",
+      "b": "Clear urine with no symptoms",
+      "c": "A full water glass",
+      "d": "Clean bedding"
+     },
+     "correct": "a",
+     "explanation": "The course lists cloudy urine, odour and pain among signs to observe and report.",
+     "blindSpot": "Taking over instead of promoting independence; rushing; overlooking consent, safe equipment, swallowing risk or changes in condition.",
+     "critical": false
+    },
+    {
+     "id": "FND-100",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "What is a core principle across mobility, feeding, personal care and continence support?",
+     "options": {
+      "a": "Complete tasks as quickly as possible",
+      "b": "Balance safety with dignity, choice and independence",
+      "c": "Avoid explaining procedures",
+      "d": "Use the same approach for everyone"
+     },
+     "correct": "b",
+     "explanation": "Physical care should be person-centred and preserve dignity, safety and independence.",
+     "blindSpot": "Taking over instead of promoting independence; rushing; overlooking consent, safe equipment, swallowing risk or changes in condition.",
+     "critical": false
+    }
+   ]
+  },
+  {
+   "topic": "Emotional and psychological support",
+   "module": "Module 2: Best Practices in Care Delivery",
+   "lessons": "Topic 2: Understanding and meeting emotional and psychological needs",
+   "coverage": "Recognise distress; respond empathetically; understand behaviour and unmet needs",
+   "ids": "FND-101 to FND-120",
+   "questions": [
+    {
+     "id": "FND-101",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client who recently moved into a care setting seems withdrawn. What is the best response?",
+     "options": {
+      "a": "Decide that they want to be left alone",
+      "b": "Approach gently, listen and explore how they are feeling",
+      "c": "Tell them to be more sociable",
+      "d": "Ignore the change"
+     },
+     "correct": "b",
+     "explanation": "Withdrawal may reflect emotional or psychological needs; a supportive conversation can help identify concerns.",
+     "blindSpot": "Labelling behaviour as difficult without asking what need, distress, health issue or environmental trigger may be behind it.",
+     "critical": false
+    },
+    {
+     "id": "FND-102",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client becomes upset when their usual routine changes. What should the caregiver consider?",
+     "options": {
+      "a": "The person is deliberately difficult",
+      "b": "Routine and familiarity may be important to their emotional wellbeing",
+      "c": "The person should be punished",
+      "d": "The change does not matter"
+     },
+     "correct": "b",
+     "explanation": "Care should recognise how changes in routine can affect emotional comfort and security.",
+     "blindSpot": "Labelling behaviour as difficult without asking what need, distress, health issue or environmental trigger may be behind it.",
+     "critical": false
+    },
+    {
+     "id": "FND-103",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which response best demonstrates empathy?",
+     "options": {
+      "a": "You should not feel that way",
+      "b": "I can see this is difficult; would you like to tell me more?",
+      "c": "Other people have worse problems",
+      "d": "Let's not talk about it"
+     },
+     "correct": "b",
+     "explanation": "Acknowledging feelings and inviting the person to speak shows empathy and respect.",
+     "blindSpot": "Labelling behaviour as difficult without asking what need, distress, health issue or environmental trigger may be behind it.",
+     "critical": false
+    },
+    {
+     "id": "FND-104",
+     "difficulty": "Foundation",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A person appears distressed but does not want to talk. What should the caregiver do?",
+     "options": {
+      "a": "Force them to explain",
+      "b": "Respect their choice, remain available and observe for any safety concerns",
+      "c": "Leave permanently",
+      "d": "Tell other clients about it"
+     },
+     "correct": "b",
+     "explanation": "Respect the person's autonomy while remaining attentive to their wellbeing and any risks.",
+     "blindSpot": "Labelling behaviour as difficult without asking what need, distress, health issue or environmental trigger may be behind it.",
+     "critical": false
+    },
+    {
+     "id": "FND-105",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which may be a sign of emotional or psychological distress?",
+     "options": {
+      "a": "A noticeable change in behaviour or mood",
+      "b": "A clean kitchen",
+      "c": "A completed care note",
+      "d": "A full water jug"
+     },
+     "correct": "a",
+     "explanation": "Changes in mood or behaviour can signal distress and should be observed and, where appropriate, reported.",
+     "blindSpot": "Labelling behaviour as difficult without asking what need, distress, health issue or environmental trigger may be behind it.",
+     "critical": false
+    },
+    {
+     "id": "FND-106",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client is angry and raising their voice. What is the safest initial approach?",
+     "options": {
+      "a": "Raise your voice to match theirs",
+      "b": "Remain calm, give space and use respectful, non-threatening communication",
+      "c": "Argue until they agree",
+      "d": "Touch them without warning"
+     },
+     "correct": "b",
+     "explanation": "Calm communication and appropriate space can help avoid reporting to the next responsible person.",
+     "blindSpot": "Labelling behaviour as difficult without asking what need, distress, health issue or environmental trigger may be behind it.",
+     "critical": false
+    },
+    {
+     "id": "FND-107",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "What should a caregiver do when a person's behaviour changes suddenly?",
+     "options": {
+      "a": "Assume it is attention-seeking",
+      "b": "Consider possible causes, observe, document and report according to the care plan",
+      "c": "Ignore it unless it happens again",
+      "d": "Immediately restrain the person"
+     },
+     "correct": "b",
+     "explanation": "A change in behaviour may reflect unmet needs or a health concern and should be assessed and escalated appropriately.",
+     "blindSpot": "Labelling behaviour as difficult without asking what need, distress, health issue or environmental trigger may be behind it.",
+     "critical": false
+    },
+    {
+     "id": "FND-108",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "Why is it important to understand a person's life history and preferences?",
+     "options": {
+      "a": "It helps the caregiver impose routines",
+      "b": "It can inform meaningful, individualised support",
+      "c": "It replaces the care plan",
+      "d": "It is useful only for paperwork"
+     },
+     "correct": "b",
+     "explanation": "Knowing the person's background and preferences supports person-centred care.",
+     "blindSpot": "Labelling behaviour as difficult without asking what need, distress, health issue or environmental trigger may be behind it.",
+     "critical": false
+    },
+    {
+     "id": "FND-109",
+     "difficulty": "Foundation",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client refuses an activity they previously enjoyed. What should the caregiver do?",
+     "options": {
+      "a": "Make the person take part",
+      "b": "Explore the reason without judgement and report persistent changes where appropriate",
+      "c": "Assume they are lazy",
+      "d": "Remove all future choices"
+     },
+     "correct": "b",
+     "explanation": "A change in participation may have an underlying cause and should be approached sensitively.",
+     "blindSpot": "Labelling behaviour as difficult without asking what need, distress, health issue or environmental trigger may be behind it.",
+     "critical": false
+    },
+    {
+     "id": "FND-110",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which action is most likely to reduce distress during care?",
+     "options": {
+      "a": "Give several instructions quickly",
+      "b": "Explain one step at a time and allow the person time to respond",
+      "c": "Ignore non-verbal cues",
+      "d": "Rush the task"
+     },
+     "correct": "b",
+     "explanation": "Clear, paced communication can help the person feel more secure and involved.",
+     "blindSpot": "Labelling behaviour as difficult without asking what need, distress, health issue or environmental trigger may be behind it.",
+     "critical": false
+    },
+    {
+     "id": "FND-111",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client expresses loneliness. Which response is most appropriate?",
+     "options": {
+      "a": "Dismiss the concern",
+      "b": "Listen and explore appropriate social contact or activities within the care plan",
+      "c": "Promise daily visits you cannot provide",
+      "d": "Tell them loneliness is normal"
+     },
+     "correct": "b",
+     "explanation": "Listening and helping identify appropriate support responds to the person's emotional need without making unrealistic promises.",
+     "blindSpot": "Labelling behaviour as difficult without asking what need, distress, health issue or environmental trigger may be behind it.",
+     "critical": false
+    },
+    {
+     "id": "FND-112",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which approach supports emotional wellbeing while preserving autonomy?",
+     "options": {
+      "a": "Make all decisions for the person",
+      "b": "Offer choices and involve the person in everyday decisions",
+      "c": "Avoid asking their opinion",
+      "d": "Allow family members to decide everything"
+     },
+     "correct": "b",
+     "explanation": "Choice and involvement support autonomy, confidence and emotional wellbeing.",
+     "blindSpot": "Labelling behaviour as difficult without asking what need, distress, health issue or environmental trigger may be behind it.",
+     "critical": false
+    },
+    {
+     "id": "FND-113",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client with dementia appears frightened by an unfamiliar caregiver. What may help?",
+     "options": {
+      "a": "Approach suddenly from behind",
+      "b": "Introduce yourself, explain your role and use a calm, familiar approach",
+      "c": "Insist they remember you",
+      "d": "Speak about them as if they are absent"
+     },
+     "correct": "b",
+     "explanation": "A calm introduction and explanation can reduce uncertainty and support trust.",
+     "blindSpot": "Labelling behaviour as difficult without asking what need, distress, health issue or environmental trigger may be behind it.",
+     "critical": false
+    },
+    {
+     "id": "FND-114",
+     "difficulty": "Foundation",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which statement about challenging behaviour is most appropriate?",
+     "options": {
+      "a": "It should always be punished",
+      "b": "It may communicate distress or an unmet need",
+      "c": "It should be ignored",
+      "d": "It proves the person is unwilling to receive care"
+     },
+     "correct": "b",
+     "explanation": "Behaviour may communicate pain, fear, confusion or another unmet need; the response should be calm and constructive.",
+     "blindSpot": "Labelling behaviour as difficult without asking what need, distress, health issue or environmental trigger may be behind it.",
+     "critical": false
+    },
+    {
+     "id": "FND-115",
+     "difficulty": "Applied judgement",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client is pacing and appears unsettled. What should the caregiver do first?",
+     "options": {
+      "a": "Block their movement immediately",
+      "b": "Observe, consider immediate safety and approach calmly to understand what may be causing the behaviour",
+      "c": "Shout instructions",
+      "d": "Assume the client is aggressive"
+     },
+     "correct": "b",
+     "explanation": "The caregiver should assess the situation and respond calmly while maintaining safety.",
+     "blindSpot": "Labelling behaviour as difficult without asking what need, distress, health issue or environmental trigger may be behind it.",
+     "critical": false
+    },
+    {
+     "id": "FND-116",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "What is a safe and respectful way to support a person experiencing anxiety?",
+     "options": {
+      "a": "Offer reassurance, listen and explain what will happen",
+      "b": "Tell them to stop worrying",
+      "c": "Avoid eye contact and leave",
+      "d": "Make decisions without informing them"
+     },
+     "correct": "a",
+     "explanation": "Reassurance and clear explanations can help reduce anxiety.",
+     "blindSpot": "Labelling behaviour as difficult without asking what need, distress, health issue or environmental trigger may be behind it.",
+     "critical": false
+    },
+    {
+     "id": "FND-117",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client says they feel like a burden. What is the most helpful response?",
+     "options": {
+      "a": "Agree that care is difficult",
+      "b": "Acknowledge the feeling and reassure them that their needs matter",
+      "c": "Change the subject",
+      "d": "Tell them not to be emotional"
+     },
+     "correct": "b",
+     "explanation": "The course emphasises empathetic responses that recognise the person's feelings and dignity.",
+     "blindSpot": "Labelling behaviour as difficult without asking what need, distress, health issue or environmental trigger may be behind it.",
+     "critical": false
+    },
+    {
+     "id": "FND-118",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Why should caregivers observe non-verbal behaviour?",
+     "options": {
+      "a": "It always reveals the exact cause of distress",
+      "b": "It may provide clues about comfort, pain, fear or unmet needs",
+      "c": "It replaces asking the person",
+      "d": "It is only relevant for children"
+     },
+     "correct": "b",
+     "explanation": "Non-verbal cues can signal how a person is feeling, especially when communication is limited.",
+     "blindSpot": "Labelling behaviour as difficult without asking what need, distress, health issue or environmental trigger may be behind it.",
+     "critical": false
+    },
+    {
+     "id": "FND-119",
+     "difficulty": "Foundation",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A person becomes distressed during a task. What should the caregiver prioritise?",
+     "options": {
+      "a": "Finishing the task at all costs",
+      "b": "Immediate safety, dignity and a calm response; pause if appropriate",
+      "c": "Completing the paperwork first",
+      "d": "Persuading the person by threat"
+     },
+     "correct": "b",
+     "explanation": "Safety and dignity take priority; pausing and responding calmly may prevent reporting to the next responsible person.",
+     "blindSpot": "Labelling behaviour as difficult without asking what need, distress, health issue or environmental trigger may be behind it.",
+     "critical": false
+    },
+    {
+     "id": "FND-120",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "What is the best general principle when responding to behaviour that challenges?",
+     "options": {
+      "a": "Focus on controlling the person",
+      "b": "Seek to understand the cause and respond constructively, safely and respectfully",
+      "c": "Use punishment",
+      "d": "Assume the same trigger for everyone"
+     },
+     "correct": "b",
+     "explanation": "The course promotes calm, constructive responses that prioritise safety and dignity.",
+     "blindSpot": "Labelling behaviour as difficult without asking what need, distress, health issue or environmental trigger may be behind it.",
+     "critical": false
+    }
+   ]
+  },
+  {
+   "topic": "Infection control",
+   "module": "Module 2: Best Practices in Care Delivery",
+   "lessons": "Topic 3: Infection control measures; Lessons 1–2: Hand hygiene and PPE",
+   "coverage": "Hand hygiene, PPE, cross-contamination and safe equipment/environment practices",
+   "ids": "FND-121 to FND-140",
+   "questions": [
+    {
+     "id": "FND-121",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "What is the main purpose of hand hygiene in care?",
+     "options": {
+      "a": "To make hands smell pleasant",
+      "b": "To reduce the spread of germs and infection",
+      "c": "To replace all PPE",
+      "d": "To remove the need for cleaning"
+     },
+     "correct": "b",
+     "explanation": "Hand hygiene is a fundamental measure for reducing transmission of infection.",
+     "blindSpot": "Assuming gloves replace hand hygiene; reusing equipment or PPE across tasks; overlooking how germs move between people and surfaces.",
+     "critical": false
+    },
+    {
+     "id": "FND-122",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "When should a caregiver clean their hands?",
+     "options": {
+      "a": "Only at the start of a shift",
+      "b": "Before and after relevant care activities and whenever indicated by infection-control procedures",
+      "c": "Only when hands look dirty",
+      "d": "Only after handling food"
+     },
+     "correct": "b",
+     "explanation": "Hand hygiene is required at key moments during care, not only when hands appear visibly dirty.",
+     "blindSpot": "Assuming gloves replace hand hygiene; reusing equipment or PPE across tasks; overlooking how germs move between people and surfaces.",
+     "critical": false
+    },
+    {
+     "id": "FND-123",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver removes gloves after assisting with continence care. What should happen next?",
+     "options": {
+      "a": "No further action is needed",
+      "b": "Perform hand hygiene",
+      "c": "Put the same gloves back on",
+      "d": "Touch clean supplies first"
+     },
+     "correct": "b",
+     "explanation": "Gloves do not replace hand hygiene; hands should be cleaned after glove removal.",
+     "blindSpot": "Assuming gloves replace hand hygiene; reusing equipment or PPE across tasks; overlooking how germs move between people and surfaces.",
+     "critical": false
+    },
+    {
+     "id": "FND-124",
+     "difficulty": "Foundation",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "What is the purpose of wearing gloves when there is a risk of contact with body fluids?",
+     "options": {
+      "a": "To replace handwashing",
+      "b": "To provide a barrier against exposure and contamination",
+      "c": "To protect the client from all hazards",
+      "d": "To allow gloves to be reused"
+     },
+     "correct": "b",
+     "explanation": "Gloves provide a protective barrier when exposure to body fluids or contaminated material is anticipated.",
+     "blindSpot": "Assuming gloves replace hand hygiene; reusing equipment or PPE across tasks; overlooking how germs move between people and surfaces.",
+     "critical": false
+    },
+    {
+     "id": "FND-125",
+     "difficulty": "Applied judgement",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "When should a caregiver change gloves?",
+     "options": {
+      "a": "Between different care tasks and when contaminated, following procedure",
+      "b": "Only once per shift",
+      "c": "Only when torn",
+      "d": "After touching their own phone"
+     },
+     "correct": "a",
+     "explanation": "Gloves should not be used across tasks in ways that spread contamination.",
+     "blindSpot": "Assuming gloves replace hand hygiene; reusing equipment or PPE across tasks; overlooking how germs move between people and surfaces.",
+     "critical": false
+    },
+    {
+     "id": "FND-126",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which action can contribute to cross-contamination?",
+     "options": {
+      "a": "Using clean equipment",
+      "b": "Using the same unclean cloth on multiple surfaces",
+      "c": "Performing hand hygiene",
+      "d": "Disposing of waste correctly"
+     },
+     "correct": "b",
+     "explanation": "Contaminated cloths or equipment can transfer germs between surfaces and people.",
+     "blindSpot": "Assuming gloves replace hand hygiene; reusing equipment or PPE across tasks; overlooking how germs move between people and surfaces.",
+     "critical": false
+    },
+    {
+     "id": "FND-127",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver has a cut on their hand. What should they do before providing care?",
+     "options": {
+      "a": "Ignore it",
+      "b": "Cover it appropriately and follow workplace infection-control guidance",
+      "c": "Use no hand hygiene",
+      "d": "Ask the client to cover it"
+     },
+     "correct": "b",
+     "explanation": "Skin breaks should be protected and managed according to infection-control procedures.",
+     "blindSpot": "Assuming gloves replace hand hygiene; reusing equipment or PPE across tasks; overlooking how germs move between people and surfaces.",
+     "critical": false
+    },
+    {
+     "id": "FND-128",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "What do the letters PPE stand for?",
+     "options": {
+      "a": "Personal Protective Equipment",
+      "b": "Patient Privacy Evaluation",
+      "c": "Professional Practice Evidence",
+      "d": "Personal Prevention Exercise"
+     },
+     "correct": "a",
+     "explanation": "PPE means Personal Protective Equipment.",
+     "blindSpot": "Assuming gloves replace hand hygiene; reusing equipment or PPE across tasks; overlooking how germs move between people and surfaces.",
+     "critical": false
+    },
+    {
+     "id": "FND-129",
+     "difficulty": "Foundation",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which PPE may be required when there is a risk of splashes to the face?",
+     "options": {
+      "a": "Eye or face protection",
+      "b": "A wristwatch",
+      "c": "A hairbrush",
+      "d": "A shoehorn"
+     },
+     "correct": "a",
+     "explanation": "Eye and face protection helps protect against splashes where the risk assessment indicates it is needed.",
+     "blindSpot": "Assuming gloves replace hand hygiene; reusing equipment or PPE across tasks; overlooking how germs move between people and surfaces.",
+     "critical": false
+    },
+    {
+     "id": "FND-130",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Why should PPE be selected according to the task and risk?",
+     "options": {
+      "a": "All tasks require identical PPE",
+      "b": "The level and type of exposure risk determine the appropriate protection",
+      "c": "PPE is only for hospital staff",
+      "d": "PPE removes all infection risk"
+     },
+     "correct": "b",
+     "explanation": "PPE should be appropriate to the anticipated exposure and workplace guidance.",
+     "blindSpot": "Assuming gloves replace hand hygiene; reusing equipment or PPE across tasks; overlooking how germs move between people and surfaces.",
+     "critical": false
+    },
+    {
+     "id": "FND-131",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver's apron becomes visibly contaminated during care. What should they do?",
+     "options": {
+      "a": "Keep using it for the next tasks",
+      "b": "Remove and dispose of or change it safely according to procedure",
+      "c": "Wipe it on a towel and continue",
+      "d": "Wear it home"
+     },
+     "correct": "b",
+     "explanation": "Contaminated PPE should be changed and disposed of safely to prevent spread.",
+     "blindSpot": "Assuming gloves replace hand hygiene; reusing equipment or PPE across tasks; overlooking how germs move between people and surfaces.",
+     "critical": false
+    },
+    {
+     "id": "FND-132",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which practice helps prevent infection when handling waste?",
+     "options": {
+      "a": "Leave waste beside the bed",
+      "b": "Use designated waste containers and follow disposal procedures",
+      "c": "Mix all waste together",
+      "d": "Carry waste against clothing"
+     },
+     "correct": "b",
+     "explanation": "Safe waste segregation and disposal reduce exposure and environmental contamination.",
+     "blindSpot": "Assuming gloves replace hand hygiene; reusing equipment or PPE across tasks; overlooking how germs move between people and surfaces.",
+     "critical": false
+    },
+    {
+     "id": "FND-133",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client has symptoms of a potentially infectious illness. What should the caregiver do?",
+     "options": {
+      "a": "Ignore the symptoms",
+      "b": "Follow infection-control procedures and report the concern to the appropriate person",
+      "c": "Share the client's diagnosis publicly",
+      "d": "Stop all care without informing anyone"
+     },
+     "correct": "b",
+     "explanation": "Caregivers should follow the relevant precautions and report to the next responsible person concerns through the care team.",
+     "blindSpot": "Assuming gloves replace hand hygiene; reusing equipment or PPE across tasks; overlooking how germs move between people and surfaces.",
+     "critical": false
+    },
+    {
+     "id": "FND-134",
+     "difficulty": "Foundation",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Why is it important to clean shared equipment between clients?",
+     "options": {
+      "a": "It improves appearance only",
+      "b": "It reduces the chance of transferring germs between people",
+      "c": "It replaces hand hygiene",
+      "d": "It is optional if the equipment looks clean"
+     },
+     "correct": "b",
+     "explanation": "Shared equipment can act as a route for cross-infection if not cleaned appropriately.",
+     "blindSpot": "Assuming gloves replace hand hygiene; reusing equipment or PPE across tasks; overlooking how germs move between people and surfaces.",
+     "critical": false
+    },
+    {
+     "id": "FND-135",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which is the correct principle when removing PPE?",
+     "options": {
+      "a": "Remove it in a way that avoids contaminating hands, clothing or the environment",
+      "b": "Touch the contaminated front and then touch the face",
+      "c": "Reuse disposable PPE",
+      "d": "Leave PPE on in communal areas"
+     },
+     "correct": "a",
+     "explanation": "Safe removal helps prevent self-contamination and environmental spread.",
+     "blindSpot": "Assuming gloves replace hand hygiene; reusing equipment or PPE across tasks; overlooking how germs move between people and surfaces.",
+     "critical": false
+    },
+    {
+     "id": "FND-136",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver is unsure which PPE is required for a task. What should they do?",
+     "options": {
+      "a": "Guess",
+      "b": "Check the risk assessment, care instructions or ask a supervisor",
+      "c": "Use no PPE",
+      "d": "Ask the client to choose"
+     },
+     "correct": "b",
+     "explanation": "PPE decisions should be based on the task and relevant guidance, with help sought when uncertain.",
+     "blindSpot": "Assuming gloves replace hand hygiene; reusing equipment or PPE across tasks; overlooking how germs move between people and surfaces.",
+     "critical": false
+    },
+    {
+     "id": "FND-137",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which statement about using gloves is correct?",
+     "options": {
+      "a": "Gloves replace hand hygiene",
+      "b": "Gloves can be worn from one client to another",
+      "c": "Gloves are a barrier but do not replace hand hygiene",
+      "d": "Gloves are needed for every interaction"
+     },
+     "correct": "c",
+     "explanation": "Gloves are task-specific protective equipment and do not remove the need for hand hygiene.",
+     "blindSpot": "Assuming gloves replace hand hygiene; reusing equipment or PPE across tasks; overlooking how germs move between people and surfaces.",
+     "critical": false
+    },
+    {
+     "id": "FND-138",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "What is the purpose of infection-control procedures in care?",
+     "options": {
+      "a": "To eliminate all contact with clients",
+      "b": "To reduce the risk of infection transmission and protect clients and workers",
+      "c": "To increase the amount of paperwork",
+      "d": "To replace clinical assessment"
+     },
+     "correct": "b",
+     "explanation": "Infection prevention protects both people receiving care and the workforce.",
+     "blindSpot": "Assuming gloves replace hand hygiene; reusing equipment or PPE across tasks; overlooking how germs move between people and surfaces.",
+     "critical": false
+    },
+    {
+     "id": "FND-139",
+     "difficulty": "Foundation",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver notices a colleague moving from a contaminated task to a clean task without changing gloves. What is the concern?",
+     "options": {
+      "a": "There is no concern if the gloves look intact",
+      "b": "This may spread contamination and should be addressed",
+      "c": "It improves efficiency",
+      "d": "It is safe if the colleague is experienced"
+     },
+     "correct": "b",
+     "explanation": "Using contaminated gloves for clean tasks can spread germs.",
+     "blindSpot": "Assuming gloves replace hand hygiene; reusing equipment or PPE across tasks; overlooking how germs move between people and surfaces.",
+     "critical": false
+    },
+    {
+     "id": "FND-140",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which combination best reflects basic infection prevention?",
+     "options": {
+      "a": "Hand hygiene, appropriate PPE and safe cleaning practices",
+      "b": "Perfume, gloves and open windows only",
+      "c": "Handwashing once daily",
+      "d": "Avoiding documentation"
+     },
+     "correct": "a",
+     "explanation": "Infection prevention combines hand hygiene, appropriate protective equipment and environmental/equipment hygiene.",
+     "blindSpot": "Assuming gloves replace hand hygiene; reusing equipment or PPE across tasks; overlooking how germs move between people and surfaces.",
+     "critical": false
+    }
+   ]
+  },
+  {
+   "topic": "Safeguarding adults and children",
+   "module": "Module 2: Best Practices in Care Delivery",
+   "lessons": "Lessons 1–5: Recognising abuse, reporting concerns, roles and responsibilities, whistleblowing, safeguarding children",
+   "coverage": "Recognise indicators, receive disclosures, record, report, escalate and speak up",
+   "ids": "FND-141 to FND-160",
+   "questions": [
+    {
+     "id": "FND-141",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "What is the main purpose of safeguarding?",
+     "options": {
+      "a": "To prevent people from making their own choices",
+      "b": "To protect people from abuse, neglect and avoidable harm while respecting their rights",
+      "c": "To punish clients who complain",
+      "d": "To replace all care planning"
+     },
+     "correct": "b",
+     "explanation": "Safeguarding aims to protect people from abuse and neglect while maintaining dignity and rights.",
+     "blindSpot": "Waiting for proof; promising secrecy; investigating personally; or failing to report and escalate concerns.",
+     "critical": false
+    },
+    {
+     "id": "FND-142",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client has unexplained bruises and appears frightened when a particular visitor arrives. What should the caregiver do?",
+     "options": {
+      "a": "Take no action unless the client makes a complaint",
+      "b": "Recognise this may be a concern, record factual observations and report promptly through safeguarding procedures",
+      "c": "Question the visitor aggressively",
+      "d": "Post a warning online"
+     },
+     "correct": "b",
+     "explanation": "Possible signs should be taken seriously, documented objectively and reported through the proper route.",
+     "blindSpot": "Waiting for proof; promising secrecy; investigating personally; or failing to report and escalate concerns.",
+     "critical": false
+    },
+    {
+     "id": "FND-143",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client tells a caregiver that a family member has been hurting them. What is the best immediate response?",
+     "options": {
+      "a": "Promise to keep it secret",
+      "b": "Listen calmly, take the disclosure seriously and explain that it must be shared with the appropriate safeguarding person",
+      "c": "Ask leading questions until they give details",
+      "d": "Confront the family member"
+     },
+     "correct": "b",
+     "explanation": "Caregivers should listen, avoid promises of secrecy and report concerns to the designated safeguarding route.",
+     "blindSpot": "Waiting for proof; promising secrecy; investigating personally; or failing to report and escalate concerns.",
+     "critical": false
+    },
+    {
+     "id": "FND-144",
+     "difficulty": "Foundation",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which response is inappropriate when receiving a disclosure of abuse?",
+     "options": {
+      "a": "Listen without judgement",
+      "b": "Reassure the person that they did the right thing by speaking",
+      "c": "Ask open, non-leading questions only as appropriate",
+      "d": "Promise that nobody else will ever be told"
+     },
+     "correct": "d",
+     "explanation": "A caregiver should not promise absolute secrecy because safeguarding concerns may need to be shared.",
+     "blindSpot": "Waiting for proof; promising secrecy; investigating personally; or failing to report and escalate concerns.",
+     "critical": false
+    },
+    {
+     "id": "FND-145",
+     "difficulty": "Applied judgement",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "What should a caregiver record after a safeguarding disclosure?",
+     "options": {
+      "a": "Their assumptions about what happened",
+      "b": "The person's words as accurately as possible, observations, time and actions taken",
+      "c": "Only the name of the alleged perpetrator",
+      "d": "A conclusion about whether abuse occurred"
+     },
+     "correct": "b",
+     "explanation": "Records should be factual, completed without unnecessary delay and factual, preserving the person's account and the actions taken.",
+     "blindSpot": "Waiting for proof; promising secrecy; investigating personally; or failing to report and escalate concerns.",
+     "critical": false
+    },
+    {
+     "id": "FND-146",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A colleague repeatedly leaves a dependent client without necessary support. This may be:",
+     "options": {
+      "a": "Neglect",
+      "b": "A normal handover",
+      "c": "Person-centred care",
+      "d": "Data minimisation"
+     },
+     "correct": "a",
+     "explanation": "Failure to provide necessary care may be a form of neglect.",
+     "blindSpot": "Waiting for proof; promising secrecy; investigating personally; or failing to report and escalate concerns.",
+     "critical": false
+    },
+    {
+     "id": "FND-147",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which may be an indicator of financial abuse?",
+     "options": {
+      "a": "A client chooses to buy a gift",
+      "b": "Unexplained withdrawals or missing money",
+      "c": "A client asks to see their bank statement",
+      "d": "A client keeps their wallet securely"
+     },
+     "correct": "b",
+     "explanation": "Unexplained loss of money or unusual financial activity may indicate financial abuse.",
+     "blindSpot": "Waiting for proof; promising secrecy; investigating personally; or failing to report and escalate concerns.",
+     "critical": false
+    },
+    {
+     "id": "FND-148",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver suspects abuse but is not certain. What should they do?",
+     "options": {
+      "a": "Wait until there is definite proof before reporting",
+      "b": "Report the concern through the safeguarding process; investigation is not the caregiver's role",
+      "c": "Discuss it with other clients",
+      "d": "Ignore it"
+     },
+     "correct": "b",
+     "explanation": "Caregivers report reasonable concerns; they do not need to prove abuse before raising an alert.",
+     "blindSpot": "Waiting for proof; promising secrecy; investigating personally; or failing to report and escalate concerns.",
+     "critical": false
+    },
+    {
+     "id": "FND-149",
+     "difficulty": "Foundation",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "What is whistleblowing in a care context?",
+     "options": {
+      "a": "Sharing client stories on social media",
+      "b": "Speaking up through appropriate channels about wrongdoing or unsafe practice",
+      "c": "Refusing to work with a colleague",
+      "d": "Discussing workplace gossip"
+     },
+     "correct": "b",
+     "explanation": "Whistleblowing involves raising concerns about wrongdoing, harm or unsafe practice.",
+     "blindSpot": "Waiting for proof; promising secrecy; investigating personally; or failing to report and escalate concerns.",
+     "critical": false
+    },
+    {
+     "id": "FND-150",
+     "difficulty": "Applied judgement",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver fears retaliation if they report unsafe practice. What should they do?",
+     "options": {
+      "a": "Stay silent",
+      "b": "Use the organisation's reporting or whistleblowing route and seek appropriate support",
+      "c": "Post allegations anonymously without evidence",
+      "d": "Tell the client to report the colleague"
+     },
+     "correct": "b",
+     "explanation": "The course emphasises a duty to speak up and use appropriate reporting channels.",
+     "blindSpot": "Waiting for proof; promising secrecy; investigating personally; or failing to report and escalate concerns.",
+     "critical": false
+    },
+    {
+     "id": "FND-151",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which statement about safeguarding children is correct?",
+     "options": {
+      "a": "Only parents have safeguarding responsibilities",
+      "b": "Anyone working with children should recognise concerns and follow the required reporting procedures",
+      "c": "Concerns should be handled informally",
+      "d": "A child must provide proof before a concern is reported"
+     },
+     "correct": "b",
+     "explanation": "The course includes safeguarding children and the responsibilities of workers to act on concerns.",
+     "blindSpot": "Waiting for proof; promising secrecy; investigating personally; or failing to report and escalate concerns.",
+     "critical": false
+    },
+    {
+     "id": "FND-152",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A child makes a statement suggesting they may be unsafe. What should the caregiver do?",
+     "options": {
+      "a": "Ask the child to repeat it to several adults",
+      "b": "Listen calmly, avoid leading questions and report promptly through the designated safeguarding route",
+      "c": "Promise not to tell anyone",
+      "d": "Investigate the family personally"
+     },
+     "correct": "b",
+     "explanation": "The response should be supportive and follow safeguarding procedures without conducting an independent investigation.",
+     "blindSpot": "Waiting for proof; promising secrecy; investigating personally; or failing to report and escalate concerns.",
+     "critical": false
+    },
+    {
+     "id": "FND-153",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which is a possible indicator of emotional abuse?",
+     "options": {
+      "a": "A person appears fearful, humiliated or unusually withdrawn",
+      "b": "A person requests a different meal",
+      "c": "A person asks for privacy",
+      "d": "A person attends an activity"
+     },
+     "correct": "a",
+     "explanation": "Changes in confidence, fearfulness or withdrawal may be signs that require attention.",
+     "blindSpot": "Waiting for proof; promising secrecy; investigating personally; or failing to report and escalate concerns.",
+     "critical": false
+    },
+    {
+     "id": "FND-154",
+     "difficulty": "Foundation",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which action could constitute institutional abuse or poor practice?",
+     "options": {
+      "a": "Respecting an individual's preferences",
+      "b": "A service routinely ignoring residents' needs and dignity",
+      "c": "Supporting independence",
+      "d": "Reporting a concern"
+     },
+     "correct": "b",
+     "explanation": "Patterns of poor practice that disregard people's needs and dignity can be safeguarding concerns.",
+     "blindSpot": "Waiting for proof; promising secrecy; investigating personally; or failing to report and escalate concerns.",
+     "critical": false
+    },
+    {
+     "id": "FND-155",
+     "difficulty": "Applied judgement",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver sees a colleague handling a client roughly. What is the appropriate action?",
+     "options": {
+      "a": "Ignore it because the colleague is senior",
+      "b": "Take steps to protect immediate safety and report the concern through safeguarding procedures",
+      "c": "Wait for the client to complain",
+      "d": "Discuss it with friends"
+     },
+     "correct": "b",
+     "explanation": "Immediate safety and prompt reporting are essential when abuse or unsafe practice is witnessed.",
+     "blindSpot": "Waiting for proof; promising secrecy; investigating personally; or failing to report and escalate concerns.",
+     "critical": false
+    },
+    {
+     "id": "FND-156",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Why should caregivers avoid investigating suspected abuse themselves?",
+     "options": {
+      "a": "They are not allowed to care for clients",
+      "b": "Untrained questioning or confrontation may compromise safety and the formal response",
+      "c": "It takes too much time",
+      "d": "The client must investigate"
+     },
+     "correct": "b",
+     "explanation": "The caregiver's role is to recognise, respond, record and report, not conduct an investigation.",
+     "blindSpot": "Waiting for proof; promising secrecy; investigating personally; or failing to report and escalate concerns.",
+     "critical": false
+    },
+    {
+     "id": "FND-157",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client is at immediate risk of serious harm. What should take priority?",
+     "options": {
+      "a": "Completing routine paperwork",
+      "b": "Taking appropriate urgent action to protect the person and contacting emergency or designated support as required",
+      "c": "Waiting for the next staff meeting",
+      "d": "Asking other clients what to do"
+     },
+     "correct": "b",
+     "explanation": "Immediate danger requires urgent protective action and reporting to the next responsible person through emergency and safeguarding channels.",
+     "blindSpot": "Waiting for proof; promising secrecy; investigating personally; or failing to report and escalate concerns.",
+     "critical": false
+    },
+    {
+     "id": "FND-158",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "Which principle should guide a caregiver when supporting a person who has experienced abuse?",
+     "options": {
+      "a": "Blame the person",
+      "b": "Respect their dignity, listen, support their choices where safe and follow safeguarding procedures",
+      "c": "Make promises that cannot be kept",
+      "d": "Share the story to warn others"
+     },
+     "correct": "b",
+     "explanation": "Safeguarding responses should be person-centred, respectful and consistent with safety procedures.",
+     "blindSpot": "Waiting for proof; promising secrecy; investigating personally; or failing to report and escalate concerns.",
+     "critical": false
+    },
+    {
+     "id": "FND-159",
+     "difficulty": "Foundation",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "What is the purpose of safeguarding agencies and designated roles?",
+     "options": {
+      "a": "To replace the caregiver's observations",
+      "b": "To coordinate appropriate assessment, protection and response to concerns",
+      "c": "To prevent all family contact",
+      "d": "To manage staff rotas"
+     },
+     "correct": "b",
+     "explanation": "The course covers roles and responsibilities of agencies and safeguarding leads in responding to concerns.",
+     "blindSpot": "Waiting for proof; promising secrecy; investigating personally; or failing to report and escalate concerns.",
+     "critical": false
+    },
+    {
+     "id": "FND-160",
+     "difficulty": "Applied judgement",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver reports a concern but receives no response and the risk remains. What should they do?",
+     "options": {
+      "a": "Assume the matter is closed",
+      "b": "report to the next responsible person through the next appropriate safeguarding or whistleblowing route",
+      "c": "Delete their notes",
+      "d": "Discuss the case publicly"
+     },
+     "correct": "b",
+     "explanation": "If a concern is not addressed and risk persists, it should be escalated through appropriate channels.",
+     "blindSpot": "Waiting for proof; promising secrecy; investigating personally; or failing to report and escalate concerns.",
+     "critical": false
+    }
+   ]
+  },
+  {
+   "topic": "Health and safety in care",
+   "module": "Module 2: Best Practices in Care Delivery",
+   "lessons": "Lessons 1–4: Fundamentals, hazard identification, reporting, emergency preparedness and caregiver wellbeing",
+   "coverage": "Hazards, risk assessment, manual handling, incident reporting, emergencies and wellbeing",
+   "ids": "FND-161 to FND-180",
+   "questions": [
+    {
+     "id": "FND-161",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "Why does a care team carry out a risk assessment?",
+     "options": {
+      "a": "To identify hazards and decide how risks can be reduced",
+      "b": "To guarantee that no accident can happen",
+      "c": "To replace staff training",
+      "d": "To assign blame after an incident"
+     },
+     "correct": "a",
+     "explanation": "Risk assessment is a proactive process for identifying hazards and controlling risks.",
+     "blindSpot": "Treating hazards and near misses as minor; acting beyond training; or assuming emergencies can be managed without a plan.",
+     "critical": false
+    },
+    {
+     "id": "FND-162",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A wet floor is found in a client's bathroom. What should the caregiver do?",
+     "options": {
+      "a": "Leave it for the cleaner",
+      "b": "Make the area safe, warn others and report or arrange cleaning according to procedure",
+      "c": "Ask the client to walk around it",
+      "d": "Cover it with a towel and ignore it"
+     },
+     "correct": "b",
+     "explanation": "Immediate action can prevent slips, and hazards should be reported or addressed appropriately.",
+     "blindSpot": "Treating hazards and near misses as minor; acting beyond training; or assuming emergencies can be managed without a plan.",
+     "critical": false
+    },
+    {
+     "id": "FND-163",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "What is a near miss?",
+     "options": {
+      "a": "An event that caused serious injury",
+      "b": "An event that could have caused harm but did not",
+      "c": "A planned care activity",
+      "d": "A routine handover"
+     },
+     "correct": "b",
+     "explanation": "Near misses provide opportunities to identify and address risks before someone is harmed.",
+     "blindSpot": "Treating hazards and near misses as minor; acting beyond training; or assuming emergencies can be managed without a plan.",
+     "critical": false
+    },
+    {
+     "id": "FND-164",
+     "difficulty": "Foundation",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver notices a frayed electrical cable on equipment. What should they do?",
+     "options": {
+      "a": "Carry on using it but take extra care",
+      "b": "Stop using it if safe to do so, isolate or label it according to procedure and report it",
+      "c": "Repair it without training",
+      "d": "Hide it"
+     },
+     "correct": "b",
+     "explanation": "Unsafe equipment should not be used and must be reported through workplace procedures.",
+     "blindSpot": "Treating hazards and near misses as minor; acting beyond training; or assuming emergencies can be managed without a plan.",
+     "critical": false
+    },
+    {
+     "id": "FND-165",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "What does COSHH relate to?",
+     "options": {
+      "a": "Control of Substances Hazardous to Health",
+      "b": "Care of Older and Socially Supported Homes",
+      "c": "Confidentiality of Staff and Service Users",
+      "d": "Clinical Observation and Safety Standards"
+     },
+     "correct": "a",
+     "explanation": "COSHH is the framework identified in the course for controlling exposure to hazardous substances.",
+     "blindSpot": "Treating hazards and near misses as minor; acting beyond training; or assuming emergencies can be managed without a plan.",
+     "critical": false
+    },
+    {
+     "id": "FND-166",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which is an example of a hazard in a care environment?",
+     "options": {
+      "a": "A clear, dry walkway",
+      "b": "A trailing cable across a walking route",
+      "c": "A completed handover",
+      "d": "A labelled clean supply"
+     },
+     "correct": "b",
+     "explanation": "Trailing cables can create trip hazards.",
+     "blindSpot": "Treating hazards and near misses as minor; acting beyond training; or assuming emergencies can be managed without a plan.",
+     "critical": false
+    },
+    {
+     "id": "FND-167",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "Before assisting with manual handling, what should the caregiver consider?",
+     "options": {
+      "a": "Only their own strength",
+      "b": "The person's ability, the task, environment, equipment and care plan",
+      "c": "How quickly the task can be completed",
+      "d": "Whether the person is watching"
+     },
+     "correct": "b",
+     "explanation": "Safe manual handling requires consideration of the person, task, environment and appropriate equipment.",
+     "blindSpot": "Treating hazards and near misses as minor; acting beyond training; or assuming emergencies can be managed without a plan.",
+     "critical": false
+    },
+    {
+     "id": "FND-168",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A fire alarm sounds in a care setting. What should the caregiver do?",
+     "options": {
+      "a": "Ignore it if no smoke is visible",
+      "b": "Follow the site's emergency and evacuation procedure",
+      "c": "Use the lift immediately",
+      "d": "Finish the current task first"
+     },
+     "correct": "b",
+     "explanation": "Emergency response should follow the established site plan and staff training.",
+     "blindSpot": "Treating hazards and near misses as minor; acting beyond training; or assuming emergencies can be managed without a plan.",
+     "critical": false
+    },
+    {
+     "id": "FND-169",
+     "difficulty": "Foundation",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Why should emergency plans be individualised?",
+     "options": {
+      "a": "Every client has identical needs",
+      "b": "A person's mobility, health needs and home environment affect how they can be supported in an emergency",
+      "c": "It makes the plan longer",
+      "d": "It removes the need for practice"
+     },
+     "correct": "b",
+     "explanation": "The course emphasises personal emergency plans based on the person's circumstances and environment.",
+     "blindSpot": "Treating hazards and near misses as minor; acting beyond training; or assuming emergencies can be managed without a plan.",
+     "critical": false
+    },
+    {
+     "id": "FND-170",
+     "difficulty": "Applied judgement",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client falls. What should the caregiver do first?",
+     "options": {
+      "a": "Lift the person straight away without checking for injury",
+      "b": "Ensure the scene is safe, assess for immediate danger and follow the falls/emergency procedure",
+      "c": "Leave to find a family member",
+      "d": "Give food or drink"
+     },
+     "correct": "b",
+     "explanation": "The caregiver should not move a person without considering injury; follow training and emergency procedures.",
+     "blindSpot": "Treating hazards and near misses as minor; acting beyond training; or assuming emergencies can be managed without a plan.",
+     "critical": false
+    },
+    {
+     "id": "FND-171",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which is an appropriate response to an incident?",
+     "options": {
+      "a": "Keep it informal and tell no one",
+      "b": "Provide appropriate immediate support, report it and complete required documentation",
+      "c": "Delete any notes",
+      "d": "Wait until the end of the month"
+     },
+     "correct": "b",
+     "explanation": "Incident response includes immediate safety, reporting and accurate documentation.",
+     "blindSpot": "Treating hazards and near misses as minor; acting beyond training; or assuming emergencies can be managed without a plan.",
+     "critical": false
+    },
+    {
+     "id": "FND-172",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "What is the purpose of basic first aid training?",
+     "options": {
+      "a": "To replace emergency medical services",
+      "b": "To provide immediate, appropriate assistance within the caregiver's training while further help is obtained",
+      "c": "To authorise all clinical procedures",
+      "d": "To avoid reporting incidents"
+     },
+     "correct": "b",
+     "explanation": "First aid is limited to the person's training and should not delay appropriate reporting to the next responsible person.",
+     "blindSpot": "Treating hazards and near misses as minor; acting beyond training; or assuming emergencies can be managed without a plan.",
+     "critical": false
+    },
+    {
+     "id": "FND-173",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A medication label appears inconsistent with the medication record. What should the caregiver do?",
+     "options": {
+      "a": "Choose the dose that seems right",
+      "b": "Stop and seek clarification from the approved to do so person before proceeding",
+      "c": "Ask the client to decide",
+      "d": "Ignore the label"
+     },
+     "correct": "b",
+     "explanation": "Medication safety requires checking discrepancies and not guessing.",
+     "blindSpot": "Treating hazards and near misses as minor; acting beyond training; or assuming emergencies can be managed without a plan.",
+     "critical": false
+    },
+    {
+     "id": "FND-174",
+     "difficulty": "Foundation",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which action supports equipment safety?",
+     "options": {
+      "a": "Use equipment even when damaged",
+      "b": "Carry out required checks and report defects",
+      "c": "Remove warning labels",
+      "d": "Borrow equipment without checking suitability"
+     },
+     "correct": "b",
+     "explanation": "Routine checks and reporting defects help prevent equipment-related harm.",
+     "blindSpot": "Treating hazards and near misses as minor; acting beyond training; or assuming emergencies can be managed without a plan.",
+     "critical": false
+    },
+    {
+     "id": "FND-175",
+     "difficulty": "Applied judgement",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver feels exhausted and emotionally overwhelmed. Why does this matter for safety?",
+     "options": {
+      "a": "It has no effect on care",
+      "b": "Fatigue and stress can affect judgement, attention and quality of care",
+      "c": "It only affects the caregiver's mood",
+      "d": "It means the caregiver should ignore procedures"
+     },
+     "correct": "b",
+     "explanation": "The course links caregiver wellbeing with the ability to provide safe, effective and sustainable care.",
+     "blindSpot": "Treating hazards and near misses as minor; acting beyond training; or assuming emergencies can be managed without a plan.",
+     "critical": false
+    },
+    {
+     "id": "FND-176",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "What is a safe and respectful way to manage caregiver stress?",
+     "options": {
+      "a": "Ignore it indefinitely",
+      "b": "Recognise signs of stress and use available support and wellbeing strategies",
+      "c": "Take frustrations out on clients",
+      "d": "Stop communicating with colleagues"
+     },
+     "correct": "b",
+     "explanation": "Recognising stress and seeking support helps protect caregiver wellbeing and care quality.",
+     "blindSpot": "Treating hazards and near misses as minor; acting beyond training; or assuming emergencies can be managed without a plan.",
+     "critical": false
+    },
+    {
+     "id": "FND-177",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client uses a wheelchair and lives in a cluttered home. What should an emergency plan consider?",
+     "options": {
+      "a": "Only the nearest exit sign",
+      "b": "Accessible routes, the person's mobility needs and practical assistance required",
+      "c": "The caregiver's preferred route only",
+      "d": "Whether the client can walk in an emergency"
+     },
+     "correct": "b",
+     "explanation": "Emergency planning should reflect the individual's mobility and the actual environment.",
+     "blindSpot": "Treating hazards and near misses as minor; acting beyond training; or assuming emergencies can be managed without a plan.",
+     "critical": false
+    },
+    {
+     "id": "FND-178",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Why should hazards and near misses be reported even when nobody is injured?",
+     "options": {
+      "a": "Reporting is only for serious injury",
+      "b": "They reveal risks that can be corrected before harm occurs",
+      "c": "They are useful only for insurance",
+      "d": "They should be kept private from managers"
+     },
+     "correct": "b",
+     "explanation": "Reporting supports prevention and organisational learning.",
+     "blindSpot": "Treating hazards and near misses as minor; acting beyond training; or assuming emergencies can be managed without a plan.",
+     "critical": false
+    },
+    {
+     "id": "FND-179",
+     "difficulty": "Foundation",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which statement about PPE in health and safety is correct?",
+     "options": {
+      "a": "It is the only control needed for every hazard",
+      "b": "It should be selected according to the risk and used as instructed",
+      "c": "It can be shared without cleaning",
+      "d": "It removes the need for safe work practices"
+     },
+     "correct": "b",
+     "explanation": "PPE is one control measure and should be selected and used appropriately.",
+     "blindSpot": "Treating hazards and near misses as minor; acting beyond training; or assuming emergencies can be managed without a plan.",
+     "critical": false
+    },
+    {
+     "id": "FND-180",
+     "difficulty": "Applied judgement",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver is unsure how to respond to an emergency beyond their training. What should they do?",
+     "options": {
+      "a": "Attempt an unfamiliar procedure",
+      "b": "Call for appropriate help and follow emergency procedures within their competence",
+      "c": "Wait until the shift ends",
+      "d": "Ask the client to instruct them"
+     },
+     "correct": "b",
+     "explanation": "Caregivers must act within their competence and obtain appropriate emergency support.",
+     "blindSpot": "Treating hazards and near misses as minor; acting beyond training; or assuming emergencies can be managed without a plan.",
+     "critical": false
+    }
+   ]
+  },
+  {
+   "topic": "Food hygiene, nutrition and hydration",
+   "module": "Module 2: Best Practices in Care Delivery",
+   "lessons": "Food Hygiene and Safety Lessons 1–3; Nutrition and Hydration Lessons 1–4",
+   "coverage": "Food safety, contamination, kitchen hygiene, nutrients, hydration and special diets",
+   "ids": "FND-181 to FND-200",
+   "questions": [
+    {
+     "id": "FND-181",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "What does cross-contamination mean in food preparation?",
+     "options": {
+      "a": "Cooking food for too long",
+      "b": "Transfer of harmful germs or contaminants from one item or surface to another",
+      "c": "Adding seasoning to food",
+      "d": "Cooling food before serving"
+     },
+     "correct": "b",
+     "explanation": "Cross-contamination occurs when contaminants transfer between foods, hands, equipment or surfaces.",
+     "blindSpot": "Relying on smell or appearance; improvising a prescribed diet or fluid texture; or overlooking changes in intake.",
+     "critical": false
+    },
+    {
+     "id": "FND-182",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which group may be particularly vulnerable to foodborne illness?",
+     "options": {
+      "a": "Healthy adults only",
+      "b": "Older adults and people with weakened immune systems",
+      "c": "People who drink water",
+      "d": "People who eat breakfast"
+     },
+     "correct": "b",
+     "explanation": "The course highlights older adults, young children and people with weakened immunity as more vulnerable.",
+     "blindSpot": "Relying on smell or appearance; improvising a prescribed diet or fluid texture; or overlooking changes in intake.",
+     "critical": false
+    },
+    {
+     "id": "FND-183",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "What is the difference between cleaning and sanitising?",
+     "options": {
+      "a": "They are identical",
+      "b": "Cleaning removes visible dirt and food residues; sanitising reduces harmful germs",
+      "c": "Sanitising removes food scraps only",
+      "d": "Cleaning kills every microorganism"
+     },
+     "correct": "b",
+     "explanation": "The course distinguishes removal of visible soil from reducing harmful germs.",
+     "blindSpot": "Relying on smell or appearance; improvising a prescribed diet or fluid texture; or overlooking changes in intake.",
+     "critical": false
+    },
+    {
+     "id": "FND-184",
+     "difficulty": "Foundation",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver uses the same chopping board for raw meat and ready-to-eat food without cleaning it. What is the risk?",
+     "options": {
+      "a": "Improved flavour",
+      "b": "Cross-contamination",
+      "c": "Better nutrition",
+      "d": "Reduced food waste"
+     },
+     "correct": "b",
+     "explanation": "Using unclean equipment across raw and ready-to-eat foods can transfer harmful germs.",
+     "blindSpot": "Relying on smell or appearance; improvising a prescribed diet or fluid texture; or overlooking changes in intake.",
+     "critical": false
+    },
+    {
+     "id": "FND-185",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which is a safe food-handling practice?",
+     "options": {
+      "a": "Wash hands before food preparation and keep work surfaces clean",
+      "b": "Prepare food on a dirty surface",
+      "c": "Use the same cloth for all spills",
+      "d": "Leave food uncovered near waste"
+     },
+     "correct": "a",
+     "explanation": "Hand hygiene and clean surfaces are core food hygiene practices.",
+     "blindSpot": "Relying on smell or appearance; improvising a prescribed diet or fluid texture; or overlooking changes in intake.",
+     "critical": false
+    },
+    {
+     "id": "FND-186",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Why is correct food storage important?",
+     "options": {
+      "a": "It improves the colour of food",
+      "b": "It helps prevent spoilage and the growth or spread of harmful germs",
+      "c": "It removes the need to cook food safely",
+      "d": "It guarantees food is nutritious"
+     },
+     "correct": "b",
+     "explanation": "Safe storage helps control contamination and foodborne illness risks.",
+     "blindSpot": "Relying on smell or appearance; improvising a prescribed diet or fluid texture; or overlooking changes in intake.",
+     "critical": false
+    },
+    {
+     "id": "FND-187",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which term describes the temperature range in which bacteria can grow rapidly in food?",
+     "options": {
+      "a": "Comfort zone",
+      "b": "Temperature danger zone",
+      "c": "Freezing point",
+      "d": "Room humidity"
+     },
+     "correct": "b",
+     "explanation": "The course introduces the temperature danger zone as a key food safety concept.",
+     "blindSpot": "Relying on smell or appearance; improvising a prescribed diet or fluid texture; or overlooking changes in intake.",
+     "critical": false
+    },
+    {
+     "id": "FND-188",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A caregiver finds food past its use-by date. What should they do?",
+     "options": {
+      "a": "Serve it if it smells acceptable",
+      "b": "Follow food safety guidance and do not serve food that is unsafe or beyond its use-by date",
+      "c": "Mix it with fresh food",
+      "d": "Reheat it several times"
+     },
+     "correct": "b",
+     "explanation": "Food should not be served when it may be unsafe; smell alone is not a reliable safety check.",
+     "blindSpot": "Relying on smell or appearance; improvising a prescribed diet or fluid texture; or overlooking changes in intake.",
+     "critical": false
+    },
+    {
+     "id": "FND-189",
+     "difficulty": "Foundation",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which nutrient is the body's main source of energy?",
+     "options": {
+      "a": "Carbohydrates",
+      "b": "Minerals",
+      "c": "Water",
+      "d": "Vitamins"
+     },
+     "correct": "a",
+     "explanation": "Carbohydrates are identified as the body's main energy source.",
+     "blindSpot": "Relying on smell or appearance; improvising a prescribed diet or fluid texture; or overlooking changes in intake.",
+     "critical": false
+    },
+    {
+     "id": "FND-190",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which nutrient is especially important for building and repairing body tissues?",
+     "options": {
+      "a": "Protein",
+      "b": "Water",
+      "c": "Fibre only",
+      "d": "Salt"
+     },
+     "correct": "a",
+     "explanation": "Protein supports tissue growth and repair, including muscles, skin and organs.",
+     "blindSpot": "Relying on smell or appearance; improvising a prescribed diet or fluid texture; or overlooking changes in intake.",
+     "critical": false
+    },
+    {
+     "id": "FND-191",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "What is one important role of water in the body?",
+     "options": {
+      "a": "It provides all essential nutrients",
+      "b": "It supports body functions including temperature regulation",
+      "c": "It replaces the need for food",
+      "d": "It builds bones directly"
+     },
+     "correct": "b",
+     "explanation": "Water supports many body functions, including temperature regulation and normal physiological processes.",
+     "blindSpot": "Relying on smell or appearance; improvising a prescribed diet or fluid texture; or overlooking changes in intake.",
+     "critical": false
+    },
+    {
+     "id": "FND-192",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which may be a sign of dehydration?",
+     "options": {
+      "a": "Unusual thirst and dark urine",
+      "b": "Improved concentration in all cases",
+      "c": "Clear speech",
+      "d": "Increased energy"
+     },
+     "correct": "a",
+     "explanation": "Thirst and dark urine can be signs of dehydration and should be considered alongside the person's overall condition.",
+     "blindSpot": "Relying on smell or appearance; improvising a prescribed diet or fluid texture; or overlooking changes in intake.",
+     "critical": false
+    },
+    {
+     "id": "FND-193",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client has a prescribed texture-modified diet. What should the caregiver do?",
+     "options": {
+      "a": "Choose a texture based on personal preference",
+      "b": "Follow the specified food and drink texture level and care plan exactly",
+      "c": "Add random thickeners",
+      "d": "Offer ordinary food to see if they can manage"
+     },
+     "correct": "b",
+     "explanation": "The course emphasises following prescribed IDDSI levels and not improvising food or drink textures.",
+     "blindSpot": "Relying on smell or appearance; improvising a prescribed diet or fluid texture; or overlooking changes in intake.",
+     "critical": false
+    },
+    {
+     "id": "FND-194",
+     "difficulty": "Foundation",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "Why should a caregiver monitor food and fluid intake when required by the care plan?",
+     "options": {
+      "a": "To criticise the person's choices",
+      "b": "To identify changes and support appropriate follow-up for nutrition and hydration needs",
+      "c": "To reduce mealtime conversation",
+      "d": "To replace clinical assessment"
+     },
+     "correct": "b",
+     "explanation": "Monitoring helps identify poor intake and potential nutritional or hydration concerns.",
+     "blindSpot": "Relying on smell or appearance; improvising a prescribed diet or fluid texture; or overlooking changes in intake.",
+     "critical": false
+    },
+    {
+     "id": "FND-195",
+     "difficulty": "Applied judgement",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which support best preserves dignity during mealtimes?",
+     "options": {
+      "a": "Feed quickly to save time",
+      "b": "Respect the person's pace, preferences and independence",
+      "c": "Talk about the person as if absent",
+      "d": "Leave a person with swallowing risks unattended"
+     },
+     "correct": "b",
+     "explanation": "Mealtimes should be relaxed, respectful and adapted to the person's needs.",
+     "blindSpot": "Relying on smell or appearance; improvising a prescribed diet or fluid texture; or overlooking changes in intake.",
+     "critical": false
+    },
+    {
+     "id": "FND-196",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A person coughs when drinking thin fluids and has a prescribed thickened-fluid plan. What should the caregiver do?",
+     "options": {
+      "a": "Ignore the plan",
+      "b": "Follow the prescribed consistency and seek professional advice if concerns arise",
+      "c": "Dilute the thickened drink",
+      "d": "Use any thickener available"
+     },
+     "correct": "b",
+     "explanation": "The prescribed texture must be followed; concerns should be escalated rather than improvised.",
+     "blindSpot": "Relying on smell or appearance; improvising a prescribed diet or fluid texture; or overlooking changes in intake.",
+     "critical": false
+    },
+    {
+     "id": "FND-197",
+     "difficulty": "Intermediate",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which action helps maintain a hygienic kitchen?",
+     "options": {
+      "a": "Clean and sanitise food-contact surfaces and equipment appropriately",
+      "b": "Use dirty cloths repeatedly",
+      "c": "Leave waste uncovered",
+      "d": "Allow pests to remain"
+     },
+     "correct": "a",
+     "explanation": "Kitchen hygiene includes cleaning and sanitising surfaces and equipment and managing waste and pest risks.",
+     "blindSpot": "Relying on smell or appearance; improvising a prescribed diet or fluid texture; or overlooking changes in intake.",
+     "critical": false
+    },
+    {
+     "id": "FND-198",
+     "difficulty": "Intermediate",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client has a special diet related to a health condition. What should the caregiver do?",
+     "options": {
+      "a": "Change the diet independently",
+      "b": "Follow the documented dietary instructions and clarify uncertainty with the appropriate professional",
+      "c": "Assume all clients need the same diet",
+      "d": "Remove all foods the caregiver dislikes"
+     },
+     "correct": "b",
+     "explanation": "Dietary support should follow the individual's plan and professional guidance.",
+     "blindSpot": "Relying on smell or appearance; improvising a prescribed diet or fluid texture; or overlooking changes in intake.",
+     "critical": false
+    },
+    {
+     "id": "FND-199",
+     "difficulty": "Foundation",
+     "kind": "Knowledge check MCQ",
+     "context": "",
+     "prompt": "Which nutrient helps the body absorb certain vitamins and provides concentrated energy?",
+     "options": {
+      "a": "Fat",
+      "b": "Water",
+      "c": "Iron",
+      "d": "Fibre"
+     },
+     "correct": "a",
+     "explanation": "Fats provide concentrated energy and help absorb certain vitamins.",
+     "blindSpot": "Relying on smell or appearance; improvising a prescribed diet or fluid texture; or overlooking changes in intake.",
+     "critical": false
+    },
+    {
+     "id": "FND-200",
+     "difficulty": "Applied judgement",
+     "kind": "Applied scenario MCQ",
+     "context": "",
+     "prompt": "A client has a reduced appetite and is eating much less than usual. What should the caregiver do?",
+     "options": {
+      "a": "Ignore it as a personal choice",
+      "b": "Observe, record as required and report the change according to the care plan",
+      "c": "Force the person to finish meals",
+      "d": "Replace meals with sweets"
+     },
+     "correct": "b",
+     "explanation": "Changes in intake can signal nutritional risk and should be monitored and communicated.",
+     "blindSpot": "Relying on smell or appearance; improvising a prescribed diet or fluid texture; or overlooking changes in intake.",
+     "critical": false
+    }
+   ]
+  }
+ ]
+}

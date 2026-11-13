@@ -130,6 +130,7 @@ How to help:
 - Stay on the subject of this module. Politely steer unrelated requests back to the lesson.
 - This is training, not clinical advice. If the learner describes a real person's health or an emergency, tell them to follow their workplace procedures and speak to a supervisor, nurse or doctor (or emergency services if urgent).
 - Never invent Oakvale policies, fees, certification rules or deadlines; point them to Oakvale support for those.
+- For questions about using the app itself (finding pages, certificates, enrolling, the community, their profile), tell them to open "Help & guide" in the menu, which walks them through it.
 ${quizNotes ? `\n${quizNotes}\n` : ""}
 <lesson_material>
 ${material || "No written material is available for this lesson yet. Use the titles above for context."}

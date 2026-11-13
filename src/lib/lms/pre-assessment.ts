@@ -5,8 +5,8 @@ import { gradeAnswers, shuffled, toLearnerQuestion, type LearnerQuestion } from 
 
 /**
  * Tier pre-assessments: an entry test a learner must pass before checkout
- * opens for that tier. Questions are drawn at random from the question banks
- * the assessment uses, once per attempt, and stored on the attempt.
+ * opens for that tier. Questions are drawn at random, spread evenly across the
+ * question banks the assessment uses, once per attempt, and stored on the attempt.
  *
  * An assessment only gates enrolment while it is enabled and its banks hold
  * at least one question, so a half-built one never blocks sales.
@@ -42,13 +42,38 @@ export async function needsPreAssessment(userId: string, tierId: string) {
   return Boolean(gate && !gate.passed);
 }
 
-/** Every question in the assessment's banks, without duplicates. */
-async function questionPool(assessmentId: string) {
+/** The question ids in each of the assessment's banks. */
+async function bankQuestionIds(assessmentId: string) {
   const banks = await prisma.questionBank.findMany({
     where: { assessments: { some: { id: assessmentId } } },
     select: { questions: { select: { id: true } } },
   });
-  return [...new Set(banks.flatMap((b) => b.questions.map((q) => q.id)))];
+  return banks.map((b) => b.questions.map((q) => q.id));
+}
+
+/** Every question in the assessment's banks, without duplicates. */
+async function questionPool(assessmentId: string) {
+  return [...new Set((await bankQuestionIds(assessmentId)).flat())];
+}
+
+/**
+ * Draw `count` questions spread evenly across the banks, so no bank (e.g. one
+ * topic) is left out: 40 from 10 banks is 4 from each. Leftover places go to
+ * random banks, and a bank too small for its share is topped up from the others.
+ */
+export function drawEvenly(banks: string[][], count: number): string[] {
+  const pools = shuffled(banks.filter((b) => b.length > 0).map((b) => shuffled(b)));
+  const picked = new Set<string>();
+  // Round-robin: one from each bank in turn until enough are drawn or every bank is used up.
+  while (picked.size < count && pools.some((p) => p.length > 0)) {
+    for (const pool of pools) {
+      if (picked.size >= count) break;
+      let id = pool.pop();
+      while (id && picked.has(id)) id = pool.pop(); // a question in two banks counts once
+      if (id) picked.add(id);
+    }
+  }
+  return shuffled([...picked]);
 }
 
 export type PreAssessmentStatus =
@@ -116,8 +141,7 @@ export async function startAttempt(userId: string, tierId: string): Promise<{ ok
     case "wait":
       return { ok: false, error: "You can't retake it just yet." };
   }
-  const pool = await questionPool(state.id);
-  const questionIds = shuffled(pool).slice(0, state.questionCount);
+  const questionIds = drawEvenly(await bankQuestionIds(state.id), state.questionCount);
   if (questionIds.length === 0) return { ok: false, error: "This pre-assessment has no questions yet." };
   await prisma.preAssessmentAttempt.create({ data: { assessmentId: state.id, userId, questionIds } });
   return { ok: true };
