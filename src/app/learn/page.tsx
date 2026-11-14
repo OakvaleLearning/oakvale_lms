@@ -45,7 +45,7 @@ export default async function LearnHome() {
         <EmptyState
           icon={BookOpen}
           title="No modules yet"
-          action={<ButtonLink href="/enroll">Browse programmes</ButtonLink>}
+          action={<ButtonLink href="/programmes">Browse programmes</ButtonLink>}
         >
           Once you enrol in a programme, your modules will appear here.
         </EmptyState>

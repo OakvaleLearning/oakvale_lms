@@ -38,7 +38,7 @@ export async function PrelaunchNotice({ userId }: { userId: string }) {
           <p className="mt-2 text-sm leading-relaxed text-ink-500">
             Early enrolment is open. Secure your place now and we&apos;ll email you as soon as modules are ready.
           </p>
-          <ButtonLink href="/enroll" className="mt-6">
+          <ButtonLink href="/programmes" className="mt-6">
             See programmes
           </ButtonLink>
         </>

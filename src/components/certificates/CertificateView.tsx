@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Playfair_Display, Great_Vibes } from "next/font/google";
+import { Award } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fillPlaceholders, formatIssueDate, type CertificateData, type TemplateDesign } from "@/lib/certificate-design";
 
@@ -26,7 +27,7 @@ export function CertificateView({
   barcodeSvg?: string;
   className?: string;
 }) {
-  const Layout = { CLASSIC: Classic, MODERN: Modern, MINIMAL: Minimal }[design.layout];
+  const Layout = { CLASSIC: Classic, MODERN: Modern, MINIMAL: Minimal, ORNATE: Ornate, BANNER: Banner, SEAL: Seal }[design.layout];
   return (
     <div className={cn("certificate @container w-full", className)}>
       <div
@@ -145,6 +146,133 @@ function Minimal({ design, data, qrSvg, barcodeSvg }: Props) {
   );
 }
 
+/** Double frame with a diamond at each corner, centred text, a rule under the name. */
+function Ornate({ design, data, qrSvg, barcodeSvg }: Props) {
+  const corners: CSSProperties[] = [
+    { top: u(0.1), left: u(0.1) },
+    { top: u(0.1), right: u(0.1) },
+    { bottom: u(0.1), left: u(0.1) },
+    { bottom: u(0.1), right: u(0.1) },
+  ];
+  return (
+    <div className="absolute flex flex-col items-center text-center" style={{ inset: u(1.6), border: `${u(0.18)} solid ${design.primaryColor}` }}>
+      <div className="absolute" style={{ inset: u(0.7), border: `${u(0.06)} solid ${design.accentColor}` }} />
+      {corners.map((pos, i) => (
+        <span
+          key={i}
+          className="absolute"
+          style={{ ...pos, width: u(1.2), height: u(1.2), transform: "rotate(45deg)", backgroundColor: design.accentColor }}
+        />
+      ))}
+      <div className="relative flex size-full flex-col items-center" style={{ padding: `${u(3.2)} ${u(6.5)} ${u(2.4)}` }}>
+        <Logo height={3.6} />
+        <Heading design={design} style={{ marginTop: u(2), fontSize: u(3.8) }} />
+        <Rule color={design.accentColor} style={{ marginTop: u(1) }} />
+        <Intro design={design} style={{ marginTop: u(1.6) }} />
+        <Name design={design} data={data} style={{ marginTop: u(0.8) }} />
+        <div style={{ marginTop: u(0.6), height: u(0.08), width: u(18), backgroundColor: design.accentColor }} />
+        <Body design={design} data={data} style={{ marginTop: u(1.2), maxWidth: "74%" }} />
+        <Score design={design} data={data} />
+        <div className="mt-auto grid w-full grid-cols-[1fr_auto_1fr] items-end" style={{ gap: u(2) }}>
+          <IdBlock data={data} barcodeSvg={barcodeSvg} className="items-start text-left" />
+          <Signatures design={design} />
+          <div className="flex justify-end">
+            <Qr svg={qrSvg} />
+          </div>
+        </div>
+        <Footer design={design} data={data} />
+      </div>
+    </div>
+  );
+}
+
+/** A full-width band in the main colour holds the title; the body sits below it. */
+function Banner({ design, data, qrSvg, barcodeSvg }: Props) {
+  return (
+    <div className="absolute inset-0 flex flex-col">
+      <header
+        className="relative flex shrink-0 flex-col justify-center text-white"
+        style={{ height: "34%", backgroundColor: design.primaryColor, padding: `0 ${u(5.5)}` }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- scales with the certificate, and prints */}
+        <img src="/oakvale-logo-white.svg" alt="Oakvale Learning" className="absolute" style={{ top: u(3.2), right: u(5.5), height: u(3.6), width: "auto" }} />
+        <Intro design={design} style={{ color: "rgba(255,255,255,0.75)" }} />
+        <Heading design={design} color="#ffffff" style={{ marginTop: u(1), fontSize: u(4.2) }} />
+      </header>
+      <div style={{ height: u(0.45), backgroundColor: design.accentColor }} />
+      <div className="flex min-h-0 flex-1 flex-col" style={{ padding: `${u(3.8)} ${u(5.5)} ${u(2.8)}` }}>
+        <Name design={design} data={data} style={{ fontSize: u(4.6) }} />
+        <Body design={design} data={data} style={{ marginTop: u(1.4), maxWidth: "86%" }} />
+        <Score design={design} data={data} />
+        <div className="mt-auto flex items-end justify-between" style={{ gap: u(3) }}>
+          <Signatures design={design} align="start" />
+          <div className="flex items-end" style={{ gap: u(1.6) }}>
+            <IdBlock data={data} barcodeSvg={barcodeSvg} className="items-end text-right" />
+            <Qr svg={qrSvg} />
+          </div>
+        </div>
+        <Footer design={design} data={data} align="left" />
+      </div>
+    </div>
+  );
+}
+
+/** Text on the left, a round "certified" seal on the right. */
+function Seal({ design, data, qrSvg, barcodeSvg }: Props) {
+  return (
+    <div className="absolute inset-0 flex flex-col" style={{ padding: `${u(4.5)} ${u(5.5)} ${u(3.2)}` }}>
+      <div className="flex items-start justify-between">
+        <Logo height={3.6} />
+        <p className="text-ink-500" style={{ fontSize: u(1) }}>
+          Issued {formatIssueDate(data.issuedAt)}
+        </p>
+      </div>
+      <div className="flex min-h-0 flex-1 items-center" style={{ gap: u(4), marginTop: u(1.5) }}>
+        <div className="min-w-0 flex-1">
+          <Heading design={design} style={{ fontSize: u(3.6) }} />
+          <Intro design={design} style={{ marginTop: u(1.8) }} />
+          <Name design={design} data={data} style={{ marginTop: u(0.6) }} />
+          <Body design={design} data={data} style={{ marginTop: u(1.2), maxWidth: "96%" }} />
+          <Score design={design} data={data} />
+        </div>
+        <SealBadge design={design} />
+      </div>
+      <div className="flex items-end justify-between" style={{ gap: u(3) }}>
+        <Signatures design={design} align="start" />
+        <div className="flex items-end" style={{ gap: u(1.6) }}>
+          <IdBlock data={data} barcodeSvg={barcodeSvg} className="items-end text-right" />
+          <Qr svg={qrSvg} />
+        </div>
+      </div>
+      <Footer design={design} data={data} align="left" />
+    </div>
+  );
+}
+
+function SealBadge({ design }: { design: TemplateDesign }) {
+  return (
+    <div
+      className="grid shrink-0 place-items-center rounded-full"
+      style={{ width: u(19), height: u(19), padding: u(0.8), border: `${u(0.14)} dashed ${design.accentColor}` }}
+    >
+      <div
+        className="grid size-full place-items-center rounded-full text-center text-white"
+        style={{ backgroundColor: design.primaryColor, boxShadow: `inset 0 0 0 ${u(0.3)} ${design.accentColor}` }}
+      >
+        <div className="flex flex-col items-center">
+          <Award strokeWidth={1.6} style={{ width: u(4.2), height: u(4.2), color: design.accentColor }} />
+          <p className="font-semibold tracking-[0.2em] uppercase" style={{ marginTop: u(0.6), fontSize: u(1.1) }}>
+            Certified
+          </p>
+          <p className="text-white/75" style={{ marginTop: u(0.3), fontSize: u(0.85) }}>
+            Oakvale Learning
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ *
  * Pieces
  * ------------------------------------------------------------------ */
@@ -164,11 +292,11 @@ function Rule({ color, style }: { color: string; style?: CSSProperties }) {
   );
 }
 
-function Heading({ design, style }: { design: TemplateDesign; style?: CSSProperties }) {
+function Heading({ design, style, color }: { design: TemplateDesign; style?: CSSProperties; color?: string }) {
   return (
     <h2
       className={cn("leading-[1.1]", design.font === "SERIF" ? cn(serif.className, "font-semibold") : "font-display")}
-      style={{ color: design.primaryColor, ...style }}
+      style={{ color: color ?? design.primaryColor, ...style }}
     >
       {design.heading}
     </h2>

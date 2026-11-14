@@ -180,7 +180,7 @@ function Choice<T extends string>({
   return (
     <div>
       <span className="mb-1.5 block text-sm font-medium text-ink-800">{label}</span>
-      <div role="radiogroup" aria-label={label} className="flex rounded-lg bg-ink-100 p-1">
+      <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-1 rounded-lg bg-ink-100 p-1">
         {options.map((o) => (
           <button
             key={o.value}
@@ -189,7 +189,7 @@ function Choice<T extends string>({
             aria-checked={value === o.value}
             onClick={() => onChange(o.value)}
             className={cn(
-              "flex-1 rounded-md px-3 py-1.5 text-sm transition-colors",
+              "flex-1 whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors",
               value === o.value ? "bg-white font-medium text-ink-950 shadow-card" : "text-ink-600 hover:text-ink-900"
             )}
           >

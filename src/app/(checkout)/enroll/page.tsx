@@ -1,18 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Award, BellRing, Check, CheckCircle2, ClipboardCheck, Info, Laptop, MailWarning, ShieldCheck } from "lucide-react";
+import { Award, BellRing, Info, Laptop, MailWarning, ShieldCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { prisma } from "@/lib/prisma";
 import { getSession, isEmailVerified } from "@/lib/auth";
-import { getUnlockedModuleIds } from "@/lib/lms/access";
-import { getEnrolmentGates } from "@/lib/lms/pre-assessment";
-import { cn, formatNaira } from "@/lib/utils";
+import { getProgramOffers } from "@/lib/lms/offerings";
+import { cn } from "@/lib/utils";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/dashboard/ui";
 import { isPrelaunch } from "@/lib/launch";
 import { SITE } from "@/content/site";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
-import { EnrollButton } from "./EnrollButton";
+import { TierCard } from "@/components/enroll/TierCard";
 
 export const metadata: Metadata = { title: "Enrol" };
 
@@ -27,41 +25,8 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
 
   const session = await getSession();
   const verified = session ? await isEmailVerified(session.userId) : false;
-  const programs = await prisma.program.findMany({
-    where: { published: true },
-    orderBy: { order: "asc" },
-    include: {
-      tiers: {
-        where: { published: true },
-        orderBy: { order: "asc" },
-        include: {
-          modules: {
-            include: {
-              module: {
-                select: {
-                  title: true,
-                  published: true,
-                  order: true,
-                  prerequisiteId: true,
-                  prerequisite: { select: { title: true } },
-                  topics: { select: { _count: { select: { lessons: { where: { published: true } } } } } },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
+  const programs = await getProgramOffers(session?.userId ?? null);
   const program = track ? programs.find((p) => p.slug === track) : programs[0];
-
-  // A tier whose modules the learner can already open (e.g. bought "Full")
-  // has nothing left to sell them.
-  const unlocked = session ? await getUnlockedModuleIds(session.userId) : new Set<string>();
-  // Tiers with an entry test: checkout opens once the learner has passed it.
-  const gates = program
-    ? await getEnrolmentGates(session?.userId ?? null, program.tiers.map((t) => t.id))
-    : new Map<string, { passed: boolean }>();
 
   const here = `/enroll${program ? `?track=${encodeURIComponent(program.slug)}${selectedTier ? `&tier=${encodeURIComponent(selectedTier)}` : ""}` : ""}`;
 
@@ -83,46 +48,7 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
     );
   }
 
-  const shortTitle = (title: string) =>
-    title.startsWith(program.title) ? title.slice(program.title.length).replace(/^\s*[:\-–—|]\s*/, "") || title : title;
-
-  // What each module costs bought on its own (the cheapest single-module tier),
-  // so bundles can show their saving.
-  const singlePrice = new Map<string, number>();
-  for (const t of program.tiers) {
-    if (t.modules.length !== 1) continue;
-    const id = t.modules[0].moduleId;
-    singlePrice.set(id, Math.min(singlePrice.get(id) ?? Infinity, t.price));
-  }
-
-  const tiers = program.tiers.map((tier) => {
-    const modules = tier.modules
-      .filter((tc) => tc.module.published)
-      .sort((a, b) => a.module.order - b.module.order);
-    const ids = new Set(modules.map((tc) => tc.moduleId));
-    const separate = modules.reduce((sum, tc) => sum + (singlePrice.get(tc.moduleId) ?? NaN), 0);
-    const saving = modules.length > 1 && separate > tier.price ? separate - tier.price : 0;
-    const needs = modules.find((tc) => tc.module.prerequisiteId && !ids.has(tc.module.prerequisiteId))?.module.prerequisite;
-    const tagline =
-      tier.description ||
-      (modules.length > 1
-        ? "Every module in the programme"
-        : needs
-          ? `The next step after ${shortTitle(needs.title)}`
-          : "The place to start your training");
-    return {
-      tier,
-      modules,
-      saving,
-      needs,
-      tagline,
-      gate: gates.get(tier.id),
-      enrolled: tier.modules.length > 0 && tier.modules.every((tc) => unlocked.has(tc.moduleId)),
-    };
-  });
-
-  const biggest = tiers.reduce((best, t) => (t.modules.length > (best?.modules.length ?? 1) ? t : best), null as (typeof tiers)[number] | null);
-  const featured = tiers.find((t) => t.tier.slug === selectedTier) ?? biggest;
+  const featuredId = program.tiers.find((t) => t.slug === selectedTier)?.id ?? program.recommendedTierId;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-8 sm:py-14">
@@ -182,162 +108,23 @@ export default async function EnrollPage({ searchParams }: PageProps<"/enroll">)
         key={program.id}
         className={cn(
           "mx-auto mt-12 grid items-stretch gap-5",
-          tiers.length >= 3 ? "lg:grid-cols-3" : tiers.length === 2 ? "max-w-3xl md:grid-cols-2" : "max-w-md"
+          program.tiers.length >= 3 ? "lg:grid-cols-3" : program.tiers.length === 2 ? "max-w-3xl md:grid-cols-2" : "max-w-md"
         )}
       >
-        {tiers.map(({ tier, modules, saving, needs, tagline, gate, enrolled }) => {
-          const isFeatured = featured?.tier.id === tier.id;
-          return (
-            <StaggerItem
-              key={tier.id}
-              className={cn(
-                "relative flex flex-col rounded-2xl bg-white p-6 sm:p-7",
-                isFeatured ? "border-2 border-primary-600 shadow-raised" : "border border-line shadow-card"
-              )}
-            >
-              {isFeatured && (
-                <span className="absolute -top-3 left-6 inline-flex h-6 items-center rounded-full bg-primary-600 px-3 text-[11px] font-semibold tracking-wide text-white uppercase">
-                  {tier.slug === selectedTier ? "Your selection" : "Recommended"}
-                </span>
-              )}
-
-              <div className="flex items-start justify-between gap-3">
-                <h2 className="text-lg font-semibold tracking-tight text-ink-950">{tier.name}</h2>
-                {enrolled ? (
-                  <span className="inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2.5 text-xs font-medium text-emerald-700">
-                    <CheckCircle2 className="size-3" /> Enrolled
-                  </span>
-                ) : saving > 0 ? (
-                  <span className="inline-flex h-6 shrink-0 items-center rounded-full bg-emerald-50 px-2.5 text-xs font-medium text-emerald-700">
-                    Save {formatNaira(saving)}
-                  </span>
-                ) : null}
-              </div>
-              <p className="mt-1.5 text-sm leading-relaxed text-ink-500">{tagline}</p>
-
-              <div className="mt-6 flex items-baseline gap-2">
-                <span className="font-display text-[2.6rem] leading-none tracking-tight text-ink-950 tabular-nums">
-                  {formatNaira(tier.price)}
-                </span>
-              </div>
-              <p className="mt-2 text-xs text-ink-500">
-                One-time payment
-                {saving > 0 && (
-                  <>
-                    {" · "}
-                    <span className="line-through">{formatNaira(tier.price + saving)}</span> separately
-                  </>
-                )}
-              </p>
-
-              <div className="mt-6">
-                {enrolled ? (
-                  <ButtonLink href="/learn" variant="outline" size="lg" className="w-full">
-                    {isPrelaunch() ? "You're enrolled" : "Go to my modules"}
-                  </ButtonLink>
-                ) : session && gate && !gate.passed ? (
-                  <ButtonLink
-                    href={`/pre-assessment/${tier.id}`}
-                    variant={isFeatured ? "primary" : "outline"}
-                    size="lg"
-                    className="w-full"
-                  >
-                    Take the pre-assessment
-                  </ButtonLink>
-                ) : session && !verified ? (
-                  <ButtonLink
-                    href={`/verify-email?next=${encodeURIComponent(here)}`}
-                    variant={isFeatured ? "primary" : "outline"}
-                    size="lg"
-                    className="w-full"
-                  >
-                    Confirm your email to enrol
-                  </ButtonLink>
-                ) : session ? (
-                  <EnrollButton
-                    tierId={tier.id}
-                    label={`Pay ${formatNaira(tier.price)}`}
-                    variant={isFeatured ? "primary" : "dark"}
-                  />
-                ) : (
-                  <ButtonLink
-                    href={`/signup?next=${encodeURIComponent(here)}`}
-                    variant={isFeatured ? "primary" : "outline"}
-                    size="lg"
-                    className="w-full"
-                  >
-                    Create account to enrol
-                  </ButtonLink>
-                )}
-              </div>
-
-              {gate && !enrolled && (
-                <p
-                  className={cn(
-                    "mt-3 flex items-start gap-2 text-xs leading-relaxed",
-                    gate.passed ? "text-emerald-700" : "text-ink-500"
-                  )}
-                >
-                  {gate.passed ? (
-                    <CheckCircle2 className="mt-px size-3.5 shrink-0" />
-                  ) : (
-                    <ClipboardCheck className="mt-px size-3.5 shrink-0 text-ink-400" />
-                  )}
-                  {gate.passed
-                    ? "Pre-assessment passed. You can enrol."
-                    : "Pass a short pre-assessment to unlock enrolment."}
-                </p>
-              )}
-
-              <div className="mt-7 border-t border-line pt-6">
-                <p className="text-xs font-semibold tracking-wide text-ink-500 uppercase">What&apos;s included</p>
-                <ul className="mt-4 space-y-3.5">
-                  {modules.map((tc) => {
-                    const lessons = tc.module.topics.reduce((n, m) => n + m._count.lessons, 0);
-                    const facts = [
-                      lessons > 0 && `${lessons} ${lessons === 1 ? "lesson" : "lessons"}`,
-                    ].filter(Boolean);
-                    return (
-                      <li key={tc.moduleId} className="flex gap-3">
-                        <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-600">
-                          <Check className="size-3" strokeWidth={3} />
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-ink-900">{shortTitle(tc.module.title)}</p>
-                          {facts.length > 0 && <p className="mt-0.5 text-xs text-ink-500">{facts.join(" · ")}</p>}
-                        </div>
-                      </li>
-                    );
-                  })}
-                  {program.certificateEnabled && modules.length > 0 && (
-                    <li className="flex gap-3">
-                      <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-primary-50 text-primary-600">
-                        <Award className="size-3" strokeWidth={2.5} />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-ink-900">Programme certificate</p>
-                        <p className="mt-0.5 text-xs text-ink-500">
-                          {[
-                            modules.length > 1 ? "On completing every module" : "On completing the module",
-                            program.cpdEnabled && (program.cpdHours ? `CPD · ${program.cpdHours} hrs` : "CPD certificate"),
-                          ]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </p>
-                      </div>
-                    </li>
-                  )}
-                </ul>
-                {needs && (
-                  <p className="mt-5 flex items-start gap-2 rounded-lg bg-canvas px-3 py-2.5 text-xs leading-relaxed text-ink-600">
-                    <Info className="mt-px size-3.5 shrink-0 text-ink-400" />
-                    Requires {shortTitle(needs.title)} to be completed first.
-                  </p>
-                )}
-              </div>
-            </StaggerItem>
-          );
-        })}
+        {program.tiers.map((tier) => (
+          <StaggerItem key={tier.id} className="flex">
+            <TierCard
+              program={program}
+              tier={tier}
+              featured={featuredId === tier.id}
+              featuredLabel={tier.slug === selectedTier ? "Your selection" : "Recommended"}
+              signedIn={Boolean(session)}
+              verified={verified}
+              here={here}
+              className="w-full"
+            />
+          </StaggerItem>
+        ))}
       </Stagger>
 
       {!session && (

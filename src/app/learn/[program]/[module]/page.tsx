@@ -28,7 +28,7 @@ export default async function ModulePage({ params, searchParams }: PageProps<"/l
         icon={Lock}
         title={mod.title}
         action={
-          <ButtonLink href={lock === "PREREQUISITE" ? "/learn" : `/enroll?track=${programSlug}`}>
+          <ButtonLink href={lock === "PREREQUISITE" ? "/learn" : `/programmes?program=${programSlug}`}>
             {lock === "PREREQUISITE" ? "Back to my learning" : "See enrolment options"}
           </ButtonLink>
         }

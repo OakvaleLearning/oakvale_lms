@@ -702,6 +702,9 @@ enum CertificateLayout {
   CLASSIC // centred, framed border
   MODERN // coloured side band
   MINIMAL // clean, thin top rule
+  ORNATE // double frame with corner diamonds
+  BANNER // full-width colour band with the title in it
+  SEAL // text left, round certified seal right
 }
 
 enum CertificateFont {

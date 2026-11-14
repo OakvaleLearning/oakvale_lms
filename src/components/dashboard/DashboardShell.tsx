@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Menu,
   X,
   LogOut,
   LayoutDashboard,
@@ -32,8 +31,9 @@ import { AndroidAppPrompt } from "@/components/dashboard/AndroidAppPrompt";
 import { SUPPORT_READ_EVENT } from "@/components/support/SupportChat";
 import { COMMUNITY_READ_EVENT } from "@/components/community/NotificationsRead";
 import { Avatar } from "@/components/community/Avatar";
-import { GuideNavButton, GuidePanel, GuideTopbarButton } from "@/components/guide/GuidePanel";
+import { GuideNavButton, GuidePanel } from "@/components/guide/GuidePanel";
 import { GuideTour } from "@/components/guide/GuideTour";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 
 interface NavItem {
   label: string;
@@ -50,7 +50,7 @@ const NAV: Record<"learner" | "admin", { section: string; items: NavItem[] }> = 
       { label: "My learning", href: "/learn", icon: BookOpen },
       { label: "Community", href: "/community", icon: UsersRound, badge: "community" },
       { label: "Certificates", href: "/learn/certificates", icon: Award },
-      { label: "Programmes", href: "/enroll", icon: ShoppingBag },
+      { label: "Programmes", href: "/programmes", icon: ShoppingBag },
       { label: "Support", href: "/support", icon: LifeBuoy, badge: "support" },
       { label: "Profile", href: "/account", icon: UserRound },
     ],
@@ -90,6 +90,11 @@ export function DashboardShell({
   const unread = useUnread(pathname, "/api/support/unread", SUPPORT_READ_EVENT);
   const communityUnread = useUnread(pathname, variant === "learner" ? "/api/community/notifications/unread" : null, COMMUNITY_READ_EVENT);
   const badges = { support: unread, community: communityUnread };
+  // Pages the header search can jump to: the sidebar links, plus Profile for admins (learners already have it).
+  const searchLinks = [
+    ...nav.items,
+    ...(variant === "admin" ? [{ label: "Profile", href: "/account", icon: UserRound }] : []),
+  ];
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -226,29 +231,15 @@ export function DashboardShell({
       </AnimatePresence>
 
       <div className="lg:pl-64">
-        {/* Mobile topbar */}
-        <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-line bg-canvas/90 px-4 backdrop-blur-md lg:hidden">
-          <button
-            onClick={() => setOpen(true)}
-            className="grid size-9 place-items-center rounded-lg text-ink-700 hover:bg-ink-100"
-            aria-label="Open menu"
-            data-guide="menu"
-          >
-            <Menu className="size-5" />
-          </button>
-          <span className="flex-1 text-sm font-medium text-ink-900">{title}</span>
-          <GuideTopbarButton />
-          {unread > 0 && (
-            <Link
-              href={variant === "admin" ? "/admin/support" : "/support"}
-              className="relative grid size-9 place-items-center rounded-lg text-ink-700 hover:bg-ink-100"
-              aria-label={`Support: ${unread} unread`}
-            >
-              <MessagesSquare className="size-5" />
-              <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-primary-600" />
-            </Link>
-          )}
-        </header>
+        <DashboardHeader
+          title={title}
+          user={user}
+          searchLinks={searchLinks}
+          supportHref={variant === "admin" ? "/admin/support" : "/support"}
+          supportUnread={unread}
+          onOpenMenu={() => setOpen(true)}
+          onLogout={logout}
+        />
 
         <main className="px-4 py-8 sm:px-8 lg:px-12 lg:py-12">
           <PageTransition>{children}</PageTransition>

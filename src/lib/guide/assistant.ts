@@ -23,7 +23,7 @@ const LEARNER_MAP = `Sidebar (on phones, behind the menu button at the top left)
 - My learning (/learn): overall progress, "Resume lesson" to continue, and a card per module. Locked modules open after their prerequisite. Click a module to see its topics and lessons (/learn/<programme>/<module>); click a lesson to open it.
 - Community (/community): groups for learners on the same programme. Each group has Feed, Events, Members and About tabs. Notifications and community settings (profile, email preferences) are at the top of the community page.
 - Certificates (/learn/certificates): issued certificates ("View and download", "Copy link" for a verification link) and "Working towards" for unfinished programmes.
-- Programmes (/enroll): the enrolment page. Pick a programme, choose a plan (tier), take the pre-assessment if the plan has one, confirm your email, then pay with Paystack.
+- Programmes (/programmes): every programme Oakvale offers. Click View plans on a programme to open its plans, take the pre-assessment if the plan has one, confirm your email, then pay with Paystack.
 - Support (/support): chat with the Oakvale team. Replies appear on the same page.
 - Profile (/account): photo, full name (used on certificates), WhatsApp number. Email changes go through support.
 - Log out: the button beside your name at the bottom of the sidebar.

@@ -3,7 +3,7 @@
  * certificate renderer and the admin template editor (so no "server-only").
  */
 
-export const LAYOUTS = ["CLASSIC", "MODERN", "MINIMAL"] as const;
+export const LAYOUTS = ["CLASSIC", "MODERN", "MINIMAL", "ORNATE", "BANNER", "SEAL"] as const;
 export const FONTS = ["SERIF", "SANS"] as const;
 
 export type CertificateLayout = (typeof LAYOUTS)[number];
@@ -13,6 +13,9 @@ export const LAYOUT_LABEL: Record<CertificateLayout, string> = {
   CLASSIC: "Classic",
   MODERN: "Modern",
   MINIMAL: "Minimal",
+  ORNATE: "Ornate frame",
+  BANNER: "Header banner",
+  SEAL: "Seal",
 };
 
 export const FONT_LABEL: Record<CertificateFont, string> = {
