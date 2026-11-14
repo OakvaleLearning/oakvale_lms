@@ -31,12 +31,6 @@
   --color-gold: #c8881a;
   --color-gold-light: #e8a832;
 
-  /* Complement of the forest green (hue ~336° vs ~156°), used for soft
-     tints such as the dashboard sidebar. Not for errors: use accent-* for those. */
-  --color-rose-50: #f9f0f4;
-  --color-rose-100: #f3e2e9;
-  --color-rose-200: #e8c9d6;
-
   /* Accent — errors and warnings (the main site's #9a1d1d red at 700) */
   --color-accent-50: #fdeeee;
   --color-accent-100: #fad6d6;
@@ -65,7 +59,7 @@
   /* Cream canvas behind cards, as on the main site. */
   --color-cream: #f7f3ec;
   --color-cream-warm: #ede7db;
-  --color-canvas: #f7f3ec;
+  --color-canvas: #fbf9f4;
   --color-line: #e8e4de;
 
   --color-background: #ffffff;

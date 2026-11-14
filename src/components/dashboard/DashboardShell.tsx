@@ -189,7 +189,7 @@ export function DashboardShell({
     <div className="min-h-screen bg-canvas">
       {variant === "learner" && <AndroidAppPrompt />}
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-line bg-rose-100 lg:block">
+      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-line bg-canvas lg:block">
         {sidebar("rail")}
       </aside>
 
@@ -206,7 +206,7 @@ export function DashboardShell({
               transition={{ duration: 0.25 }}
             />
             <motion.aside
-              className="absolute inset-y-0 left-0 w-72 border-r border-line bg-rose-100 shadow-raised"
+              className="absolute inset-y-0 left-0 w-72 border-r border-line bg-canvas shadow-raised"
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
