@@ -60,6 +60,8 @@
   --color-cream: #f7f3ec;
   --color-cream-warm: #ede7db;
   --color-canvas: #fbf9f4;
+  /* Dashboard sidebar: a step darker than the canvas. */
+  --color-sidebar: #f3efe7;
   --color-line: #e8e4de;
 
   --color-background: #ffffff;
