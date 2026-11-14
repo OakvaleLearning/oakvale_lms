@@ -3,25 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  X,
-  LogOut,
-  LayoutDashboard,
-  BookOpen,
-  ClipboardList,
-  Layers,
-  Receipt,
-  Users,
-  ShoppingBag,
-  ArrowUpRight,
-  LifeBuoy,
-  MessagesSquare,
-  Mail,
-  Award,
-  UsersRound,
-  UserRound,
-  ShieldCheck,
-} from "lucide-react";
+import { X, LogOut, ArrowUpRight, UserRound } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/layout/Logo";
@@ -34,43 +16,8 @@ import { Avatar } from "@/components/community/Avatar";
 import { GuideNavButton, GuidePanel } from "@/components/guide/GuidePanel";
 import { GuideTour } from "@/components/guide/GuideTour";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { NAV } from "@/components/dashboard/nav";
 
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ElementType;
-  /** Shows an unread count: support replies, or community notifications. */
-  badge?: "support" | "community";
-}
-
-const NAV: Record<"learner" | "admin", { section: string; items: NavItem[] }> = {
-  learner: {
-    section: "Learning",
-    items: [
-      { label: "My learning", href: "/learn", icon: BookOpen },
-      { label: "Community", href: "/community", icon: UsersRound, badge: "community" },
-      { label: "Certificates", href: "/learn/certificates", icon: Award },
-      { label: "Programmes", href: "/programmes", icon: ShoppingBag },
-      { label: "Support", href: "/support", icon: LifeBuoy, badge: "support" },
-      { label: "Profile", href: "/account", icon: UserRound },
-    ],
-  },
-  admin: {
-    section: "Manage",
-    items: [
-      { label: "Overview", href: "/admin", icon: LayoutDashboard },
-      { label: "Programmes", href: "/admin/programs", icon: Layers },
-      { label: "Question banks", href: "/admin/question-banks", icon: ClipboardList },
-      { label: "Learners", href: "/admin/learners", icon: Users },
-      { label: "Payments", href: "/admin/payments", icon: Receipt },
-      { label: "Certificates", href: "/admin/certificates", icon: Award },
-      { label: "Community", href: "/admin/community", icon: UsersRound },
-      { label: "Support", href: "/admin/support", icon: MessagesSquare, badge: "support" },
-      { label: "Emails", href: "/admin/emails", icon: Mail },
-      { label: "Team", href: "/admin/team", icon: ShieldCheck },
-    ],
-  },
-};
 
 export function DashboardShell({
   variant,
@@ -90,10 +37,10 @@ export function DashboardShell({
   const unread = useUnread(pathname, "/api/support/unread", SUPPORT_READ_EVENT);
   const communityUnread = useUnread(pathname, variant === "learner" ? "/api/community/notifications/unread" : null, COMMUNITY_READ_EVENT);
   const badges = { support: unread, community: communityUnread };
-  // Pages the header search can jump to: the sidebar links, plus Profile for admins (learners already have it).
+  // Quick suggestions in the header search: the sidebar links, plus Profile for admins (learners already have it).
   const searchLinks = [
     ...nav.items,
-    ...(variant === "admin" ? [{ label: "Profile", href: "/account", icon: UserRound }] : []),
+    ...(variant === "admin" ? [{ label: "Profile", href: "/account", icon: UserRound, keywords: "account name photo" }] : []),
   ];
 
   async function logout() {

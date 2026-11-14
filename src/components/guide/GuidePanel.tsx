@@ -81,13 +81,13 @@ export function GuideNavButton({ onOpen }: { onOpen?: () => void }) {
   );
 }
 
-/** Icon button for the mobile top bar. */
-export function GuideTopbarButton() {
+/** Icon button for the dashboard header. */
+export function GuideTopbarButton({ className }: { className?: string }) {
   return (
     <button
       type="button"
       onClick={openGuide}
-      className="grid size-9 place-items-center rounded-lg text-ink-700 hover:bg-ink-100"
+      className={className ?? "grid size-9 place-items-center rounded-lg text-ink-700 hover:bg-ink-100"}
       aria-label="Help & guide"
     >
       <Compass className="size-5" />
