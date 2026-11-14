@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Bell, CalendarClock, CalendarPlus, Megaphone, MessageCircle, Reply } from "lucide-react";
 import type { NotificationKind } from "@prisma/client";
 import { requireSession } from "@/lib/auth";
-import { listNotifications, markNotificationsRead } from "@/lib/community/notifications";
+import { listNotifications } from "@/lib/community/notifications";
 import { cn } from "@/lib/utils";
 import { Breadcrumbs, EmptyState, PageHeader } from "@/components/dashboard/ui";
 import { Avatar } from "@/components/community/Avatar";
@@ -22,9 +22,8 @@ const ICONS: Record<NotificationKind, React.ElementType> = {
 
 export default async function NotificationsPage() {
   const session = await requireSession("/community/notifications");
+  // Listed before <NotificationsRead /> marks them read on the client, so unread ones still stand out.
   const items = await listNotifications(session.userId);
-  // Marked read on view; the list above was read first so new ones still stand out.
-  await markNotificationsRead(session.userId);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">

@@ -39,24 +39,24 @@ export function DashboardHeader({
   onLogout: () => void;
 }) {
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-primary-700 bg-primary-600 px-4 text-white sm:gap-3 sm:px-8 lg:h-16 lg:px-12">
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-primary-900 bg-primary-800 px-4 text-primary-50 sm:gap-3 sm:px-8 lg:h-16 lg:px-12">
       <button
         onClick={onOpenMenu}
-        className="grid size-9 shrink-0 place-items-center rounded-lg text-white hover:bg-white/10 lg:hidden"
+        className="grid size-9 shrink-0 place-items-center rounded-lg text-primary-50 hover:bg-white/10 lg:hidden"
         aria-label="Open menu"
         data-guide="menu"
       >
         <Menu className="size-5" />
       </button>
-      <span className="hidden max-w-40 shrink-0 truncate text-sm font-medium text-white sm:block lg:hidden">{title}</span>
+      <span className="hidden max-w-40 shrink-0 truncate text-sm font-medium text-primary-50 sm:block lg:hidden">{title}</span>
 
       <SearchBox links={searchLinks} />
 
       <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
-        <GuideTopbarButton className="grid size-9 place-items-center rounded-lg text-white hover:bg-white/10" />
+        <GuideTopbarButton className="grid size-9 place-items-center rounded-lg text-primary-50 hover:bg-white/10" />
         <Link
           href={supportHref}
-          className="relative grid size-9 place-items-center rounded-lg text-white hover:bg-white/10"
+          className="relative grid size-9 place-items-center rounded-lg text-primary-50 hover:bg-white/10"
           aria-label={supportUnread > 0 ? `Support: ${supportUnread} unread` : "Support"}
           title="Support"
         >
