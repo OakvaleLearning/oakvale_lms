@@ -219,7 +219,7 @@ function AccountMenu({
         aria-expanded={open}
         aria-label={`Account: ${user.name}`}
         title={user.name}
-        className="grid place-items-center rounded-full p-0.5 transition-colors hover:bg-white/10"
+        className="grid place-items-center rounded-full bg-white p-0.5 transition-colors hover:bg-white/80"
       >
         <Avatar name={user.name} src={user.avatar ?? null} size="sm" />
       </button>
