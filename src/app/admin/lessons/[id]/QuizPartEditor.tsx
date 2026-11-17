@@ -24,7 +24,14 @@ export function QuizPartEditor({
 }: {
   lessonId: string;
   questions: EditableQuestion[];
-  settings: { kind: "QUIZ" | "EXAM"; passMark: number; maxAttempts: number | null; shuffle: boolean; optional: boolean };
+  settings: {
+    kind: "QUIZ" | "EXAM";
+    passMark: number;
+    maxAttempts: number | null;
+    shuffle: boolean;
+    optional: boolean;
+    secondsPerQuestion: number | null;
+  };
   sources: { kind: "QUIZ" | "EXAM"; sources: SourceLesson[] } | null;
   /** Only a lesson made of just this quiz can be the module's final assessment. */
   canBeExam: boolean;
@@ -100,6 +107,7 @@ export function QuizPartEditor({
           <span className="ml-2 hidden text-xs font-normal text-ink-500 sm:inline">
             {isExam ? (settings.optional ? "Optional · " : "Required · ") : ""}
             Pass mark {settings.passMark}%{settings.maxAttempts ? ` · ${settings.maxAttempts} attempts` : ""}
+            {settings.secondsPerQuestion ? ` · ${settings.secondsPerQuestion}s per question` : ""}
           </span>
           <ChevronDown className="ml-auto size-4 text-ink-400 transition-transform group-open:rotate-180" />
         </summary>
@@ -130,6 +138,12 @@ export function QuizPartEditor({
                 <Input name="maxAttempts" type="number" min={1} max={100} defaultValue={settings.maxAttempts ?? ""} />
               </Field>
             </div>
+            <Field
+              label="Seconds per question"
+              hint="Optional. Learners see one question at a time; with a limit they can't go back, and move to the next question when it runs out. Empty = no limit."
+            >
+              <Input name="secondsPerQuestion" type="number" min={5} max={3600} defaultValue={settings.secondsPerQuestion ?? ""} />
+            </Field>
             <Switch name="shuffle" label="Shuffle" description="Mix up question and option order" defaultChecked={settings.shuffle} />
             {isExam ? (
               <Switch

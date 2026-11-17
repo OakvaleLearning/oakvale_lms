@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { audit } from "@/lib/audit";
 import {
   COVER_PREFIX,
   coverKey,
@@ -63,7 +64,7 @@ export async function createCoverUpload(
 
 /** Step 2 (or removal with key = null): save the cover and delete the previous upload. */
 export async function saveCover(target: CoverTarget, key: string | null): Promise<Result> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const current = await exists(target);
   if (!current) return { ok: false, error: "Not found." };
   if (key !== null && !key.startsWith(prefixFor(target))) return { ok: false, error: "Invalid upload." };
@@ -79,6 +80,8 @@ export async function saveCover(target: CoverTarget, key: string | null): Promis
 
   const old = coverKey(current.coverImage);
   if (old && old !== key) await deletePrefix(old).catch((err) => console.error("[covers] cleanup failed:", err));
+  const label = { program: "programme", module: "module", group: "community group" }[target.kind];
+  await audit(admin, "cover.update", `${key ? "Changed" : "Removed"} the cover image of a ${label}`, { target: [target.kind, target.id] });
   refresh(target);
   return { ok: true };
 }

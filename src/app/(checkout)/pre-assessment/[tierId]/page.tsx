@@ -13,6 +13,14 @@ import { PreAssessmentPlayer, StartAssessment } from "./PreAssessmentPlayer";
 
 export const metadata: Metadata = { title: "Pre-assessment" };
 
+/** e.g. "45 seconds", "2 minutes", "1 min 30 s". */
+function formatSeconds(s: number) {
+  if (s < 60) return `${s} seconds`;
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return r ? `${m} min ${r} s` : `${m} ${m === 1 ? "minute" : "minutes"}`;
+}
+
 /**
  * A tier's proctored entry test. Learners must pass it before checkout opens
  * for the tier (enforced again in /api/enroll), and before the tier's modules
@@ -51,6 +59,8 @@ export default async function PreAssessmentPage({ params }: PageProps<"/pre-asse
   if (allOpen && status.kind !== "passed" && status.kind !== "in-progress") redirect("/learn");
 
   const attempt = status.kind === "in-progress" ? await getOpenAttempt(session.userId, status.attemptId) : null;
+  // It ended just now (every question's time ran out): show the result instead.
+  if (status.kind === "in-progress" && !attempt) redirect(`/pre-assessment/${tierId}`);
   const verified = status.kind === "passed" && !holds ? await isEmailVerified(session.userId) : false;
   const attemptsLeft = state.maxAttempts === null ? null : Math.max(0, state.maxAttempts - state.attemptsUsed);
   const last = state.last;
@@ -101,23 +111,19 @@ export default async function PreAssessmentPage({ params }: PageProps<"/pre-asse
               )}
             </div>
           </div>
-        ) : status.kind === "in-progress" && attempt && attempt.questions.length > 0 ? (
+        ) : status.kind === "in-progress" && attempt ? (
           <>
             <p className="mb-5 text-sm text-ink-500">
-              {attempt.questions.length} {attempt.questions.length === 1 ? "question" : "questions"} · pass mark{" "}
-              {state.passMark}%.
+              {attempt.total} {attempt.total === 1 ? "question" : "questions"}, one at a time · pass mark {state.passMark}%.
+              You can&apos;t go back to a question once you move on.
             </p>
             <PreAssessmentPlayer
               tierId={tier.id}
-              attemptId={status.attemptId}
-              questions={attempt.questions}
-              savedAnswers={attempt.answers}
-              deadline={attempt.deadline?.toISOString() ?? null}
-              serverNow={attempt.serverNow}
+              initial={attempt}
               proctored={state.proctored}
               webcam={state.webcam}
               maxStrikes={state.maxStrikes}
-              strikes={attempt.strikes}
+              secondsPerQuestion={state.secondsPerQuestion}
             />
           </>
         ) : (
@@ -158,10 +164,10 @@ export default async function PreAssessmentPage({ params }: PageProps<"/pre-asse
               </div>
             </div>
 
-            {(state.proctored || state.webcam || state.timeLimitMinutes) && (
-              <div className="mt-6 rounded-xl bg-ink-50 p-4">
+            <div className="mt-6 rounded-xl bg-ink-50 p-4">
                 <p className="flex items-center gap-2 text-sm font-medium text-ink-900">
-                  <ShieldCheck className="size-4 text-primary-600" /> This assessment is proctored
+                  <ShieldCheck className="size-4 text-primary-600" />{" "}
+                  {state.proctored || state.webcam ? "This assessment is proctored" : "How it works"}
                 </p>
                 <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed text-ink-600">
                   {state.timeLimitMinutes && (
@@ -184,10 +190,14 @@ export default async function PreAssessmentPage({ params }: PageProps<"/pre-asse
                   {state.webcam && (
                     <li>Your camera stays on, and photos are taken during the assessment for our team to review.</li>
                   )}
+                  <li>
+                    Questions come one at a time, and you can&apos;t go back to one once you move on.
+                    {state.secondsPerQuestion &&
+                      ` Each question has ${formatSeconds(state.secondsPerQuestion)}; when that runs out you move to the next one automatically.`}
+                  </li>
                   <li>Every attempt has new questions. Results can be cancelled after review.</li>
                 </ul>
-              </div>
-            )}
+            </div>
 
             <dl className="mt-6 grid grid-cols-2 divide-line rounded-xl border border-line text-sm sm:grid-cols-4 sm:divide-x">
               <div className="px-4 py-3">

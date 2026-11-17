@@ -180,6 +180,7 @@ async function PartBody({
         lessonId={lesson.id}
         questions={quiz.questions}
         passMark={quiz.passMark}
+        secondsPerQuestion={quiz.secondsPerQuestion}
         attemptsLeft={quiz.maxAttempts === null ? null : Math.max(0, quiz.maxAttempts - quiz.attemptsUsed)}
         bestScore={quiz.bestScore}
         passed={quiz.passed}

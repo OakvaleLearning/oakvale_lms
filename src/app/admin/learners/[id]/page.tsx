@@ -89,6 +89,12 @@ export default async function LearnerPage({ params }: PageProps<"/admin/learners
         )}
       </Panel>
 
+      <p className="text-sm">
+        <Link href={`/admin/activity?target=user:${learner.id}`} className="font-medium text-primary-700 hover:text-primary-900">
+          Admin activity on this account →
+        </Link>
+      </p>
+
       <Panel title="Enrolments">
         <ul className="divide-y divide-line/70">
           {learner.enrollments.map((e) => (

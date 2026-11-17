@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getSession, type SessionPayload } from "@/lib/auth";
 import { HOUR, rateLimit } from "@/lib/rate-limit";
+import { audit } from "@/lib/audit";
 import { COVER_PREFIX, coverKey, coverPath, deletePrefix, ensureUploadCors, isStorageConfigured, presignUpload } from "@/lib/storage";
 import { canManageGroup, getMemberGroupIds, groupMemberWhere, isGroupMember } from "@/lib/community/access";
 import { postViewById } from "@/lib/community/feed";
@@ -95,7 +96,10 @@ export async function createPost(input: {
     data: { groupId, authorId: session.userId, body, images, announcement, pinnedAt: announcement ? new Date() : null },
     include: { group: true },
   });
-  if (announcement) await notifyGroup(post.group, "ANNOUNCEMENT", { actorId: session.userId, postId: post.id });
+  if (announcement) {
+    await notifyGroup(post.group, "ANNOUNCEMENT", { actorId: session.userId, postId: post.id });
+    await audit(session, "post.announce", `Posted an announcement in ${post.group.name}`, { target: ["post", post.id], details: { body: body.slice(0, 200) } });
+  }
   return { ok: true, post: await postViewById(session, post.id) };
 }
 
@@ -124,6 +128,11 @@ export async function deletePost(postId: string): Promise<ActionResult> {
   if (!found || !(found.isAuthor || found.isAdmin)) return fail("You can't delete this post.");
   await prisma.post.update({ where: { id: postId }, data: { deletedAt: new Date(), pinnedAt: null } });
   await prisma.postReport.updateMany({ where: { postId, resolvedAt: null }, data: { resolvedAt: new Date() } });
+  // Moderators removing someone else's post.
+  if (!found.isAuthor) {
+    const author = await prisma.user.findUnique({ where: { id: found.post.authorId }, select: { name: true } });
+    await audit(session, "post.remove", `Removed ${author?.name}'s post`, { target: ["post", postId], details: { body: found.post.body.slice(0, 200) } });
+  }
   for (const key of found.post.images) await deletePrefix(key).catch((err) => console.error("[community] image cleanup failed:", err));
   return { ok: true };
 }
@@ -136,6 +145,8 @@ export async function setPostFlag(postId: string, flag: "pinned" | "locked", on:
   if (!target || target.deletedAt || !(await canManageGroup(session, target.groupId))) return fail("Only group admins can do that.");
   const field = flag === "pinned" ? "pinnedAt" : "lockedAt";
   await prisma.post.update({ where: { id: postId }, data: { [field]: on ? new Date() : null } });
+  const label = flag === "pinned" ? (on ? "Pinned" : "Unpinned") : on ? "Closed comments on" : "Reopened comments on";
+  await audit(session, flag === "pinned" ? "post.pin" : "post.lock", `${label} a post`, { target: ["post", postId] });
   return { ok: true, post: await postViewById(session, postId) };
 }
 
@@ -197,6 +208,10 @@ export async function deleteComment(commentId: string): Promise<ActionResult> {
     prisma.post.update({ where: { id: comment.postId }, data: { commentCount: { decrement: 1 } } }),
     prisma.postReport.updateMany({ where: { commentId, resolvedAt: null }, data: { resolvedAt: new Date() } }),
   ]);
+  if (comment.authorId !== session.userId) {
+    const author = await prisma.user.findUnique({ where: { id: comment.authorId }, select: { name: true } });
+    await audit(session, "comment.remove", `Removed ${author?.name}'s comment`, { target: ["post", comment.postId], details: { body: comment.body.slice(0, 200) } });
+  }
   return { ok: true };
 }
 
@@ -356,6 +371,10 @@ export async function setGroupAdmin(groupId: string, userId: string, on: boolean
   } else {
     await prisma.groupAdmin.deleteMany({ where: { groupId, userId } });
   }
+  const member = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+  await audit(session, on ? "group.addAdmin" : "group.removeAdmin", `${on ? "Made" : "Removed"} ${member?.name} ${on ? "an admin of" : "as admin of"} the ${group.slug} group`, {
+    target: ["user", userId],
+  });
   revalidatePath(`/community/${group.slug}`);
   return { ok: true };
 }
@@ -401,6 +420,7 @@ export async function saveGroupCover(groupId: string, key: string | null): Promi
   if (!current) return fail("That group isn't available.");
 
   await prisma.communityGroup.update({ where: { id: groupId }, data: { coverImage: key ? coverPath(key) : null } });
+  await audit(session, "cover.update", `${key ? "Changed" : "Removed"} the banner photo of the ${current.slug} group`, { target: ["group", groupId] });
   const old = coverKey(current.coverImage);
   if (old && old !== key) await deletePrefix(old).catch((err) => console.error("[community] cover cleanup failed:", err));
 

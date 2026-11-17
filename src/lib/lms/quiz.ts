@@ -111,6 +111,7 @@ export async function getQuizForLearner(lessonId: string, userId: string) {
     id: quiz.id,
     passMark: quiz.passMark,
     maxAttempts: quiz.maxAttempts,
+    secondsPerQuestion: quiz.secondsPerQuestion,
     questions: quiz.shuffle ? shuffled(questions) : questions,
     attemptsUsed: attempts.length,
     bestScore: attempts.reduce<number | null>((best, a) => Math.max(best ?? 0, a.score), null),

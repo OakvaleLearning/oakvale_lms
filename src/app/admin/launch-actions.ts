@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { audit } from "@/lib/audit";
 import { isEmailConfigured } from "@/lib/email";
 import { sendModulesOpenEmail } from "@/lib/emails";
 import { isPrelaunch } from "@/lib/launch";
@@ -26,7 +27,7 @@ export async function countLaunchEmailsPending() {
  * second admin never emails anyone twice; a failed send is released to retry.
  */
 export async function sendLaunchEmails(): Promise<LaunchEmailState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   if (isPrelaunch()) return { error: "Turn off pre-launch mode (remove PRELAUNCH and redeploy) first." };
   if (!isEmailConfigured()) return { error: "Email isn't configured (RESEND_API_KEY)." };
 
@@ -56,6 +57,9 @@ export async function sendLaunchEmails(): Promise<LaunchEmailState> {
 
   revalidatePath("/admin");
   const remaining = await countLaunchEmailsPending();
+  await audit(admin, "email.launch", `Sent the "modules are open" email to ${sent} ${sent === 1 ? "learner" : "learners"}${failed ? ` (${failed} failed)` : ""}`, {
+    details: { sent, failed, remaining },
+  });
   return {
     message:
       `Sent ${sent}.` +

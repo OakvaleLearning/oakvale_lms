@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, Camera, Clock, Loader2, Maximize, ShieldCheck, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { isAnswered, QuestionCard } from "@/components/learn/QuestionCard";
-import type { LearnerQuestion } from "@/lib/lms/quiz";
+import type { AttemptView } from "@/lib/lms/pre-assessment";
 import { HEARTBEAT_MS, PROCTOR_EVENTS, SNAPSHOT_EVERY_MS, type ClientEventType } from "@/lib/lms/proctoring";
 import { cn } from "@/lib/utils";
-import { startPreAssessment, submitPreAssessment } from "./actions";
+import { advancePreAssessment, currentPreAssessmentQuestion, startPreAssessment } from "./actions";
 
 /* ------------------------------------------------------------------ *
  * Browser helpers
@@ -59,55 +59,53 @@ function formatClock(ms: number) {
  * ------------------------------------------------------------------ */
 
 /**
- * Answers one pre-assessment attempt under proctoring: full screen, one
- * window, no copy/paste, camera on with periodic stills, and a countdown.
- * Answers autosave with every check-in; the server ends the attempt when time
- * or strikes run out, and the page shows the result after it re-renders.
+ * Answers one pre-assessment attempt, one question at a time with no way
+ * back, under proctoring: full screen, one window, no copy/paste, camera on
+ * with periodic stills, the overall countdown and (optionally) one per
+ * question. The current answer autosaves with every check-in. The server
+ * decides which question is current and ends the attempt when time or
+ * strikes run out; the page shows the result after it re-renders.
  */
 export function PreAssessmentPlayer({
   tierId,
-  attemptId,
-  questions,
-  savedAnswers,
-  deadline,
-  serverNow,
+  initial,
   proctored,
   webcam,
   maxStrikes,
-  strikes: initialStrikes,
+  secondsPerQuestion,
 }: {
   tierId: string;
-  attemptId: string;
-  questions: LearnerQuestion[];
-  savedAnswers: Record<string, string[]>;
-  deadline: string | null;
-  serverNow: number;
+  initial: AttemptView;
   proctored: boolean;
   webcam: boolean;
   maxStrikes: number;
-  strikes: number;
+  secondsPerQuestion: number | null;
 }) {
   const router = useRouter();
   const [clientId] = useState(() => crypto.randomUUID());
-  const [answers, setAnswers] = useState(savedAnswers);
-  const [strikes, setStrikes] = useState(initialStrikes);
+  const [view, setView] = useState(initial);
+  const [answer, setAnswer] = useState<string[]>(initial.answer);
+  const [strikes, setStrikes] = useState(initial.strikes);
   const [warning, setWarning] = useState<string | null>(null);
   const [camera, setCamera] = useState<"starting" | "on" | "off">(webcam ? "starting" : "on");
   const [left, setLeft] = useState<number | null>(null);
+  const [questionLeft, setQuestionLeft] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
   const fullscreenOk = useFullscreenOk();
 
-  const answersRef = useRef(savedAnswers);
+  const viewRef = useRef(initial);
+  const answerRef = useRef(initial.answer);
   const dirty = useRef(false);
   const queue = useRef<ClientEventType[]>([]);
   const done = useRef(false);
+  const advancing = useRef(false);
   const lastAway = useRef(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const autoSubmitted = useRef(false);
 
-  const answered = questions.filter((q) => isAnswered(q, answers[q.id])).length;
+  const isLast = view.index >= view.total - 1;
+  const answered = view.question ? isAnswered(view.question, answer) : true;
 
   /** Stop proctoring and show the result. */
   const end = useCallback(() => {
@@ -117,12 +115,37 @@ export function PreAssessmentPlayer({
     router.refresh();
   }, [router]);
 
-  /** Check in: autosave answers and report events. */
+  /** Show the next question the server sent. */
+  const show = useCallback((next: AttemptView) => {
+    viewRef.current = next;
+    answerRef.current = next.answer;
+    dirty.current = false;
+    advancing.current = false;
+    setView(next);
+    setAnswer(next.answer);
+    setError("");
+    window.scrollTo({ top: 0 });
+  }, []);
+
+  /** The server moved on without us (this question's time ran out): catch up. */
+  const resync = useCallback(async () => {
+    const next = await currentPreAssessmentQuestion(viewRef.current.attemptId);
+    if (next) show(next);
+    else end();
+  }, [show, end]);
+
+  /** Check in: autosave the current answer and report events. */
   const send = useCallback(
     async (keepalive = false) => {
       if (done.current) return;
       const events = queue.current.splice(0);
-      const body = { attemptId, clientId, events, ...(dirty.current ? { answers: answersRef.current } : {}) };
+      const current = viewRef.current;
+      const body = {
+        attemptId: current.attemptId,
+        clientId,
+        events,
+        ...(dirty.current ? { answers: { [current.questionId]: answerRef.current } } : {}),
+      };
       dirty.current = false;
       try {
         const res = await fetch("/api/pre-assessment/activity", {
@@ -133,14 +156,17 @@ export function PreAssessmentPlayer({
         });
         const json = await res.json();
         if (json.ok && json.ended) end();
-        else if (json.ok) setStrikes(json.strikes);
+        else if (json.ok) {
+          setStrikes(json.strikes);
+          if (json.index !== viewRef.current.index && !advancing.current) await resync();
+        }
       } catch {
         // Offline: keep what wasn't delivered for the next check-in.
         queue.current.unshift(...events);
         if (body.answers) dirty.current = true;
       }
     },
-    [attemptId, clientId, end]
+    [clientId, end, resync]
   );
 
   const record = useCallback(
@@ -159,6 +185,32 @@ export function PreAssessmentPlayer({
     [send]
   );
 
+  /** Lock in this question's answer and move on. On the last question this submits the attempt. */
+  const advance = useCallback(() => {
+    if (advancing.current || done.current) return;
+    advancing.current = true;
+    const current = viewRef.current;
+    const last = current.index >= current.total - 1;
+    startTransition(async () => {
+      await send();
+      if (done.current) return;
+      if (last) done.current = true; // the page is about to change: stop recording
+      const res = await advancePreAssessment(tierId, current.attemptId, {
+        clientId,
+        questionId: current.questionId,
+        answer: answerRef.current,
+      });
+      if (!res.ok) {
+        done.current = false;
+        advancing.current = false;
+        setError(res.error);
+        return;
+      }
+      if (res.ended) end();
+      else show(res.view);
+    });
+  }, [send, tierId, clientId, end, show]);
+
   // Heartbeat: register this window straight away (noting anything odd about the setup), then every few seconds.
   useEffect(() => {
     if (proctored && !document.fullscreenEnabled) queue.current.push("NO_FULLSCREEN");
@@ -168,16 +220,32 @@ export function PreAssessmentPlayer({
     return () => clearInterval(id);
   }, [send, proctored]);
 
-  // Countdown against the server's clock.
+  // Countdowns against the server's clock: the whole attempt, and this question.
   useEffect(() => {
-    if (!deadline) return;
-    const skew = serverNow - Date.now();
-    const end = new Date(deadline).getTime();
-    const tick = () => setLeft(end - (Date.now() + skew));
+    const skew = view.serverNow - Date.now();
+    const deadline = view.deadline ? new Date(view.deadline).getTime() : null;
+    const questionDeadline = view.questionDeadline ? new Date(view.questionDeadline).getTime() : null;
+    let closing = false;
+    const tick = () => {
+      const now = Date.now() + skew;
+      if (deadline !== null) {
+        setLeft(deadline - now);
+        // Time's up: the server closes the attempt on the next check-in.
+        if (deadline - now <= 0 && !closing) {
+          closing = true;
+          void send();
+        }
+      }
+      if (questionDeadline !== null) {
+        setQuestionLeft(questionDeadline - now);
+        // This question's time is up: move on with whatever is chosen.
+        if (questionDeadline - now <= 0) advance();
+      }
+    };
     tick();
-    const id = setInterval(tick, 1000);
+    const id = setInterval(tick, 500);
     return () => clearInterval(id);
-  }, [deadline, serverNow]);
+  }, [view, send, advance]);
 
   // Proctoring: leaving the page, full screen, copy/paste and blocked keys.
   useEffect(() => {
@@ -256,6 +324,7 @@ export function PreAssessmentPlayer({
   }
 
   // Webcam: on for the whole attempt, with a still now and then for review.
+  const attemptId = initial.attemptId;
   useEffect(() => {
     if (!webcam) return;
     attachCamera();
@@ -283,73 +352,49 @@ export function PreAssessmentPlayer({
     };
   }, [webcam, attemptId, attachCamera]);
 
-  const submit = useCallback(
-    (force: boolean) => {
-      if (!force && answered < questions.length) {
-        setError("Please answer every question.");
-        return;
-      }
-      if (done.current) return;
-      setError("");
-      startTransition(async () => {
-        await send();
-        if (done.current) return;
-        done.current = true; // the page is about to change: stop recording
-        const res = await submitPreAssessment(tierId, attemptId, { clientId, answers: answersRef.current });
-        if (!res.ok) {
-          done.current = false;
-          setError(res.error);
-          return;
-        }
-        end();
-        window.scrollTo({ top: 0 });
-      });
-    },
-    [answered, questions.length, send, tierId, attemptId, clientId, end]
-  );
-
-  // Time's up: submit whatever is answered (the server would close it anyway).
-  useEffect(() => {
-    if (left !== null && left <= 0 && !autoSubmitted.current) {
-      autoSubmitted.current = true;
-      submit(true);
-    }
-  }, [left, submit]);
-
-  function change(id: string, value: string[]) {
-    const next = { ...answersRef.current, [id]: value };
-    answersRef.current = next;
+  function change(value: string[]) {
+    answerRef.current = value;
     dirty.current = true;
-    setAnswers(next);
+    setAnswer(value);
   }
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
-    submit(false);
+    if (!answered) {
+      setError("Choose an answer, or skip this question.");
+      return;
+    }
+    advance();
   }
 
   const blockedBy = proctored && !fullscreenOk ? "fullscreen" : webcam && camera !== "on" ? "camera" : null;
   const lowTime = left !== null && left < 5 * 60_000;
+  const questionShare =
+    questionLeft !== null && secondsPerQuestion ? Math.max(0, Math.min(1, questionLeft / (secondsPerQuestion * 1000))) : null;
 
   return (
     <div className={cn(proctored && "select-none")}>
       {/* Status bar */}
       <div className="sticky top-0 z-30 -mx-4 mb-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-line bg-white/95 px-4 py-3 text-sm backdrop-blur sm:mx-0 sm:rounded-2xl sm:border">
+        <span className="font-medium text-ink-950">
+          Question <span className="tabular-nums">{view.index + 1}</span> of <span className="tabular-nums">{view.total}</span>
+        </span>
         {left !== null && (
-          <span className={cn("inline-flex items-center gap-1.5 font-medium tabular-nums", lowTime ? "text-accent-700" : "text-ink-900")}>
-            <Clock className="size-4" /> {formatClock(left)}
+          <span className={cn("inline-flex items-center gap-1.5 tabular-nums", lowTime ? "font-medium text-accent-700" : "text-ink-700")}>
+            <Clock className="size-4" /> {formatClock(left)} left
           </span>
         )}
-        <span className="text-ink-600">
-          <span className="font-medium tabular-nums text-ink-950">{answered}</span> of {questions.length} answered
-        </span>
         {proctored && (
           <span className={cn("inline-flex items-center gap-1.5", strikes > 0 ? "text-accent-700" : "text-ink-600")}>
             <ShieldCheck className="size-4" />
             {maxStrikes > 0 ? `${strikes} of ${maxStrikes} strikes` : `${strikes} ${strikes === 1 ? "strike" : "strikes"}`}
           </span>
         )}
-        <span className="ml-auto text-xs text-ink-500">Answers save automatically</span>
+        <span className="ml-auto text-xs text-ink-500">No going back</span>
+        {/* Progress through the questions */}
+        <div className="h-1 w-full overflow-hidden rounded-full bg-ink-100" aria-hidden>
+          <div className="h-full rounded-full bg-primary-500 transition-[width]" style={{ width: `${(view.index / view.total) * 100}%` }} />
+        </div>
       </div>
 
       {warning && (
@@ -405,28 +450,52 @@ export function PreAssessmentPlayer({
         </div>
       ) : (
         <form onSubmit={onSubmit} className="space-y-5">
-          {questions.map((q, i) => (
+          {questionShare !== null && questionLeft !== null && (
+            <div className="flex items-center gap-3 text-sm" role="timer" aria-live="off">
+              <span className={cn("w-20 shrink-0 font-medium tabular-nums", questionLeft < 10_000 ? "text-accent-700" : "text-ink-800")}>
+                {formatClock(questionLeft)}
+              </span>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-ink-100" aria-hidden>
+                <div
+                  className={cn("h-full rounded-full transition-[width] duration-500 ease-linear", questionLeft < 10_000 ? "bg-accent-500" : "bg-primary-500")}
+                  style={{ width: `${questionShare * 100}%` }}
+                />
+              </div>
+              <span className="hidden shrink-0 text-xs text-ink-500 sm:inline">for this question</span>
+            </div>
+          )}
+
+          {view.question ? (
             <QuestionCard
-              key={q.id}
-              question={q}
-              index={i}
-              total={questions.length}
-              value={answers[q.id]}
+              key={view.questionId}
+              question={view.question}
+              index={view.index}
+              total={view.total}
+              value={answer}
               disabled={pending}
-              onChange={(value) => change(q.id, value)}
+              onChange={change}
             />
-          ))}
+          ) : (
+            <div className="card p-6 text-sm text-ink-600">This question is no longer available. Move on to the next one.</div>
+          )}
 
           {error && <p className="text-sm text-accent-600">{error}</p>}
 
-          <div className="z-30 flex items-center justify-between gap-4 rounded-2xl border border-line bg-white/95 p-3 pl-5 shadow-raised backdrop-blur sm:sticky sm:bottom-4">
-            <span className="text-sm text-ink-600">
-              <span className="font-medium tabular-nums text-ink-950">{answered}</span> of {questions.length} answered
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-white p-3 pl-5 shadow-card">
+            <span className="text-xs text-ink-500">
+              {isLast ? "This is the last question." : "Once you move on, you can't come back to this question."}
             </span>
-            <Button type="submit" disabled={pending}>
-              {pending && <Loader2 className="size-4 animate-spin" />}
-              Submit answers
-            </Button>
+            <div className="flex items-center gap-2">
+              {!answered && (
+                <Button type="button" variant="ghost" onClick={advance} disabled={pending}>
+                  Skip
+                </Button>
+              )}
+              <Button type="submit" disabled={pending || !answered}>
+                {pending && <Loader2 className="size-4 animate-spin" />}
+                {isLast ? "Finish and submit" : "Next question"}
+              </Button>
+            </div>
           </div>
         </form>
       )}

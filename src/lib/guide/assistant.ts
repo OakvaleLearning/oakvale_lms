@@ -46,6 +46,7 @@ const ADMIN_MAP = `Sidebar (on phones, behind the menu button at the top left):
 - Support (/admin/support): inbox of learner conversations, Open and Resolved views.
 - Emails (/admin/emails): the automated pre-launch email sequence, with previews and sent counts.
 - Team (/admin/team): current admins and "Add an admin".
+- Activity log (/admin/activity): every admin change (who, what, when in Lagos time, IP), filter by admin, kind of activity, dates or search; "Download CSV".
 
 Content only reaches learners when the programme is Published, the tier is Available to buy and unlocks the module, the module is Published and the lesson is Visible to learners.`;
 

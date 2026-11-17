@@ -14,6 +14,7 @@ import {
   UsersRound,
   UserRound,
   ShieldCheck,
+  History,
 } from "lucide-react";
 
 export interface NavItem {
@@ -52,6 +53,7 @@ export const NAV: Record<"learner" | "admin", { section: string; items: NavItem[
       { label: "Support", href: "/admin/support", icon: MessagesSquare, badge: "support", keywords: "help chat tickets" },
       { label: "Emails", href: "/admin/emails", icon: Mail, keywords: "email campaigns send templates" },
       { label: "Team", href: "/admin/team", icon: ShieldCheck, keywords: "admins staff roles" },
+      { label: "Activity log", href: "/admin/activity", icon: History, keywords: "audit history changes who did what records" },
     ],
   },
 };

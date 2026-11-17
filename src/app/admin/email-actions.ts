@@ -1,6 +1,7 @@
 "use server";
 
 import { requireAdmin } from "@/lib/auth";
+import { audit } from "@/lib/audit";
 import { isEmailConfigured, sendEmail } from "@/lib/email";
 import { enrolmentConfirmedEmail } from "@/lib/email-templates";
 import { TEMPLATES, previewLearner, type SequenceKey } from "@/lib/email-sequence";
@@ -23,5 +24,6 @@ export async function sendTestEmail(_prev: TestEmailState, formData: FormData): 
   if (!email) return { error: "Unknown email." };
 
   const ok = await sendEmail({ to: session.email, ...email, subject: `[Test] ${email.subject}` });
+  if (ok) await audit(session, "email.test", `Sent themselves a test of the “${email.subject}” email`);
   return ok ? { message: `Sent to ${session.email}.` } : { error: "Couldn't send. Check the server logs." };
 }

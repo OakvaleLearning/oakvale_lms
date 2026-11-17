@@ -5,10 +5,13 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { clientIp } from "@/lib/rate-limit";
-import { startAttempt, submitAttempt } from "@/lib/lms/pre-assessment";
+import { advanceAttempt, getOpenAttempt, startAttempt, type AdvanceResult, type AttemptView } from "@/lib/lms/pre-assessment";
 
-const answersSchema = z.record(z.string().max(40), z.array(z.string().max(200)).max(20));
-const submitSchema = z.object({ clientId: z.string().min(8).max(64), answers: answersSchema });
+const advanceSchema = z.object({
+  clientId: z.string().min(8).max(64),
+  questionId: z.string().min(1).max(40),
+  answer: z.array(z.string().max(200)).max(20),
+});
 
 function refresh(tierId: string) {
   revalidatePath(`/pre-assessment/${tierId}`);
@@ -27,18 +30,25 @@ export async function startPreAssessment(tierId: string): Promise<{ ok: true } |
   return result;
 }
 
-export async function submitPreAssessment(
-  tierId: string,
-  attemptId: string,
-  input: unknown
-): Promise<{ ok: true; passed: boolean } | { ok: false; error: string }> {
+/**
+ * Answer the current question and move on (no way back). Returns the next
+ * question, or that the attempt has ended (the page then shows the result).
+ */
+export async function advancePreAssessment(tierId: string, attemptId: string, input: unknown): Promise<AdvanceResult> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Please log in again." };
-  const parsed = submitSchema.safeParse(input);
+  const parsed = advanceSchema.safeParse(input);
   if (!parsed.success || typeof tierId !== "string" || typeof attemptId !== "string") {
-    return { ok: false, error: "Invalid answers." };
+    return { ok: false, error: "Invalid answer." };
   }
-  const result = await submitAttempt(session.userId, tierId, attemptId, parsed.data, await clientIp());
-  refresh(tierId);
-  return result.ok ? { ok: true, passed: result.passed } : result;
+  const result = await advanceAttempt(session.userId, tierId, attemptId, parsed.data, await clientIp());
+  if (result.ok && result.ended) refresh(tierId);
+  return result;
+}
+
+/** The question the attempt is really on, after the server moved on (a question's time ran out). Null once it has ended. */
+export async function currentPreAssessmentQuestion(attemptId: string): Promise<AttemptView | null> {
+  const session = await getSession();
+  if (!session || typeof attemptId !== "string") return null;
+  return getOpenAttempt(session.userId, attemptId);
 }

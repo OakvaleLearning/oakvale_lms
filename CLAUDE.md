@@ -21,6 +21,10 @@
 - Admin editor: `src/app/admin/lessons/[id]/` (server actions in `actions.ts`, client builder in `src/components/admin/LessonBuilder.tsx`). Learner view: `src/components/learn/LessonParts.tsx`. Mobile API: `/api/v1/lessons/[id]` returns `parts[]` (plus `content` for older clients).
 - Changing the schema: write a Prisma migration by hand only if `prisma migrate dev` can't run; run `npx prisma generate` before type-checking.
 
+## Quizzes show one question at a time
+
+- `QuizPlayer` (lesson quizzes and final assessments) shows one question at a time. Untimed, learners can go back and forth (Previous/Next and numbered buttons) before submitting. With `Quiz.secondsPerQuestion` set, there's a Start screen, each question has a countdown, there's no going back, it moves on at zero, and the last question submits what's answered. After submitting, learners step through their results. Lesson-quiz timing is enforced in the browser only (`/api/lms/quiz` grades a whole submission); pre-assessment timing is enforced on the server. The mobile API passes `secondsPerQuestion` for the app to honour.
+
 ## Pre-assessments gate enrolment and access
 
 - A tier can have a `PreAssessment` (an entry test). While it is `enabled` and its question banks hold at least one question (`activeAssessmentWhere`), it gates two things:
@@ -28,6 +32,7 @@
   - **The tier's modules, wherever they're sold.** `getModuleAccess` (used by `getUnlockedModuleIds` / `getModuleLock`) keeps a gated tier's modules locked (`ModuleLock` "PRE_ASSESSMENT") in that tier and in any bigger tier containing all of them, e.g. Professional inside Full Programme. A smaller tier that shares a module (Foundation) isn't affected. Locked modules still show on `/learn` with a "Take the pre-assessment" link, and `offerings` counts them as bought.
 - `Enrollment.preAssessmentWaived` skips the gate. Admins set it with "Skip pre-assessment" when granting a tier, or "Waive / Require pre-assessment" on `/admin/learners/[id]`. Admin grants no longer skip by default. The `proctored_pre_assessments` migration waived every enrolment that was ACTIVE at the time (grandfathered). The mobile API has no checkout, but module locks apply there too.
 - Questions live in reusable `QuestionBank`s (`BankQuestion`, same shape and the same four types as a lesson quiz's `Question`). A pre-assessment uses one or more banks (implicit m2m). Each attempt draws `questionCount` questions when it starts and stores their ids on `PreAssessmentAttempt.questionIds`.
+- **One question at a time, no going back.** The server sends only the current question (`PreAssessmentAttempt.position`, see `getOpenAttempt` / `advanceAttempt`). Answers to earlier questions are locked: check-ins autosave only the current one, and the "advance" action ignores answers for any question but the current one. With `secondsPerQuestion`, each question has its own countdown (`questionStartedAt`). `clock()` moves the attempt on when it runs out (+5 s grace), even with the tab closed; late answers are ignored, and if every question runs out the attempt ends `TIMED_OUT`.
 - **No repeats:** a draw excludes every question the learner has been shown in any pre-assessment attempt, including reset and voided ones. When fewer unseen questions are left than `questionCount`, the status is "no-questions" and no attempt can start; the admin page shows how many attempts the banks allow (`pool / questionCount`). The draw is spread evenly across banks (`drawEvenly`): 40 from 10 topic banks = 4 each.
 - **Proctoring** (settings on the assessment: `timeLimitMinutes`, `proctored`, `maxStrikes`, `webcam`; event catalogue in `src/lib/lms/proctoring.ts`):
   - The time limit is enforced on the server via `deadline` (+30 s grace). Late answers are ignored, and expired open attempts are closed as `TIMED_OUT` on the answers autosaved before the deadline.
@@ -40,6 +45,14 @@
 - Retakes: `maxAttempts` (null = unlimited) counts every attempt not reset; `retakeAfterHours` is the wait after a failed one. A pass never expires and is per tier.
 - Foundation bank seed (200 questions, one bank per topic, from `Oakvale_Foundation_Question_Bank_Refined_Context_and_Ethics.xlsx`): `prisma/data/foundation-question-bank.json`, loaded by `npm run seed:question-banks` (needs `DATABASE_URL`). It only adds: banks match by title, questions by ID or wording. The question ID, difficulty, critical-safety tag and blind spot are kept in each explanation, which learners never see.
 - Code: logic `src/lib/lms/pre-assessment.ts`; learner page `src/app/(checkout)/pre-assessment/[tierId]/` (adds an "Assessment" step to `CheckoutSteps`); admin actions `src/app/admin/question-banks/actions.ts`; banks at `/admin/question-banks`. Marking is shared with lesson quizzes (`gradeAnswers`, `toLearnerQuestion` in `src/lib/lms/quiz.ts`), as is the answer UI (`QuestionCard`). `QuestionEditor` takes a bound `save` action.
+
+## Admin activity log
+
+- **Every admin operation must record itself.** After a change succeeds, call `audit(admin, "<area>.<verb>", summary, { target, details })` from `src/lib/audit.ts`, where `admin` is the session returned by `requireAdmin()`. Write the summary in plain English with names, not ids (e.g. `Updated tier “Foundation” (Child Care): price ₦30,000 → ₦35,000`). For edits, put `changes(before, after)` in `details`; replace long text fields with `["…", "(changed)"]`. The prefix before the dot decides the category (`AUDIT_CATEGORIES`), so a new area needs a prefix there.
+- Covered today: everything in `src/app/admin/**/actions.ts` and the `*-actions.ts` files, the admin support API, the CPD CSV export, community moderation (announcements, removing others' posts and comments, pin and lock, group admins, banners), and admin sign-ins plus failed password attempts on admin accounts (`/api/auth/login`). Presigning an upload isn't logged; finishing it is.
+- `audit()` never throws (failures go to the server log), and rows are never edited or deleted. The actor's name and email are copied in (`actorId` is set to null if the account goes). The IP comes from `clientIp()`.
+- Page: `/admin/activity` (filter by admin, category, Lagos-time dates, search, or `?target=type:id`; learner pages link to it). CSV: `GET /api/admin/activity` with the same filters. Filters are in `src/lib/audit-query.ts`.
+- Nothing was logged before the `admin_audit_log` migration. That migration backfills only what existing rows attribute to a person (support replies, created events, announcements), marked `{"recovered": true}`. Earlier admin grants, certificate revocations and team changes can't be attributed.
 
 ## Oakvale Guide (app-navigation assistant)
 

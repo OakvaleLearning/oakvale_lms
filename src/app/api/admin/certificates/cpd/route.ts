@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { verifyUrl } from "@/lib/lms/certificates";
+import { audit } from "@/lib/audit";
 
 const STATUSES = ["PENDING", "SUBMITTED", "ISSUED"] as const;
 
@@ -23,6 +24,10 @@ export async function GET(req: Request) {
     where: { cpdStatus: status, revokedAt: null },
     orderBy: { issuedAt: "asc" },
     include: { user: { select: { email: true, phone: true } } },
+  });
+  // A download of learners' personal details.
+  await audit(session, "cpd.export", `Downloaded ${certificates.length} ${status.toLowerCase()} CPD requests (names, emails, phones)`, {
+    details: { status, rows: certificates.length },
   });
 
   const header = ["Full name", "Email", "Phone", "Programme", "Modules", "CPD hours", "Issuing body", "Completed on", "Score (%)", "Oakvale certificate ID", "Verification link"];

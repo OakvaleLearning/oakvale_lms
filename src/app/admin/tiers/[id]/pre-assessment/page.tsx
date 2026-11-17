@@ -221,9 +221,17 @@ export default async function TierPreAssessmentPage({ params }: PageProps<"/admi
               )}
               <fieldset className="space-y-3 border-t border-line pt-4">
                 <legend className="sr-only">Proctoring</legend>
-                <Field label="Time limit (minutes)" hint="Empty = untimed. Enforced on the server.">
-                  <Input name="timeLimitMinutes" type="number" min={1} max={600} defaultValue={a ? (a.timeLimitMinutes ?? "") : 60} />
-                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Time limit (minutes)" hint="Whole attempt. Empty = untimed.">
+                    <Input name="timeLimitMinutes" type="number" min={1} max={600} defaultValue={a ? (a.timeLimitMinutes ?? "") : 60} />
+                  </Field>
+                  <Field label="Seconds per question" hint="Moves on when it runs out. Empty = no limit.">
+                    <Input name="secondsPerQuestion" type="number" min={5} max={3600} defaultValue={a?.secondsPerQuestion ?? ""} />
+                  </Field>
+                </div>
+                <p className="text-xs leading-relaxed text-ink-500">
+                  Learners see one question at a time and can&apos;t go back. Both limits are enforced on the server.
+                </p>
                 <Switch
                   name="proctored"
                   label="Proctored"

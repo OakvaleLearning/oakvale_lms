@@ -22,6 +22,13 @@ import {
 import { renumberBlocks, syncLesson } from "@/lib/lms/lesson-parts";
 import { reconcileLessonProgress } from "@/lib/lms/progress";
 import { questionSchema, quizSettingsSchema } from "@/lib/validation";
+import { audit, changes } from "@/lib/audit";
+
+/** "“Lesson title”" for summaries. */
+async function lessonName(lessonId: string) {
+  const l = await prisma.lesson.findUnique({ where: { id: lessonId }, select: { title: true } });
+  return l ? `“${l.title}”` : "a lesson";
+}
 
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
@@ -37,7 +44,7 @@ function refresh(lessonId: string) {
 
 /** Add a part to a lesson, at `position` (0 = first; default last). */
 export async function addBlock(lessonId: string, type: unknown, position?: number): Promise<Result<{ blockId: string }>> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const kind = z.enum(BLOCK_TYPES).safeParse(type);
   if (!kind.success) return { ok: false, error: "Unknown kind of part." };
 
@@ -69,6 +76,9 @@ export async function addBlock(lessonId: string, type: unknown, position?: numbe
     await prisma.$transaction(ids.map((id, order) => prisma.lessonBlock.update({ where: { id }, data: { order } })));
   }
   await syncLesson(lessonId);
+  await audit(admin, "part.create", `Added a ${BLOCK_LABEL[kind.data].toLowerCase()} part to ${await lessonName(lessonId)}`, {
+    target: ["lesson", lessonId],
+  });
   refresh(lessonId);
   return { ok: true, blockId: created.id };
 }
@@ -87,12 +97,15 @@ const partSchema = z.object({
 
 /** Change a part's heading, whether it's required, its estimated time, or its content (text, or an embed's link). */
 export async function updateBlock(blockId: string, input: unknown): Promise<Result<{ embedUrl?: string }>> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const parsed = partSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const { title, required, allowDownload, durationMin, body, embedUrl } = parsed.data;
 
-  const block = await prisma.lessonBlock.findUnique({ where: { id: blockId }, select: { lessonId: true, type: true, required: true } });
+  const block = await prisma.lessonBlock.findUnique({
+    where: { id: blockId },
+    select: { lessonId: true, type: true, required: true, title: true, allowDownload: true, durationSec: true, body: true },
+  });
   if (!block) return { ok: false, error: "Part not found." };
 
   let embed: string | undefined;
@@ -114,6 +127,23 @@ export async function updateBlock(blockId: string, input: unknown): Promise<Resu
     },
   });
   if (durationMin !== undefined) await syncLesson(block.lessonId);
+  const diff = changes(
+    { title: block.title, required: block.required, allowDownload: block.allowDownload, durationSec: block.durationSec },
+    {
+      ...(title !== undefined ? { title } : {}),
+      ...(required !== undefined ? { required } : {}),
+      ...(allowDownload !== undefined && block.type === "DOCUMENT" ? { allowDownload } : {}),
+      ...(durationMin !== undefined ? { durationSec: durationMin ? minutesToSeconds(durationMin) : null } : {}),
+    }
+  );
+  const newBody = body !== undefined && block.type === "TEXT" ? body : embed;
+  if (newBody !== undefined && newBody !== block.body) diff.content = ["…", "(changed)"];
+  if (Object.keys(diff).length) {
+    await audit(admin, "part.update", `Edited a ${BLOCK_LABEL[block.type].toLowerCase()} part in ${await lessonName(block.lessonId)}`, {
+      target: ["lesson", block.lessonId],
+      details: diff,
+    });
+  }
   // Making a part optional may complete lessons for learners who were only missing it.
   if (required === false && block.required) await reconcileLessonProgress(block.lessonId);
   refresh(block.lessonId);
@@ -122,7 +152,7 @@ export async function updateBlock(blockId: string, input: unknown): Promise<Resu
 
 /** Remove a part, with its file (or, for a quiz part, the quiz and learners' attempts). */
 export async function deleteBlock(blockId: string): Promise<Result> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const block = await prisma.lessonBlock.findUnique({
     where: { id: blockId },
     select: { lessonId: true, type: true, asset: { select: { id: true, storageKey: true } } },
@@ -136,13 +166,19 @@ export async function deleteBlock(blockId: string): Promise<Result> {
   await renumberBlocks(block.lessonId);
   await syncLesson(block.lessonId);
   await reconcileLessonProgress(block.lessonId);
+  await audit(
+    admin,
+    "part.delete",
+    `Removed a ${BLOCK_LABEL[block.type].toLowerCase()} part from ${await lessonName(block.lessonId)}${block.type === "QUIZ" ? " (with its quiz and learners' attempts)" : ""}`,
+    { target: ["lesson", block.lessonId] }
+  );
   refresh(block.lessonId);
   return { ok: true };
 }
 
 /** Put a lesson's parts in a new order. `orderedIds` must be exactly its parts. */
 export async function reorderBlocks(lessonId: string, orderedIds: string[]): Promise<Result> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const ids = z.array(z.string().max(40)).max(200).safeParse(orderedIds);
   if (!ids.success) return { ok: false, error: "Invalid order." };
 
@@ -151,6 +187,7 @@ export async function reorderBlocks(lessonId: string, orderedIds: string[]): Pro
   if (!same) return { ok: false, error: "The lesson changed. Reload the page and try again." };
 
   await prisma.$transaction(ids.data.map((id, order) => prisma.lessonBlock.update({ where: { id }, data: { order } })));
+  await audit(admin, "part.reorder", `Reordered the parts of ${await lessonName(lessonId)}`, { target: ["lesson", lessonId] });
   refresh(lessonId);
   return { ok: true };
 }
@@ -218,7 +255,7 @@ export async function finalizeUpload(
   assetId: string,
   info: { durationSec?: number; detect?: boolean } = {}
 ): Promise<Result> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const asset = await prisma.contentAsset.findUnique({ where: { id: assetId }, include: { block: true } });
   if (!asset) return { ok: false, error: "Upload not found." };
 
@@ -235,12 +272,18 @@ export async function finalizeUpload(
   }
   refresh(asset.lessonId);
   const fresh = await prisma.contentAsset.findUnique({ where: { id: assetId } });
+  await audit(
+    admin,
+    "part.upload",
+    `Uploaded “${asset.fileName}” to ${await lessonName(asset.lessonId)}${fresh?.status === "FAILED" ? " (processing failed)" : ""}`,
+    { target: ["lesson", asset.lessonId], details: { file: asset.fileName, bytes: asset.sizeBytes } }
+  );
   return fresh?.status === "FAILED" ? { ok: false, error: fresh.error ?? "Processing failed." } : { ok: true };
 }
 
 /** Remove a part's file but keep the part, ready for a new upload. */
 export async function removeAsset(blockId: string): Promise<void> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const asset = await prisma.contentAsset.findUnique({ where: { blockId }, include: { block: { select: { type: true } } } });
   if (!asset) return;
   await prisma.contentAsset.delete({ where: { id: asset.id } });
@@ -250,6 +293,9 @@ export async function removeAsset(blockId: string): Promise<void> {
     await prisma.lessonBlock.update({ where: { id: blockId }, data: { durationSec: null } });
     await syncLesson(asset.lessonId);
   }
+  await audit(admin, "part.removeFile", `Removed the file “${asset.fileName}” from ${await lessonName(asset.lessonId)}`, {
+    target: ["lesson", asset.lessonId],
+  });
   refresh(asset.lessonId);
 }
 
@@ -262,13 +308,14 @@ export async function updateQuizSettings(
   _prev: { error?: string; ok?: boolean } | undefined,
   fd: FormData
 ): Promise<{ error?: string; ok?: boolean }> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const parsed = quizSettingsSchema.safeParse({
     kind: fd.get("kind") || undefined,
     passMark: fd.get("passMark"),
     maxAttempts: fd.get("maxAttempts") || undefined,
     shuffle: fd.get("shuffle") === "on",
     optional: fd.get("optional") === "on",
+    secondsPerQuestion: fd.get("secondsPerQuestion") || undefined,
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid settings" };
   // Only a final assessment can be optional; a quiz between lessons always counts.
@@ -281,11 +328,17 @@ export async function updateQuizSettings(
       return { error: "Only a lesson made of just the quiz can be the final assessment. Move the other parts to another lesson first." };
     }
   }
+  const before = await prisma.quiz.findUnique({ where: { lessonId } });
+  const next = { ...parsed.data, maxAttempts: parsed.data.maxAttempts ?? null, secondsPerQuestion: parsed.data.secondsPerQuestion ?? null };
   await prisma.quiz.upsert({
     where: { lessonId },
-    update: { ...parsed.data, maxAttempts: parsed.data.maxAttempts ?? null },
-    create: { lessonId, ...parsed.data, maxAttempts: parsed.data.maxAttempts ?? null },
+    update: next,
+    create: { lessonId, ...next },
   });
+  const diff = before ? changes(before, next) : next;
+  if (Object.keys(diff).length) {
+    await audit(admin, "quiz.update", `Changed quiz settings in ${await lessonName(lessonId)}`, { target: ["lesson", lessonId], details: diff });
+  }
   refresh(lessonId);
   return { ok: true };
 }
@@ -295,7 +348,7 @@ export async function saveQuestion(
   questionId: string | null,
   input: unknown
 ): Promise<Result> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const parsed = questionSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid question" };
   const { options, correct, explanation, ...rest } = parsed.data;
@@ -314,13 +367,24 @@ export async function saveQuestion(
     const max = await prisma.question.aggregate({ where: { quizId: quiz.id }, _max: { order: true } });
     await prisma.question.create({ data: { ...data, quizId: quiz.id, order: (max._max.order ?? -1) + 1 } });
   }
+  await audit(admin, questionId ? "question.update" : "question.create", `${questionId ? "Edited" : "Added"} a quiz question in ${await lessonName(lessonId)}`, {
+    target: ["lesson", lessonId],
+    details: { prompt: rest.prompt.slice(0, 200) },
+  });
   refresh(lessonId);
   return { ok: true };
 }
 
 export async function deleteQuestion(lessonId: string, questionId: string): Promise<void> {
-  await requireAdmin();
-  await prisma.question.deleteMany({ where: { id: questionId, quiz: { lessonId } } });
+  const admin = await requireAdmin();
+  const q = await prisma.question.findFirst({ where: { id: questionId, quiz: { lessonId } }, select: { prompt: true } });
+  const { count } = await prisma.question.deleteMany({ where: { id: questionId, quiz: { lessonId } } });
+  if (count) {
+    await audit(admin, "question.delete", `Deleted a quiz question in ${await lessonName(lessonId)}`, {
+      target: ["lesson", lessonId],
+      details: { prompt: q?.prompt.slice(0, 200) },
+    });
+  }
   refresh(lessonId);
 }
 
@@ -335,7 +399,7 @@ const generateSchema = z.object({
 
 /** Draft questions with AI from the chosen lessons, then save them to this lesson's quiz. */
 export async function generateQuestions(lessonId: string, input: unknown): Promise<Result<{ created: number }>> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const parsed = generateSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid request" };
   const { replace, ...options } = parsed.data;
@@ -378,6 +442,12 @@ export async function generateQuestions(lessonId: string, input: unknown): Promi
       })),
     }),
   ]);
+  await audit(
+    admin,
+    "question.generate",
+    `Generated ${valid.length} quiz questions with AI in ${await lessonName(lessonId)}${replace ? ", replacing the old ones" : ""}`,
+    { target: ["lesson", lessonId], details: { difficulty: options.difficulty, types: options.types } }
+  );
   refresh(lessonId);
   return { ok: true, created: valid.length };
 }

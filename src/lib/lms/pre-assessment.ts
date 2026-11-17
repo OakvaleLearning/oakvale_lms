@@ -2,7 +2,7 @@ import "server-only";
 import type { PreAssessmentEnd, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isStorageConfigured, putObject } from "@/lib/storage";
-import { gradeAnswers, shuffled, toLearnerQuestion, type LearnerQuestion } from "./quiz";
+import { gradeAnswers, shuffled, toLearnerQuestion } from "./quiz";
 import { PROCTOR_EVENTS, SNAPSHOT_MAX_BYTES, type ClientEventType, type ProctorEvent, type ProctorEventType } from "./proctoring";
 
 /**
@@ -13,6 +13,10 @@ import { PROCTOR_EVENTS, SNAPSHOT_MAX_BYTES, type ClientEventType, type ProctorE
  *  - Questions are drawn at random, spread evenly across the assessment's
  *    banks, and never repeat a question the learner has seen in an earlier
  *    attempt. When too few new ones are left, no further attempt can start.
+ *  - One question at a time, forward only: the server sends just the current
+ *    question (`position`) and locks the answers to earlier ones. With
+ *    `secondsPerQuestion`, each question has its own countdown, also enforced
+ *    here: when it runs out the attempt moves on, even with the tab closed.
  *  - Proctoring (see ./proctoring.ts): server-enforced time limit, full screen,
  *    one window, strikes for leaving the page, copying or pasting, and webcam
  *    stills. Too many strikes end the attempt as a fail.
@@ -35,6 +39,8 @@ const GRACE_MS = 30_000;
 const OFFLINE_AFTER_MS = 60_000;
 const MAX_EVENTS = 500;
 const MAX_SNAPSHOTS = 300;
+/** Extra time allowed after a question's own countdown for the last answer to arrive. */
+const QUESTION_GRACE_MS = 5_000;
 
 /* ------------------------------------------------------------------ *
  * Access
@@ -173,7 +179,7 @@ async function withAttempt<T>(attemptId: string, fn: (tx: Tx, attempt: LockedAtt
       await tx.$queryRaw`SELECT id FROM "PreAssessmentAttempt" WHERE id = ${attemptId} FOR UPDATE`;
       const attempt = await tx.preAssessmentAttempt.findFirst({
         where: { id: attemptId, ...(userId ? { userId } : {}) },
-        include: { assessment: { select: { tierId: true, passMark: true, proctored: true, maxStrikes: true } } },
+        include: { assessment: { select: { tierId: true, passMark: true, proctored: true, maxStrikes: true, secondsPerQuestion: true } } },
       });
       return fn(tx, attempt as LockedAttempt);
     },
@@ -181,7 +187,7 @@ async function withAttempt<T>(attemptId: string, fn: (tx: Tx, attempt: LockedAtt
   );
 }
 type LockedAttempt = Prisma.PreAssessmentAttemptGetPayload<{
-  include: { assessment: { select: { tierId: true; passMark: true; proctored: true; maxStrikes: true } } };
+  include: { assessment: { select: { tierId: true; passMark: true; proctored: true; maxStrikes: true; secondsPerQuestion: true } } };
 }> | null;
 
 /** Mark an open attempt and close it. TERMINATED attempts always fail. */
@@ -269,6 +275,7 @@ export async function getPreAssessmentState(userId: string, tierId: string) {
     maxStrikes: assessment.maxStrikes,
     // Stills need somewhere to go; without storage the camera isn't required.
     webcam: assessment.webcam && isStorageConfigured(),
+    secondsPerQuestion: assessment.secondsPerQuestion,
     attemptsUsed: attempts.length,
     last: last && { score: last.score ?? 0, endReason: last.endReason, voided: Boolean(last.voidedAt), strikes: last.strikes },
     status,
@@ -287,7 +294,7 @@ export async function startAttempt(
     case "in-progress": {
       // Resume it, unless every question it drew has since been deleted.
       const left = await getOpenAttempt(userId, state.status.attemptId);
-      if (left?.questions.length) return { ok: true };
+      if (left) return { ok: true };
       await prisma.preAssessmentAttempt.delete({ where: { id: state.status.attemptId } });
       break;
     }
@@ -313,6 +320,7 @@ export async function startAttempt(
       userId,
       questionIds,
       deadline: state.timeLimitMinutes ? new Date(now.getTime() + state.timeLimitMinutes * 60_000) : null,
+      questionStartedAt: now,
       ip: meta.ip?.slice(0, 64) ?? null,
       userAgent: meta.userAgent?.slice(0, 400) ?? null,
       events: [event("STARTED")] as unknown as Prisma.InputJsonValue,
@@ -321,60 +329,110 @@ export async function startAttempt(
   return { ok: true };
 }
 
-/** An open attempt for the player: its questions (no answers), saved answers, deadline and strikes. */
-export async function getOpenAttempt(userId: string, attemptId: string) {
-  const attempt = await prisma.preAssessmentAttempt.findFirst({
-    where: { id: attemptId, userId, submittedAt: null },
-    select: { questionIds: true, answers: true, deadline: true, strikes: true },
-  });
-  if (!attempt) return null;
-  const ids = attempt.questionIds as string[];
-  const rows = await prisma.bankQuestion.findMany({ where: { id: { in: ids } } });
-  const byId = new Map(rows.map((q) => [q.id, q]));
-  // A question deleted from its bank after the draw is simply left out.
-  const questions: LearnerQuestion[] = ids.flatMap((id) => {
-    const q = byId.get(id);
-    return q ? [toLearnerQuestion(q, true)] : [];
-  });
+/**
+ * Where an open attempt really is, by the server's clock: each question whose
+ * own countdown has run out (plus a short grace) is passed, even if the
+ * learner's browser never said so. `done` = every question's time is up.
+ */
+function clock(a: { position: number; questionStartedAt: Date | null; questionIds: Prisma.JsonValue }, secs: number | null, now = Date.now()) {
+  const total = (a.questionIds as string[]).length;
+  let position = a.position;
+  let started = a.questionStartedAt?.getTime() ?? now;
+  if (secs) {
+    while (position < total && now > started + secs * 1000 + QUESTION_GRACE_MS) {
+      position++;
+      started += secs * 1000;
+    }
+  }
+  return { position, questionStartedAt: new Date(started), done: position >= total };
+}
+
+/** What the player shows: the current question only (no answers), and its timers. */
+async function attemptView(
+  a: { id: string; questionIds: Prisma.JsonValue; answers: Prisma.JsonValue; deadline: Date | null; strikes: number },
+  position: number,
+  questionStartedAt: Date,
+  secs: number | null
+) {
+  const ids = a.questionIds as string[];
+  const row = await prisma.bankQuestion.findUnique({ where: { id: ids[position] } });
   return {
-    questions,
-    answers: savedAnswers(attempt),
-    deadline: attempt.deadline,
-    strikes: attempt.strikes,
-    // The player's countdown corrects for a wrong clock on the learner's device.
+    attemptId: a.id,
+    // A question deleted from its bank after the draw shows as a gap the learner moves past.
+    question: row ? toLearnerQuestion(row, true) : null,
+    questionId: ids[position],
+    index: position,
+    total: ids.length,
+    /** Draft answer autosaved for this question (e.g. after a reload). */
+    answer: savedAnswers(a)[ids[position]] ?? [],
+    deadline: a.deadline?.toISOString() ?? null,
+    questionDeadline: secs ? new Date(questionStartedAt.getTime() + secs * 1000).toISOString() : null,
+    strikes: a.strikes,
+    // The player's countdowns correct for a wrong clock on the learner's device.
     serverNow: Date.now(),
   };
 }
+export type AttemptView = Awaited<ReturnType<typeof attemptView>>;
+
+/**
+ * An open attempt for the player, first catching up with any per-question
+ * countdowns that ran out while nobody was looking. Null when it isn't open
+ * (or has just ended because every question's time ran out).
+ */
+export async function getOpenAttempt(userId: string, attemptId: string): Promise<AttemptView | null> {
+  return withAttempt(
+    attemptId,
+    async (tx, a) => {
+      if (!a || a.submittedAt) return null;
+      const secs = a.assessment.secondsPerQuestion;
+      const c = clock(a, secs);
+      if (c.done) {
+        await finish(tx, a, "TIMED_OUT", savedAnswers(a));
+        return null;
+      }
+      if (c.position !== a.position) {
+        await tx.preAssessmentAttempt.update({ where: { id: a.id }, data: { position: c.position, questionStartedAt: c.questionStartedAt } });
+      }
+      return attemptView(a, c.position, c.questionStartedAt, secs);
+    },
+    userId
+  );
+}
 
 /* ------------------------------------------------------------------ *
- * Proctoring check-ins and submitting
+ * Proctoring check-ins and moving on
  * ------------------------------------------------------------------ */
 
 export interface CheckIn {
   clientId: string;
+  /** Only the current question's answer is accepted. */
   answers?: Record<string, string[]>;
   events?: ClientEventType[];
 }
 
 export type CheckInResult =
-  | { ok: true; ended: false; strikes: number }
+  | { ok: true; ended: false; strikes: number; index: number }
   | { ok: true; ended: true; reason: PreAssessmentEnd; score: number; passed: boolean }
   | { ok: false; error: string };
 
 /**
  * Apply one check-in from the learner's browser to a locked, open attempt:
- * log events and strikes, spot a second window or a long silence, and save
- * answers. Ends the attempt when time is up or the strikes run out.
+ * catch up with per-question countdowns, autosave the current question's
+ * answer, log events and strikes, and spot a second window or a long silence.
+ * Ends the attempt when time is up or the strikes run out.
  */
 async function applyCheckIn(tx: Tx, a: NonNullable<LockedAttempt>, input: CheckIn, ip: string | null) {
   const now = new Date();
   const proctored = a.assessment.proctored;
-  // Answers count only for this attempt's questions, and only before the deadline.
-  const ids = new Set(a.questionIds as string[]);
+  const ids = a.questionIds as string[];
+  const c = clock(a, a.assessment.secondsPerQuestion, now.getTime());
   const inTime = !isExpired(a.deadline, now);
-  const answers = input.answers && inTime
-    ? Object.fromEntries(Object.entries(input.answers).filter(([id]) => ids.has(id)))
-    : savedAnswers(a);
+
+  // Earlier questions are locked: only the one the learner is on can change.
+  const answers = { ...savedAnswers(a) };
+  const current = ids[c.position];
+  const draft = current ? input.answers?.[current] : undefined;
+  if (draft && inTime && !c.done) answers[current] = draft;
 
   const add: ProctorEvent[] = [];
   if (a.clientId && a.clientId !== input.clientId) add.push(event("NEW_WINDOW"));
@@ -388,7 +446,7 @@ async function applyCheckIn(tx: Tx, a: NonNullable<LockedAttempt>, input: CheckI
   const newStrikes = proctored ? add.filter((e) => e.strike).length : 0;
   const strikes = a.strikes + newStrikes;
 
-  if (!inTime) return { ended: await finish(tx, { ...a, strikes }, "TIMED_OUT", answers, add) };
+  if (!inTime || c.done) return { ended: await finish(tx, { ...a, strikes }, "TIMED_OUT", answers, add) };
   if (proctored && a.assessment.maxStrikes > 0 && strikes >= a.assessment.maxStrikes) {
     return { ended: await finish(tx, { ...a, strikes }, "TERMINATED", answers, add) };
   }
@@ -400,13 +458,15 @@ async function applyCheckIn(tx: Tx, a: NonNullable<LockedAttempt>, input: CheckI
       strikes,
       clientId: input.clientId,
       lastSeenAt: now,
+      position: c.position,
+      questionStartedAt: c.questionStartedAt,
       events: events as Prisma.InputJsonValue,
     },
   });
-  return { ended: null, strikes, answers, events };
+  return { ended: null, strikes, answers, events, position: c.position, questionStartedAt: c.questionStartedAt };
 }
 
-/** A heartbeat from the player: autosave answers and record proctoring events. */
+/** A heartbeat from the player: autosave the current answer and record proctoring events. */
 export async function checkIn(userId: string, attemptId: string, input: CheckIn, ip: string | null): Promise<CheckInResult> {
   return withAttempt(
     attemptId,
@@ -416,32 +476,49 @@ export async function checkIn(userId: string, attemptId: string, input: CheckIn,
         return { ok: true, ended: true, reason: a.endReason ?? "SUBMITTED", score: a.score ?? 0, passed: a.passed };
       }
       const r = await applyCheckIn(tx, a, input, ip);
-      return r.ended ? { ok: true, ended: true, ...r.ended } : { ok: true, ended: false, strikes: r.strikes };
+      return r.ended ? { ok: true, ended: true, ...r.ended } : { ok: true, ended: false, strikes: r.strikes, index: r.position };
     },
     userId
   );
 }
 
+export type AdvanceResult =
+  | { ok: true; ended: false; view: AttemptView }
+  | { ok: true; ended: true; reason: PreAssessmentEnd; score: number; passed: boolean }
+  | { ok: false; error: string };
+
 /**
- * Submit an open attempt (or, when its time has run out, mark the answers
- * saved before the deadline). Answers are never revealed, so the bank stays useful.
+ * Answer the current question and move to the next one (there's no way back).
+ * On the last question this submits the attempt. If the server has already
+ * moved past `questionId` (its countdown ran out), the answer is ignored and
+ * the player is sent the question it's really on. Answers are never revealed.
  */
-export async function submitAttempt(
+export async function advanceAttempt(
   userId: string,
   tierId: string,
   attemptId: string,
-  input: CheckIn,
+  input: { clientId: string; questionId: string; answer: string[] },
   ip: string | null
-): Promise<{ ok: true; score: number; passed: boolean; reason: PreAssessmentEnd } | { ok: false; error: string }> {
+): Promise<AdvanceResult> {
   return withAttempt(
     attemptId,
     async (tx, a) => {
       if (!a || a.assessment.tierId !== tierId || a.submittedAt) {
         return { ok: false, error: "This attempt has already been submitted." };
       }
-      const r = await applyCheckIn(tx, a, input, ip);
-      if (r.ended) return { ok: true, ...r.ended };
-      return { ok: true, ...(await finish(tx, { ...a, strikes: r.strikes, events: r.events }, "SUBMITTED", r.answers)) };
+      const secs = a.assessment.secondsPerQuestion;
+      const r = await applyCheckIn(tx, a, { clientId: input.clientId, answers: { [input.questionId]: input.answer } }, ip);
+      if (r.ended) return { ok: true, ended: true, ...r.ended };
+      const ids = a.questionIds as string[];
+      const fresh = { ...a, answers: r.answers as Prisma.JsonValue, strikes: r.strikes, events: r.events };
+      if (ids[r.position] !== input.questionId) {
+        return { ok: true, ended: false, view: await attemptView(fresh, r.position, r.questionStartedAt, secs) };
+      }
+      const next = r.position + 1;
+      if (next >= ids.length) return { ok: true, ended: true, ...(await finish(tx, fresh, "SUBMITTED", r.answers)) };
+      const now = new Date();
+      await tx.preAssessmentAttempt.update({ where: { id: a.id }, data: { position: next, questionStartedAt: now } });
+      return { ok: true, ended: false, view: await attemptView(fresh, next, now, secs) };
     },
     userId
   );

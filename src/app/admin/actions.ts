@@ -8,6 +8,7 @@ import { requireAdmin } from "@/lib/auth";
 import { removeAssetFiles } from "@/lib/lms/packages";
 import { groupSlugTaken } from "@/lib/community/access";
 import { uniqueSlug } from "@/lib/utils";
+import { audit, changes, naira } from "@/lib/audit";
 import {
   moduleSchema,
   lessonCreateSchema,
@@ -64,7 +65,7 @@ function parseProgram(fd: FormData) {
 }
 
 export async function createProgram(_prev: ActionState, fd: FormData): Promise<ActionState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const parsed = parseProgram(fd);
   if (!parsed.success) return { error: firstIssue(parsed.error) };
   let id: string;
@@ -80,6 +81,7 @@ export async function createProgram(_prev: ActionState, fd: FormData): Promise<A
     });
     id = program.id;
     await createProgramGroup(program);
+    await audit(admin, "program.create", `Created programme “${program.title}”`, { target: ["program", program.id] });
   } catch (err) {
     if (isUniqueError(err)) return { error: "Another programme was just saved with the same name. Try again." };
     throw err;
@@ -89,19 +91,25 @@ export async function createProgram(_prev: ActionState, fd: FormData): Promise<A
 }
 
 export async function updateProgram(id: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const parsed = parseProgram(fd);
   if (!parsed.success) return { error: firstIssue(parsed.error) };
+  const before = await prisma.program.findUniqueOrThrow({ where: { id } });
   await prisma.program.update({
     where: { id },
     data: parsed.data,
   });
+  const diff = changes(before, parsed.data);
+  if (Object.keys(diff).length) {
+    const verb = "published" in diff ? (parsed.data.published ? "Published" : "Unpublished") : "Edited";
+    await audit(admin, "program.update", `${verb} programme “${parsed.data.title}”`, { target: ["program", id], details: diff });
+  }
   refresh();
   return { ok: true };
 }
 
 export async function deleteProgram(id: string): Promise<ActionState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const enrolments = await prisma.enrollment.count({ where: { tier: { programId: id } } });
   if (enrolments > 0) {
     return { error: "Learners are enrolled in this programme. Unpublish it instead of deleting." };
@@ -110,8 +118,9 @@ export async function deleteProgram(id: string): Promise<ActionState> {
     where: { lesson: { topic: { module: { programId: id } } } },
     select: { id: true, storageKey: true },
   });
-  await prisma.program.delete({ where: { id } });
+  const program = await prisma.program.delete({ where: { id } });
   await removeAssetFiles(assets);
+  await audit(admin, "program.delete", `Deleted programme “${program.title}”`, { target: ["program", id] });
   refresh();
   redirect("/admin/programs");
 }
@@ -137,7 +146,7 @@ async function ownModuleIds(programId: string, ids: string[]) {
 }
 
 export async function createTier(programId: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const parsed = parseTier(fd);
   if (!parsed.success) return { error: firstIssue(parsed.error) };
   const { priceNaira, moduleIds, ...data } = parsed.data;
@@ -150,7 +159,7 @@ export async function createTier(programId: string, _prev: ActionState, fd: Form
         Boolean(await prisma.tier.findUnique({ where: { programId_slug: { programId, slug: s } }, select: { id: true } })),
       "tier"
     );
-    await prisma.tier.create({
+    const tier = await prisma.tier.create({
       data: {
         ...data,
         slug,
@@ -159,6 +168,11 @@ export async function createTier(programId: string, _prev: ActionState, fd: Form
         price: priceNaira * 100,
         modules: { create: modules.map((moduleId) => ({ moduleId })) },
       },
+      include: { program: { select: { title: true } } },
+    });
+    await audit(admin, "tier.create", `Created tier “${tier.name}” in ${tier.program.title} at ${naira(tier.price)}`, {
+      target: ["tier", tier.id],
+      details: { published: tier.published, moduleIds: modules },
     });
   } catch (err) {
     if (isUniqueError(err)) return { error: "Another tier was just saved with the same name. Try again." };
@@ -169,11 +183,14 @@ export async function createTier(programId: string, _prev: ActionState, fd: Form
 }
 
 export async function updateTier(id: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const parsed = parseTier(fd);
   if (!parsed.success) return { error: firstIssue(parsed.error) };
   const { priceNaira, moduleIds, ...data } = parsed.data;
-  const tier = await prisma.tier.findUniqueOrThrow({ where: { id }, select: { programId: true } });
+  const tier = await prisma.tier.findUniqueOrThrow({
+    where: { id },
+    include: { modules: { select: { moduleId: true } }, program: { select: { title: true } } },
+  });
   const modules = await ownModuleIds(tier.programId, moduleIds);
   await prisma.$transaction([
     prisma.tierModule.deleteMany({ where: { tierId: id } }),
@@ -182,16 +199,33 @@ export async function updateTier(id: string, _prev: ActionState, fd: FormData): 
       data: { ...data, price: priceNaira * 100, modules: { create: modules.map((moduleId) => ({ moduleId })) } },
     }),
   ]);
+  const diff = changes(
+    { name: tier.name, description: tier.description, price: tier.price, published: tier.published, moduleIds: tier.modules.map((m) => m.moduleId) },
+    { ...data, price: priceNaira * 100, moduleIds: modules }
+  );
+  if (Object.keys(diff).length) {
+    const what = [
+      "price" in diff && `price ${naira(tier.price)} → ${naira(priceNaira * 100)}`,
+      "published" in diff && (data.published ? "made available to buy" : "taken off sale"),
+      "moduleIds" in diff && "changed its modules",
+      ("name" in diff || "description" in diff) && "edited details",
+    ].filter(Boolean);
+    await audit(admin, "tier.update", `Updated tier “${data.name}” (${tier.program.title}): ${what.join(", ")}`, {
+      target: ["tier", id],
+      details: diff,
+    });
+  }
   refresh();
   return { ok: true };
 }
 
 export async function deleteTier(id: string): Promise<ActionState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   if ((await prisma.enrollment.count({ where: { tierId: id } })) > 0) {
     return { error: "Learners have bought this tier. Unpublish it instead of deleting." };
   }
-  await prisma.tier.delete({ where: { id } });
+  const tier = await prisma.tier.delete({ where: { id }, include: { program: { select: { title: true } } } });
+  await audit(admin, "tier.delete", `Deleted tier “${tier.name}” (${tier.program.title})`, { target: ["tier", id] });
   refresh();
   return { ok: true };
 }
@@ -211,7 +245,7 @@ function parseModule(fd: FormData) {
 }
 
 export async function createModule(programId: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const parsed = parseModule(fd);
   if (!parsed.success) return { error: firstIssue(parsed.error) };
   let id: string;
@@ -231,6 +265,7 @@ export async function createModule(programId: string, _prev: ActionState, fd: Fo
       data: { ...data, slug, programId, order, prerequisiteId: prereq?.id ?? null },
     });
     id = mod.id;
+    await audit(admin, "module.create", `Created module “${mod.title}”`, { target: ["module", mod.id] });
   } catch (err) {
     if (isUniqueError(err)) return { error: "Another module was just saved with the same name. Try again." };
     throw err;
@@ -240,11 +275,11 @@ export async function createModule(programId: string, _prev: ActionState, fd: Fo
 }
 
 export async function updateModule(id: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const parsed = parseModule(fd);
   if (!parsed.success) return { error: firstIssue(parsed.error) };
   const { prerequisiteId, ...data } = parsed.data;
-  const mod = await prisma.module.findUniqueOrThrow({ where: { id }, select: { programId: true } });
+  const mod = await prisma.module.findUniqueOrThrow({ where: { id } });
 
   let prereq: string | null = null;
   if (prerequisiteId) {
@@ -266,19 +301,25 @@ export async function updateModule(id: string, _prev: ActionState, fd: FormData)
     where: { id },
     data: { ...data, prerequisiteId: prereq },
   });
+  const diff = changes(mod, { ...data, prerequisiteId: prereq });
+  if (Object.keys(diff).length) {
+    const verb = "published" in diff ? (data.published ? "Published" : "Unpublished") : "Edited";
+    await audit(admin, "module.update", `${verb} module “${data.title}”`, { target: ["module", id], details: diff });
+  }
   refresh();
   return { ok: true };
 }
 
 export async function deleteModule(id: string): Promise<ActionState> {
-  await requireAdmin();
-  const mod = await prisma.module.findUniqueOrThrow({ where: { id }, select: { programId: true } });
+  const admin = await requireAdmin();
+  const mod = await prisma.module.findUniqueOrThrow({ where: { id }, select: { programId: true, title: true } });
   const assets = await prisma.contentAsset.findMany({
     where: { lesson: { topic: { moduleId: id } } },
     select: { id: true, storageKey: true },
   });
   await prisma.module.delete({ where: { id } });
   await removeAssetFiles(assets);
+  await audit(admin, "module.delete", `Deleted module “${mod.title}”`, { target: ["module", id] });
   refresh();
   redirect(`/admin/programs/${mod.programId}`);
 }
@@ -288,32 +329,38 @@ export async function deleteModule(id: string): Promise<ActionState> {
  * ------------------------------------------------------------------ */
 
 export async function createTopic(moduleId: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const title = text(fd, "title").trim();
   if (title.length < 2 || title.length > 200) return { error: "Give the topic a title." };
   const order = await nextOrder(prisma.topic.aggregate({ where: { moduleId }, _max: { order: true } }));
-  await prisma.topic.create({ data: { moduleId, title, order } });
+  const topic = await prisma.topic.create({ data: { moduleId, title, order }, include: { module: { select: { title: true } } } });
+  await audit(admin, "topic.create", `Added topic “${title}” to ${topic.module.title}`, { target: ["topic", topic.id] });
   refresh();
   return { ok: true };
 }
 
 export async function renameTopic(id: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const title = text(fd, "title").trim();
   if (title.length < 2 || title.length > 200) return { error: "Give the topic a title." };
+  const before = await prisma.topic.findUniqueOrThrow({ where: { id }, select: { title: true } });
   await prisma.topic.update({ where: { id }, data: { title } });
+  if (before.title !== title) {
+    await audit(admin, "topic.update", `Renamed topic “${before.title}” to “${title}”`, { target: ["topic", id] });
+  }
   refresh();
   return { ok: true };
 }
 
 export async function deleteTopic(id: string): Promise<ActionState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const assets = await prisma.contentAsset.findMany({
     where: { lesson: { topicId: id } },
     select: { id: true, storageKey: true },
   });
-  await prisma.topic.delete({ where: { id } });
+  const topic = await prisma.topic.delete({ where: { id }, include: { module: { select: { title: true } } } });
   await removeAssetFiles(assets);
+  await audit(admin, "topic.delete", `Deleted topic “${topic.title}” from ${topic.module.title}`, { target: ["topic", id] });
   refresh();
   return { ok: true };
 }
@@ -323,7 +370,7 @@ export async function deleteTopic(id: string): Promise<ActionState> {
  * ------------------------------------------------------------------ */
 
 export async function createLesson(topicId: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const parsed = lessonCreateSchema.safeParse({ title: text(fd, "title"), type: text(fd, "type") });
   if (!parsed.success) return { error: firstIssue(parsed.error) };
   const order = await nextOrder(prisma.lesson.aggregate({ where: { topicId }, _max: { order: true } }));
@@ -340,12 +387,13 @@ export async function createLesson(topicId: string, _prev: ActionState, fd: Form
       ...(first === "QUIZ" ? { quiz: { create: { kind: type === "EXAM" ? "EXAM" : "QUIZ" } } } : {}),
     },
   });
+  await audit(admin, "lesson.create", `Created lesson “${title}”`, { target: ["lesson", lesson.id] });
   refresh();
   redirect(`/admin/lessons/${lesson.id}`);
 }
 
 export async function updateLesson(id: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const parsed = lessonUpdateSchema.safeParse({
     title: text(fd, "title"),
     description: text(fd, "description"),
@@ -353,19 +401,28 @@ export async function updateLesson(id: string, _prev: ActionState, fd: FormData)
     published: bool(fd, "published"),
   });
   if (!parsed.success) return { error: firstIssue(parsed.error) };
+  const before = await prisma.lesson.findUniqueOrThrow({ where: { id } });
   await prisma.lesson.update({ where: { id }, data: parsed.data });
+  const diff = changes(before, parsed.data);
+  if (Object.keys(diff).length) {
+    const verb = "published" in diff ? (parsed.data.published ? "Made visible" : "Hid") : "Edited";
+    // Long text fields are noted as changed rather than copied into the log.
+    for (const f of ["description", "tutorNotes"]) if (f in diff) diff[f] = ["…", "(changed)"];
+    await audit(admin, "lesson.update", `${verb} lesson “${parsed.data.title}”`, { target: ["lesson", id], details: diff });
+  }
   refresh();
   return { ok: true };
 }
 
 export async function deleteLesson(id: string): Promise<ActionState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const lesson = await prisma.lesson.findUniqueOrThrow({
     where: { id },
-    select: { topic: { select: { moduleId: true } }, assets: { select: { id: true, storageKey: true } } },
+    select: { title: true, topic: { select: { moduleId: true } }, assets: { select: { id: true, storageKey: true } } },
   });
   await prisma.lesson.delete({ where: { id } });
   await removeAssetFiles(lesson.assets);
+  await audit(admin, "lesson.delete", `Deleted lesson “${lesson.title}”`, { target: ["lesson", id] });
   refresh();
   redirect(`/admin/modules/${lesson.topic.moduleId}`);
 }
@@ -379,7 +436,7 @@ type Movable = (typeof MOVABLE)[number];
 
 /** Move an item one place up (-1) or down (+1) among its siblings. */
 export async function moveItem(kind: Movable, id: string, direction: -1 | 1): Promise<void> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   // Server actions are callable with any arguments — don't trust `kind`.
   if (!MOVABLE.includes(kind) || (direction !== 1 && direction !== -1)) return;
 
@@ -394,8 +451,19 @@ export async function moveItem(kind: Movable, id: string, direction: -1 | 1): Pr
     update(args: { where: { id: string }; data: { order: number } }): Prisma.PrismaPromise<unknown>;
   };
   await prisma.$transaction(siblings.map((s, order) => delegate.update({ where: { id: s.id }, data: { order } })));
+  await audit(admin, "order.move", `Moved a ${MOVED_LABEL[kind]} ${direction < 0 ? "up" : "down"}`, { target: [kind, id] });
   refresh();
 }
+
+const MOVED_LABEL: Record<Movable, string> = {
+  program: "programme",
+  tier: "tier",
+  module: "module",
+  topic: "topic",
+  lesson: "lesson",
+  question: "quiz question",
+  bankQuestion: "question-bank question",
+};
 
 async function loadSiblings(kind: Movable, id: string): Promise<{ id: string }[]> {
   const orderBy = [{ order: "asc" as const }, { id: "asc" as const }];

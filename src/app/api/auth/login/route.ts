@@ -4,6 +4,7 @@ import { loginSchema } from "@/lib/validation";
 import { verifyPassword, createSession } from "@/lib/auth";
 import { MINUTE, clientIp, rateLimitAll, tooMany } from "@/lib/rate-limit";
 import { guardAuthRequest } from "@/lib/request-guard";
+import { audit } from "@/lib/audit";
 
 export async function POST(req: Request) {
   try {
@@ -40,7 +41,12 @@ export async function POST(req: Request) {
     }
 
     const ok = await verifyPassword(password, user.passwordHash);
-    if (!ok) return invalid;
+    const actor = { userId: user.id, name: user.name, email: user.email };
+    if (!ok) {
+      // Someone tried an admin's password: worth knowing (with the IP).
+      if (user.role === "ADMIN") await audit(actor, "auth.failed", `Failed sign-in to ${user.name}'s admin account (wrong password)`);
+      return invalid;
+    }
 
     await createSession({
       userId: user.id,
@@ -48,6 +54,8 @@ export async function POST(req: Request) {
       name: user.name,
       role: user.role,
     });
+
+    if (user.role === "ADMIN") await audit(actor, "auth.signIn", `${user.name} signed in`);
 
     return NextResponse.json({ ok: true, role: user.role });
   } catch {

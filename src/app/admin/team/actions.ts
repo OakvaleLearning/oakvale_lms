@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { ADMIN_INVITE_TTL_HOURS, createPasswordResetToken, hashPassword, requireAdmin } from "@/lib/auth";
 import { sendAdminInviteEmail } from "@/lib/emails";
 import { adminInviteSchema } from "@/lib/validation";
+import { audit } from "@/lib/audit";
 
 type State = { error?: string; ok?: boolean } | undefined;
 
@@ -23,6 +24,7 @@ export async function addAdmin(_prev: State, fd: FormData): Promise<State> {
   if (existing?.role === "ADMIN") return { error: "That person is already an admin." };
   if (existing) {
     await prisma.user.update({ where: { id: existing.id }, data: { role: "ADMIN" } });
+    await audit(session, "admin.add", `Made ${name} (${email}) an admin`, { target: ["user", existing.id] });
     revalidatePath("/admin/team");
     return { ok: true };
   }
@@ -31,6 +33,7 @@ export async function addAdmin(_prev: State, fd: FormData): Promise<State> {
   const user = await prisma.user.create({
     data: { name, email, role: "ADMIN", passwordHash: await hashPassword(randomBytes(32).toString("hex")) },
   });
+  await audit(session, "admin.add", `Invited ${name} (${email}) as an admin`, { target: ["user", user.id] });
   revalidatePath("/admin/team");
   const token = await createPasswordResetToken(user.id, ADMIN_INVITE_TTL_HOURS * 60);
   const sent = await sendAdminInviteEmail(user, session.name, token);
@@ -46,7 +49,9 @@ export async function removeAdmin(userId: string): Promise<State> {
   if (userId === session.userId) return { error: "You can't remove yourself." };
   const admins = await prisma.user.count({ where: { role: "ADMIN" } });
   if (admins <= 1) return { error: "There must be at least one admin." };
+  const removed = await prisma.user.findFirst({ where: { id: userId, role: "ADMIN" }, select: { name: true, email: true } });
   await prisma.user.updateMany({ where: { id: userId, role: "ADMIN" }, data: { role: "LEARNER" } });
+  if (removed) await audit(session, "admin.remove", `Removed admin access from ${removed.name} (${removed.email})`, { target: ["user", userId] });
   revalidatePath("/admin/team");
   return { ok: true };
 }
@@ -68,5 +73,6 @@ export async function resendAdminInvite(_prev: State, fd: FormData): Promise<Sta
   const token = await createPasswordResetToken(user.id, ADMIN_INVITE_TTL_HOURS * 60);
   const sent = await sendAdminInviteEmail(user, session.name, token);
   if (!sent) return { error: "The email didn't send. Try again in a moment." };
+  await audit(session, "admin.resendInvite", `Resent the admin invite to ${user.name} (${user.email})`, { target: ["user", user.id] });
   return { ok: true };
 }

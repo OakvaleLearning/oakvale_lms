@@ -11,7 +11,9 @@ import { jsonError, requireApiSession } from "@/lib/api/mobile";
  * One lesson for the mobile player. A lesson is a list of `parts`, played in
  * order; each part's `content.kind` says how:
  * - media: stream `url` (presigned, ~2h) natively and resume at `startAt`
- * - quiz: questions without answers; submit to POST /api/lms/quiz/<lessonId>. A
+ * - quiz: questions without answers, shown one at a time; with `secondsPerQuestion`
+ *   each has a countdown, there's no going back, and it moves on at zero.
+ *   Submit to POST /api/lms/quiz/<lessonId>. A
  *   FILL_BLANK question has no `options`; it has `segments` (the text around the blanks)
  *   and is answered with one typed string per blank, in order
  * - web: SCORM/HTML/EMBED; get a WebView URL from POST /api/v1/lessons/<lessonId>/launch
@@ -101,6 +103,8 @@ async function partContent(block: Part, lessonId: string, userId: string, startA
       kind: "quiz" as const,
       questions: quiz.questions,
       passMark: quiz.passMark,
+      // Show questions one at a time. With a limit, no going back, and move on when it runs out.
+      secondsPerQuestion: quiz.secondsPerQuestion,
       attemptsLeft: quiz.maxAttempts === null ? null : Math.max(0, quiz.maxAttempts - quiz.attemptsUsed),
       bestScore: quiz.bestScore,
       passed: quiz.passed,

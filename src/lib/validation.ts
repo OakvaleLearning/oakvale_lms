@@ -113,6 +113,7 @@ export const quizSettingsSchema = z.object({
   maxAttempts: z.coerce.number().int().min(1).max(100).optional(),
   shuffle: z.boolean().default(false),
   optional: z.boolean().default(false),
+  secondsPerQuestion: z.coerce.number().int().min(5, "Allow at least 5 seconds per question").max(3600, "At most an hour per question").optional(),
 });
 
 const choiceQuestionSchema = z
@@ -178,6 +179,7 @@ export const preAssessmentSchema = z
     proctored: z.boolean().default(false),
     maxStrikes: z.coerce.number().int().min(0).max(50).default(0),
     webcam: z.boolean().default(false),
+    secondsPerQuestion: z.coerce.number().int().min(5, "Allow at least 5 seconds per question").max(3600, "At most an hour per question").optional(),
     bankIds: z.array(z.string().max(40)).max(50).default([]),
   })
   .refine((a) => !a.enabled || a.bankIds.length > 0, {
