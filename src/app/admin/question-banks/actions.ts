@@ -6,6 +6,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { preAssessmentSchema, questionBankSchema, questionSchema } from "@/lib/validation";
+import { resetAttempts, voidAttempt } from "@/lib/lms/pre-assessment";
 
 /**
  * Question banks and the tier pre-assessments that draw from them.
@@ -21,6 +22,8 @@ const firstIssue = (e: { issues: { message: string }[] }) => e.issues[0]?.messag
 function refresh() {
   revalidatePath("/admin", "layout");
   revalidatePath("/enroll");
+  revalidatePath("/learn", "layout");
+  revalidatePath("/pre-assessment/[tierId]", "page");
 }
 
 /* ------------------------------------------------------------------ *
@@ -129,6 +132,7 @@ export async function importQuizQuestions(bankId: string, _prev: ActionState, fd
 export async function updatePreAssessment(tierId: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
   await requireAdmin();
   const maxAttempts = text(fd, "maxAttempts");
+  const timeLimit = text(fd, "timeLimitMinutes");
   const parsed = preAssessmentSchema.safeParse({
     enabled: fd.get("enabled") === "on",
     instructions: text(fd, "instructions"),
@@ -136,6 +140,10 @@ export async function updatePreAssessment(tierId: string, _prev: ActionState, fd
     passMark: text(fd, "passMark"),
     maxAttempts: maxAttempts === "" ? undefined : maxAttempts,
     retakeAfterHours: text(fd, "retakeAfterHours") || 0,
+    timeLimitMinutes: timeLimit === "" ? undefined : timeLimit,
+    proctored: fd.get("proctored") === "on",
+    maxStrikes: text(fd, "maxStrikes") || 0,
+    webcam: fd.get("webcam") === "on",
     bankIds: fd.getAll("bankIds").map(String),
   });
   if (!parsed.success) return { error: firstIssue(parsed.error) };
@@ -148,7 +156,11 @@ export async function updatePreAssessment(tierId: string, _prev: ActionState, fd
   if (data.enabled && !banks.some((b) => b._count.questions > 0)) {
     return { error: "The chosen banks have no questions yet. Add some before switching it on." };
   }
-  const fields = { ...data, maxAttempts: data.maxAttempts ?? null, banks: { set: banks.map((b) => ({ id: b.id })) } };
+  const fields = {
+    ...data,
+    maxAttempts: data.maxAttempts ?? null,
+    timeLimitMinutes: data.timeLimitMinutes ?? null,
+    banks: { set: banks.map((b) => ({ id: b.id })) } };
   await prisma.preAssessment.upsert({
     where: { tierId },
     update: fields,
@@ -158,10 +170,26 @@ export async function updatePreAssessment(tierId: string, _prev: ActionState, fd
   return { ok: true };
 }
 
-/** Let a learner start again: removes their attempts at this tier's pre-assessment. */
+/**
+ * Let a learner start again. Their attempts stop counting, but stay on record
+ * so they're never shown the same questions again.
+ */
 export async function resetPreAssessmentAttempts(tierId: string, userId: string): Promise<ActionState> {
   await requireAdmin();
-  await prisma.preAssessmentAttempt.deleteMany({ where: { userId, assessment: { tierId } } });
+  await resetAttempts(userId, tierId);
+  refresh();
+  return { ok: true };
+}
+
+/** Cancel an attempt's result after reviewing its proctoring log: it becomes a fail, and any access it opened closes. */
+export async function voidPreAssessmentAttempt(attemptId: string, _prev: ActionState, fd: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const reason = text(fd, "reason");
+  if (!reason) return { error: "Say why the result is being cancelled." };
+  const attempt = await prisma.preAssessmentAttempt.findUnique({ where: { id: attemptId }, select: { submittedAt: true, voidedAt: true } });
+  if (!attempt?.submittedAt) return { error: "Only a finished attempt can be cancelled." };
+  if (attempt.voidedAt) return { error: "This result is already cancelled." };
+  await voidAttempt(attemptId, reason);
   refresh();
   return { ok: true };
 }

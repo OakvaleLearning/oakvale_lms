@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ExternalLink } from "lucide-react";
+import { AlertTriangle, ExternalLink } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { isStorageConfigured } from "@/lib/storage";
 import { cn, formatDate } from "@/lib/utils";
 import { Breadcrumbs, PageHeader } from "@/components/dashboard/ui";
 import { buttonClass } from "@/components/ui/Button";
@@ -11,6 +12,14 @@ import { ActionForm, CheckCard, DeleteButton, Field, Input, Panel, Switch, Texta
 import { resetPreAssessmentAttempts, updatePreAssessment } from "../../../question-banks/actions";
 
 export const metadata: Metadata = { title: "Pre-assessment" };
+
+function resultLabel(r: { passed: boolean; endReason: string | null; voidedAt: Date | null; resetAt: Date | null }) {
+  if (r.voidedAt) return "Cancelled after review";
+  if (r.resetAt) return "Reset";
+  if (r.endReason === "TERMINATED") return "Ended: too many strikes";
+  if (r.endReason === "TIMED_OUT") return r.passed ? "Passed (time ran out)" : "Time ran out";
+  return r.passed ? "Passed" : "Not passed";
+}
 
 export default async function TierPreAssessmentPage({ params }: PageProps<"/admin/tiers/[id]/pre-assessment">) {
   await requireAdmin();
@@ -27,6 +36,7 @@ export default async function TierPreAssessmentPage({ params }: PageProps<"/admi
           attempts: {
             where: { submittedAt: { not: null } },
             orderBy: { submittedAt: "desc" },
+            take: 300,
             include: { user: { select: { id: true, name: true, email: true } } },
           },
         },
@@ -44,23 +54,21 @@ export default async function TierPreAssessmentPage({ params }: PageProps<"/admi
   const chosen = new Set(a?.banks.map((b) => b.id));
   const pool = banks.filter((b) => chosen.has(b.id)).reduce((n, b) => n + b._count.questions, 0);
 
-  // One row per learner: their attempts, best score and whether they passed.
-  const learners = new Map<
-    string,
-    { user: { id: string; name: string; email: string }; attempts: number; best: number; passed: boolean; last: Date }
-  >();
-  for (const at of a?.attempts ?? []) {
-    const row = learners.get(at.userId);
-    if (row) {
-      row.attempts += 1;
-      row.best = Math.max(row.best, at.score ?? 0);
-      row.passed ||= at.passed;
-    } else {
-      learners.set(at.userId, { user: at.user, attempts: 1, best: at.score ?? 0, passed: at.passed, last: at.submittedAt! });
-    }
+  const rows = a?.attempts ?? [];
+  const learners = new Set(rows.map((r) => r.userId));
+  const passedBy = new Set(rows.filter((r) => r.passed).map((r) => r.userId));
+  // Reset goes on each learner's latest counted attempt, while they haven't passed.
+  const resettable = new Set<string>();
+  const seenLearner = new Set<string>();
+  for (const r of rows) {
+    if (r.resetAt || seenLearner.has(r.userId)) continue;
+    seenLearner.add(r.userId);
+    if (!passedBy.has(r.userId)) resettable.add(r.id);
   }
-  const rows = [...learners.values()];
-  const passedCount = rows.filter((r) => r.passed).length;
+  // Retakes never repeat a question, so the banks cap how many attempts a learner can have.
+  const perAttempt = Math.min(a?.questionCount ?? 20, pool);
+  const capacity = perAttempt > 0 ? Math.floor(pool / perAttempt) : 0;
+  const storage = isStorageConfigured();
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -74,7 +82,7 @@ export default async function TierPreAssessmentPage({ params }: PageProps<"/admi
       <PageHeader
         eyebrow="Pre-assessment"
         title={tier.name}
-        description="While this is on, learners must pass it before they can pay for this tier. Enrolments you grant by hand skip it."
+        description="While this is on, learners must pass it before they can pay for this tier, and before its modules open in any plan that includes them (e.g. Full Programme). Enrolments you grant with “Skip pre-assessment” bypass it."
         actions={
           a?.enabled && pool > 0 ? (
             <a href={`/pre-assessment/${tier.id}`} target="_blank" className={buttonClass({ variant: "outline", size: "sm" })}>
@@ -86,8 +94,8 @@ export default async function TierPreAssessmentPage({ params }: PageProps<"/admi
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <Panel
-          title="Results"
-          description={rows.length ? `${rows.length} ${rows.length === 1 ? "learner" : "learners"} · ${passedCount} passed` : undefined}
+          title="Attempts"
+          description={rows.length ? `${learners.size} ${learners.size === 1 ? "learner" : "learners"} · ${passedBy.size} passed` : undefined}
           flush
         >
           {rows.length === 0 ? (
@@ -98,15 +106,15 @@ export default async function TierPreAssessmentPage({ params }: PageProps<"/admi
                 <thead className="border-b border-line text-xs text-ink-500">
                   <tr>
                     <th className="px-5 py-2.5 font-medium sm:px-6">Learner</th>
-                    <th className="px-3 py-2.5 font-medium">Best</th>
-                    <th className="px-3 py-2.5 font-medium">Attempts</th>
-                    <th className="hidden px-3 py-2.5 font-medium md:table-cell">Last attempt</th>
+                    <th className="px-3 py-2.5 font-medium">Result</th>
+                    <th className="px-3 py-2.5 font-medium">Strikes</th>
+                    <th className="hidden px-3 py-2.5 font-medium md:table-cell">Finished</th>
                     <th className="px-5 py-2.5 sm:px-6" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
                   {rows.map((r) => (
-                    <tr key={r.user.id}>
+                    <tr key={r.id} className={cn(r.resetAt && "opacity-60")}>
                       <td className="px-5 py-3 sm:px-6">
                         <Link href={`/admin/learners/${r.user.id}`} className="font-medium text-ink-950 hover:text-primary-700">
                           {r.user.name}
@@ -114,18 +122,28 @@ export default async function TierPreAssessmentPage({ params }: PageProps<"/admi
                         <span className="block text-xs text-ink-500">{r.user.email}</span>
                       </td>
                       <td className="px-3 py-3 tabular-nums">
-                        <span className={cn("font-medium", r.passed ? "text-emerald-700" : "text-ink-900")}>{r.best}%</span>
-                        {r.passed && <span className="ml-1.5 text-xs text-emerald-700">Passed</span>}
+                        <span className={cn("font-medium", r.passed ? "text-emerald-700" : "text-ink-900")}>{r.score ?? 0}%</span>
+                        <span className={cn("block text-xs", r.passed ? "text-emerald-700" : "text-ink-500")}>
+                          {resultLabel(r)}
+                        </span>
                       </td>
-                      <td className="px-3 py-3 tabular-nums text-ink-700">{r.attempts}</td>
-                      <td className="hidden px-3 py-3 text-ink-600 md:table-cell">{formatDate(r.last)}</td>
-                      <td className="px-5 py-3 text-right sm:px-6">
-                        {!r.passed && (
-                          <DeleteButton
-                            onDelete={resetPreAssessmentAttempts.bind(null, tier.id, r.user.id)}
-                            confirmText={`Clear ${r.user.name}'s attempts so they can start again?`}
-                            label="Reset"
-                          />
+                      <td className={cn("px-3 py-3 tabular-nums", r.strikes > 0 ? "text-accent-700" : "text-ink-600")}>{r.strikes}</td>
+                      <td className="hidden px-3 py-3 text-ink-600 md:table-cell">{formatDate(r.submittedAt!)}</td>
+                      <td className="px-5 py-3 text-right whitespace-nowrap sm:px-6">
+                        <Link
+                          href={`/admin/tiers/${tier.id}/pre-assessment/${r.id}`}
+                          className="text-sm font-medium text-primary-700 hover:text-primary-900"
+                        >
+                          Review
+                        </Link>
+                        {resettable.has(r.id) && (
+                          <span className="ml-3 inline-block">
+                            <DeleteButton
+                              onDelete={resetPreAssessmentAttempts.bind(null, tier.id, r.user.id)}
+                              confirmText={`Clear ${r.user.name}'s attempts so they can start again? Their next attempts still won't repeat any question they've seen.`}
+                              label="Reset"
+                            />
+                          </span>
                         )}
                       </td>
                     </tr>
@@ -170,7 +188,10 @@ export default async function TierPreAssessmentPage({ params }: PageProps<"/admi
                 )}
               </fieldset>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Questions per attempt" hint={pool ? `Drawn at random, spread evenly across the banks (${pool} in total)` : undefined}>
+                <Field
+                  label="Questions per attempt"
+                  hint={pool ? `Spread evenly across the banks, never repeated for a learner (${pool} in total)` : undefined}
+                >
                   <Input name="questionCount" type="number" min={1} max={200} required defaultValue={a?.questionCount ?? 20} />
                 </Field>
                 <Field label="Pass mark (%)">
@@ -183,6 +204,46 @@ export default async function TierPreAssessmentPage({ params }: PageProps<"/admi
                   <Input name="retakeAfterHours" type="number" min={0} max={720} defaultValue={a?.retakeAfterHours ?? 24} />
                 </Field>
               </div>
+              {pool > 0 && (
+                <p
+                  className={cn(
+                    "flex gap-2 rounded-xl px-3 py-2.5 text-xs leading-relaxed",
+                    a?.maxAttempts && a.maxAttempts <= capacity ? "bg-ink-50 text-ink-600" : "bg-amber-50 text-amber-900"
+                  )}
+                >
+                  {!(a?.maxAttempts && a.maxAttempts <= capacity) && <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />}
+                  <span>
+                    Enough questions for {capacity} {capacity === 1 ? "attempt" : "attempts"} per learner without repeats.
+                    {!(a?.maxAttempts && a.maxAttempts <= capacity) &&
+                      ` After that, learners can't start another until you add questions. Set max attempts to ${capacity} or fewer.`}
+                  </span>
+                </p>
+              )}
+              <fieldset className="space-y-3 border-t border-line pt-4">
+                <legend className="sr-only">Proctoring</legend>
+                <Field label="Time limit (minutes)" hint="Empty = untimed. Enforced on the server.">
+                  <Input name="timeLimitMinutes" type="number" min={1} max={600} defaultValue={a ? (a.timeLimitMinutes ?? "") : 60} />
+                </Field>
+                <Switch
+                  name="proctored"
+                  label="Proctored"
+                  description="Full screen, one tab or device, no copy or paste. Leaving the page counts as a strike."
+                  defaultChecked={a?.proctored ?? true}
+                />
+                <Field label="End the attempt on this many strikes" hint="0 = record strikes but never end it">
+                  <Input name="maxStrikes" type="number" min={0} max={50} defaultValue={a?.maxStrikes ?? 3} />
+                </Field>
+                <Switch
+                  name="webcam"
+                  label="Webcam"
+                  description={
+                    storage
+                      ? "Camera must stay on. A photo is taken about every minute for review."
+                      : "File storage isn't set up here, so the camera won't be required."
+                  }
+                  defaultChecked={a?.webcam ?? true}
+                />
+              </fieldset>
               <Field label="Instructions" optional hint="Shown before learners start">
                 <Textarea name="instructions" rows={4} defaultValue={a?.instructions ?? ""} />
               </Field>

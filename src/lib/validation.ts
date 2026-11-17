@@ -174,6 +174,10 @@ export const preAssessmentSchema = z
     passMark: z.coerce.number().int().min(0).max(100),
     maxAttempts: z.coerce.number().int().min(1).max(100).optional(),
     retakeAfterHours: z.coerce.number().int().min(0).max(720).default(0),
+    timeLimitMinutes: z.coerce.number().int().min(1, "Allow at least a minute").max(600).optional(),
+    proctored: z.boolean().default(false),
+    maxStrikes: z.coerce.number().int().min(0).max(50).default(0),
+    webcam: z.boolean().default(false),
     bankIds: z.array(z.string().max(40)).max(50).default([]),
   })
   .refine((a) => !a.enabled || a.bankIds.length > 0, {

@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getUnlockedModuleIds } from "@/lib/lms/access";
-import { getEnrolmentGates } from "@/lib/lms/pre-assessment";
+import { getEnrolmentGates, getModuleAccess } from "@/lib/lms/pre-assessment";
 
 /** A programme's module as a plan includes it. */
 export interface OfferModule {
@@ -80,7 +79,9 @@ export async function getProgramOffers(userId: string | null): Promise<ProgramOf
   });
 
   // A plan whose modules the learner can already open (e.g. bought "Full") has nothing left to sell them.
-  const unlocked = userId ? await getUnlockedModuleIds(userId) : new Set<string>();
+  // (Modules held but waiting on a pre-assessment count: the learner has already bought them.)
+  const access = userId ? await getModuleAccess(userId) : null;
+  const unlocked = new Set([...(access?.open ?? []), ...(access?.awaiting.keys() ?? [])]);
   // Plans with an entry test: checkout opens once the learner has passed it.
   const gates = await getEnrolmentGates(
     userId,

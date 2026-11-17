@@ -1,16 +1,20 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import type { SessionPayload } from "@/lib/auth";
-import { getCompletedModuleIds, getModuleLock, getUnlockedModuleIds, type ModuleLock } from "./access";
+import { getCompletedModuleIds, getModuleLock, type ModuleLock } from "./access";
+import { getModuleAccess } from "./pre-assessment";
 import { getModuleProgress } from "./progress";
 import { absoluteCoverUrl } from "@/lib/storage";
 import type { LessonKind } from "./blocks";
 
-/** Learner home: enrolled programs → their unlocked modules with progress, plus "continue". */
+/**
+ * Learner home: enrolled programs → their modules with progress, plus "continue".
+ * Modules still waiting on a pre-assessment are listed too, locked.
+ */
 export async function getLearnerHome(userId: string) {
-  const unlocked = await getUnlockedModuleIds(userId);
+  const { open, awaiting } = await getModuleAccess(userId);
   const modules = await prisma.module.findMany({
-    where: { id: { in: [...unlocked] }, published: true, program: { published: true } },
+    where: { id: { in: [...open, ...awaiting.keys()] }, published: true, program: { published: true } },
     orderBy: [{ program: { order: "asc" } }, { order: "asc" }],
     include: {
       program: { select: { id: true, slug: true, title: true } },
@@ -26,7 +30,7 @@ export async function getLearnerHome(userId: string) {
     prisma.lessonProgress.findFirst({
       where: {
         userId,
-        lesson: { published: true, topic: { moduleId: { in: ids } } },
+        lesson: { published: true, topic: { moduleId: { in: ids.filter((id) => open.has(id)) } } },
       },
       // Prefer an unfinished lesson; fall back to the most recent one.
       orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
@@ -52,8 +56,13 @@ export async function getLearnerHome(userId: string) {
       description: c.description,
       coverImage: absoluteCoverUrl(c.coverImage),
       progress: progress.get(c.id)!,
-      lock: c.prerequisiteId && !completedPrereqs.has(c.prerequisiteId) ? "PREREQUISITE" : "OPEN",
+      lock: awaiting.has(c.id)
+        ? "PRE_ASSESSMENT"
+        : c.prerequisiteId && !completedPrereqs.has(c.prerequisiteId)
+          ? "PREREQUISITE"
+          : "OPEN",
       prerequisiteTitle: c.prerequisite?.title ?? null,
+      preAssessmentHref: awaiting.has(c.id) ? `/pre-assessment/${awaiting.get(c.id)}` : null,
     });
     programs.set(c.program.id, entry);
   }
@@ -84,6 +93,8 @@ export interface LearnerModuleCard {
   progress: { completed: number; total: number; percent: number };
   lock: ModuleLock;
   prerequisiteTitle: string | null;
+  /** Set when the module is waiting on a pre-assessment: where to take it. */
+  preAssessmentHref: string | null;
 }
 
 /** A module by its program + module slug, with lock state for the current user. */

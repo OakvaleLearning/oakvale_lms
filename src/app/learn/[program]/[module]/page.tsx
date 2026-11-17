@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
 import { getModuleBySlugs, getModuleOutline } from "@/lib/lms/catalog";
 import { getModuleProgress } from "@/lib/lms/progress";
+import { getModuleAccess } from "@/lib/lms/pre-assessment";
 import { ButtonLink } from "@/components/ui/Button";
 import { Breadcrumbs, EmptyState, PageHeader } from "@/components/dashboard/ui";
 import { LessonStatusIcon, formatDuration } from "@/components/learn/ModuleOutline";
@@ -22,6 +23,18 @@ export default async function ModulePage({ params, searchParams }: PageProps<"/l
   if (!found) notFound();
   const { module: mod, lock } = found;
 
+  if (lock === "PRE_ASSESSMENT") {
+    const tierId = (await getModuleAccess(session.userId)).awaiting.get(mod.id);
+    return (
+      <EmptyState
+        icon={Lock}
+        title={mod.title}
+        action={<ButtonLink href={`/pre-assessment/${tierId}`}>Take the pre-assessment</ButtonLink>}
+      >
+        You&apos;re enrolled, but this module opens once you pass its pre-assessment.
+      </EmptyState>
+    );
+  }
   if (lock !== "OPEN") {
     return (
       <EmptyState

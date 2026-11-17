@@ -7,8 +7,9 @@ import { formatDay, formatNaira, whatsappLink } from "@/lib/utils";
 import { getModuleProgress } from "@/lib/lms/progress";
 import { StatusBadge, PageHeader } from "@/components/dashboard/ui";
 import { ProgressBar } from "@/components/learn/ProgressBar";
-import { ActionForm, DeleteButton, Panel, Select } from "@/components/admin/forms";
-import { cancelEnrollment, grantEnrollment } from "../actions";
+import { ActionForm, CheckCard, DeleteButton, Panel, Select } from "@/components/admin/forms";
+import { getModuleAccess } from "@/lib/lms/pre-assessment";
+import { cancelEnrollment, grantEnrollment, setPreAssessmentWaiver } from "../actions";
 
 export default async function LearnerPage({ params }: PageProps<"/admin/learners/[id]">) {
   await requireAdmin();
@@ -28,7 +29,7 @@ export default async function LearnerPage({ params }: PageProps<"/admin/learners
 
   const active = learner.enrollments.filter((e) => e.status === "ACTIVE");
   const modules = new Map(active.flatMap((e) => e.tier.modules.map((tc) => [tc.module.id, tc.module.title] as const)));
-  const [progress, tiers, attempts] = await Promise.all([
+  const [progress, tiers, attempts, access] = await Promise.all([
     getModuleProgress(learner.id, [...modules.keys()]),
     prisma.tier.findMany({ orderBy: [{ program: { order: "asc" } }, { order: "asc" }], include: { program: { select: { title: true } } } }),
     prisma.quizAttempt.findMany({
@@ -37,6 +38,7 @@ export default async function LearnerPage({ params }: PageProps<"/admin/learners
       take: 20,
       include: { quiz: { include: { lesson: { select: { title: true } } } } },
     }),
+    getModuleAccess(learner.id),
   ]);
 
   return (
@@ -98,8 +100,21 @@ export default async function LearnerPage({ params }: PageProps<"/admin/learners
                 <div className="text-xs text-ink-400">
                   {e.source === "PAYSTACK" ? formatNaira(e.amount) : e.source === "ADMIN" ? "Granted by admin" : "Imported"} ·{" "}
                   {formatDay(e.createdAt)}
+                  {e.preAssessmentWaived && " · pre-assessment waived"}
+                  {e.status === "ACTIVE" &&
+                    !e.preAssessmentWaived &&
+                    e.tier.modules.some((tm) => access.awaiting.has(tm.module.id)) && (
+                      <span className="text-amber-700"> · some modules wait on a pre-assessment</span>
+                    )}
                 </div>
               </div>
+              {e.status === "ACTIVE" && (
+                <form action={setPreAssessmentWaiver.bind(null, e.id, !e.preAssessmentWaived)}>
+                  <button type="submit" className="text-xs font-medium text-primary-700 hover:text-primary-900">
+                    {e.preAssessmentWaived ? "Require pre-assessment" : "Waive pre-assessment"}
+                  </button>
+                </form>
+              )}
               <StatusBadge status={e.status} />
               {e.status === "ACTIVE" && (
                 <DeleteButton
@@ -122,6 +137,11 @@ export default async function LearnerPage({ params }: PageProps<"/admin/learners
               </option>
             ))}
           </Select>
+          <CheckCard
+            name="waive"
+            label="Skip pre-assessment"
+            hint="Open its modules without the learner passing the tier's pre-assessment"
+          />
         </ActionForm>
       </Panel>
 

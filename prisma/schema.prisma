@@ -211,29 +211,71 @@ model PreAssessment {
   maxAttempts      Int? // null = unlimited
   // How long a learner waits after a failed attempt before retaking. 0 = straight away.
   retakeAfterHours Int                    @default(24)
+  // Proctoring. The time limit is enforced on the server; null = untimed.
+  timeLimitMinutes Int?                   @default(60)
+  // Full screen, one window, no copying or pasting; leaving the page counts as a strike.
+  proctored        Boolean                @default(true)
+  // The attempt ends (failed) on this many strikes. 0 = record them but never end it.
+  maxStrikes       Int                    @default(3)
+  // Camera on for the whole attempt, with a snapshot every minute or so for admins to review.
+  webcam           Boolean                @default(true)
   banks            QuestionBank[]
   attempts         PreAssessmentAttempt[]
   createdAt        DateTime               @default(now())
   updatedAt        DateTime               @updatedAt
 }
 
+enum PreAssessmentEnd {
+  SUBMITTED
+  TIMED_OUT // the time limit ran out; marked on the answers saved so far
+  TERMINATED // too many proctoring strikes; always a fail
+}
+
 /// One sitting of a pre-assessment. The questions are drawn when it starts,
-/// so reloading the page shows the same ones.
+/// never repeating one the learner has seen before, so reloading the page
+/// shows the same ones.
 model PreAssessmentAttempt {
-  id           String        @id @default(cuid())
-  assessment   PreAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  id           String                  @id @default(cuid())
+  assessment   PreAssessment           @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
   assessmentId String
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId       String
   questionIds  Json // BankQuestion ids, in the order shown
-  answers      Json? // { [questionId]: string[] }
+  answers      Json? // { [questionId]: string[] }; autosaved while the attempt is open
   score        Int? // percent; null until submitted
-  passed       Boolean       @default(false)
-  startedAt    DateTime      @default(now())
+  passed       Boolean                 @default(false)
+  startedAt    DateTime                @default(now())
   submittedAt  DateTime?
+  endReason    PreAssessmentEnd?
+  deadline     DateTime? // startedAt + time limit; null = untimed (a short grace for slow networks is allowed in code)
+  // Proctoring log: [{ at, type, strike }]. The open window's id spots a second tab or device.
+  events       Json                    @default("[]")
+  strikes      Int                     @default(0)
+  clientId     String?
+  lastSeenAt   DateTime?
+  ip           String?
+  userAgent    String?
+  // An admin cleared it so the learner can start again. It no longer counts,
+  // but its questions are still never shown to them again.
+  resetAt      DateTime?
+  // An admin overturned the result after review (always a fail).
+  voidedAt     DateTime?
+  voidReason   String?
+  snapshots    PreAssessmentSnapshot[]
 
   @@index([assessmentId, userId])
   @@index([userId])
+}
+
+/// A webcam still taken during a proctored attempt (stored in the bucket).
+model PreAssessmentSnapshot {
+  id        String               @id @default(cuid())
+  attempt   PreAssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  attemptId String
+  key       String
+  takenAt   DateTime             @default(now())
+
+  @@index([attemptId, takenAt])
 }
 
 /// Which modules a tier unlocks.
@@ -495,6 +537,9 @@ model Enrollment {
   source              EnrollmentSource @default(PAYSTACK)
   amount              Int // kobo — tier price at the time of purchase
   activatedAt         DateTime?
+  // Opens the tier's modules without passing a pre-assessment (admin grants,
+  // and enrolments that existed before pre-assessments gated access).
+  preAssessmentWaived Boolean          @default(false)
   enrolledEmailSentAt DateTime?
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt

@@ -3,12 +3,16 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isPrelaunch } from "@/lib/launch";
 import { isEmailVerified, type SessionPayload } from "@/lib/auth";
+import { getModuleAccess } from "./pre-assessment";
 
 /**
  * Access rules — the single place that decides who may open what.
  *
  *  1. A learner may open a module when they hold an ACTIVE enrolment in a tier
  *     that includes it, and the module and its program are published.
+ *  1a. If a tier has an active pre-assessment, its modules stay locked until
+ *     the learner passes it, including when they come in a bigger tier such
+ *     as Full Programme (see getModuleAccess). Waived enrolments skip this.
  *  2. If the module has a prerequisite, that module must be completed first.
  *  3. In a `sequential` module, each lesson opens only after the one before it.
  *  0. Learners must have confirmed their email before opening any lesson.
@@ -19,13 +23,9 @@ import { isEmailVerified, type SessionPayload } from "@/lib/auth";
  * Admins can open everything (for previewing), published or not.
  */
 
-/** IDs of every module unlocked by the user's ACTIVE enrolments. */
+/** IDs of every module unlocked by the user's ACTIVE enrolments (and any pre-assessments they guard). */
 export async function getUnlockedModuleIds(userId: string): Promise<Set<string>> {
-  const rows = await prisma.tierModule.findMany({
-    where: { tier: { enrollments: { some: { userId, status: "ACTIVE" } } } },
-    select: { moduleId: true },
-  });
-  return new Set(rows.map((r) => r.moduleId));
+  return (await getModuleAccess(userId)).open;
 }
 
 /** Published lessons of a module, in display order (topic order, then lesson order, final assessments last). */
@@ -85,7 +85,7 @@ export async function getCompletedModuleIds(
   );
 }
 
-export type ModuleLock = "OPEN" | "NOT_ENROLLED" | "PREREQUISITE";
+export type ModuleLock = "OPEN" | "NOT_ENROLLED" | "PRE_ASSESSMENT" | "PREREQUISITE";
 
 /** Whether a learner can open a module, and if not, why. */
 export async function getModuleLock(
@@ -94,8 +94,8 @@ export async function getModuleLock(
 ): Promise<ModuleLock> {
   if (session.role === "ADMIN") return "OPEN";
   if (!mod.published || !mod.program.published) return "NOT_ENROLLED";
-  const unlocked = await getUnlockedModuleIds(session.userId);
-  if (!unlocked.has(mod.id)) return "NOT_ENROLLED";
+  const { open, awaiting } = await getModuleAccess(session.userId);
+  if (!open.has(mod.id)) return awaiting.has(mod.id) ? "PRE_ASSESSMENT" : "NOT_ENROLLED";
   if (mod.prerequisiteId) {
     const done = await getCompletedModuleIds(session.userId, [mod.prerequisiteId]);
     if (!done.has(mod.prerequisiteId)) return "PREREQUISITE";

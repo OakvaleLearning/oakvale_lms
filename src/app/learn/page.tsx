@@ -175,7 +175,17 @@ function ModuleCard({ module: mod, href }: { module: LearnerModuleCard; href: st
         <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-ink-500">{mod.description}</p>
       )}
       <div className="mt-auto pt-6">
-        {state === "LOCKED" ? (
+        {state === "LOCKED" && mod.preAssessmentHref ? (
+          <div className="rounded-lg bg-ink-50 px-3 py-2.5 text-xs leading-relaxed text-ink-600">
+            Pass the pre-assessment to unlock this module.
+            <Link
+              href={mod.preAssessmentHref}
+              className="mt-2 flex items-center gap-1 text-sm font-medium text-primary-700 hover:text-primary-900"
+            >
+              Take the pre-assessment <ArrowRight className="size-4" />
+            </Link>
+          </div>
+        ) : state === "LOCKED" ? (
           <p className="rounded-lg bg-ink-50 px-3 py-2.5 text-xs leading-relaxed text-ink-600">
             {mod.prerequisiteTitle
               ? `Complete “${mod.prerequisiteTitle}” to unlock this module.`
