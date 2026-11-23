@@ -16,9 +16,13 @@ export function clampPage(page: number, total: number, limit: number) {
   return Math.min(page, Math.max(1, Math.ceil(total / limit)));
 }
 
-/** Link to a list page, leaving defaults (page 1, the default size, an empty search) out of the URL. */
-export function listHref(path: string, { q, page, limit }: { q?: string; page?: number; limit?: number }) {
+/** Link to a list page, leaving defaults (page 1, the default size, an empty search, empty filters) out of the URL. */
+export function listHref(
+  path: string,
+  { q, page, limit, filters }: { q?: string; page?: number; limit?: number; filters?: Record<string, string | undefined> }
+) {
   const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters ?? {})) if (value) params.set(key, value);
   if (q) params.set("q", q);
   if (page && page > 1) params.set("page", String(page));
   if (limit && limit !== DEFAULT_PAGE_SIZE) params.set("limit", String(limit));

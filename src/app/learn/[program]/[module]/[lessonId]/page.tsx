@@ -9,7 +9,8 @@ import { LessonParts } from "@/components/learn/LessonParts";
 import { TutorPanel } from "@/components/learn/TutorPanel";
 import { getTutorAvailability } from "@/lib/lms/tutor";
 import { getModuleOutline } from "@/lib/lms/catalog";
-import { getBlockProgress, getModuleProgress } from "@/lib/lms/progress";
+import { getBlockProgress, getModuleProgress, markLessonOpened } from "@/lib/lms/progress";
+import { LessonTimer } from "@/components/learn/LessonTimer";
 import { ModuleOutline } from "@/components/learn/ModuleOutline";
 import { Breadcrumbs } from "@/components/dashboard/ui";
 
@@ -29,6 +30,8 @@ export default async function LessonPage({ params }: PageProps<"/learn/[program]
   if (mod.slug !== moduleSlug || mod.program.slug !== programSlug) notFound();
 
   const isAdmin = session.role === "ADMIN";
+  // Records when the learner started this lesson (admins previewing aren't tracked).
+  if (!isAdmin) await markLessonOpened(session.userId, lessonId);
   const [ordered, progress, partProgress, tutor, outline, moduleProgress] = await Promise.all([
     getOrderedLessons(mod.id, isAdmin),
     prisma.lessonProgress.findUnique({ where: { userId_lessonId: { userId: session.userId, lessonId } } }),
@@ -120,6 +123,7 @@ export default async function LessonPage({ params }: PageProps<"/learn/[program]
         </div>
       </div>
 
+      {!isAdmin && <LessonTimer key={lesson.id} lessonId={lesson.id} />}
       {tutor === "OPEN" && <TutorPanel key={lesson.id} lessonId={lesson.id} lessonTitle={lesson.title} locked={false} />}
     </div>
   );

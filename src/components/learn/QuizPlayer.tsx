@@ -58,6 +58,11 @@ export function QuizPlayer({
   const [started, setStarted] = useState(false);
   const answersRef = useRef<Record<string, string[]>>({});
   const submitting = useRef(false);
+  // When this attempt began (page open, or Start on a timed quiz), for the time taken shown to admins.
+  const begunAt = useRef(0);
+  useEffect(() => {
+    begunAt.current = Date.now();
+  }, [started]);
   const router = useRouter();
 
   const attemptsLeft = outcome ? outcome.attemptsLeft : initialAttemptsLeft;
@@ -86,7 +91,7 @@ export function QuizPlayer({
         const res = await fetch(`/api/lms/quiz/${lessonId}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ answers: current }),
+          body: JSON.stringify({ answers: current, durationSec: Math.round((Date.now() - begunAt.current) / 1000) }),
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error ?? "Could not submit");
@@ -144,6 +149,7 @@ export function QuizPlayer({
   }
 
   function retry() {
+    begunAt.current = Date.now();
     answersRef.current = {};
     setAnswers({});
     setOutcome(null);

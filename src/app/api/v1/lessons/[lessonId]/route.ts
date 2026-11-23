@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { checkLessonAccess, getOrderedLessons } from "@/lib/lms/access";
 import { documentKind, isOfficeFile, officeViewerUrl } from "@/lib/lms/blocks";
-import { getBlockProgress } from "@/lib/lms/progress";
+import { getBlockProgress, markLessonOpened } from "@/lib/lms/progress";
 import { getQuizForLearner } from "@/lib/lms/quiz";
 import { isStorageConfigured, presignDownload } from "@/lib/storage";
 import { jsonError, requireApiSession } from "@/lib/api/mobile";
@@ -47,6 +47,8 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/v1/lessons/[les
     getBlockProgress(session.userId, lessonId),
   ]);
   const index = ordered.findIndex((l) => l.id === lessonId);
+  // Records when the learner started the lesson, after reading progress so this response still says NOT_STARTED the first time.
+  if (session.role !== "ADMIN") await markLessonOpened(session.userId, lessonId);
 
   const parts = await Promise.all(
     lesson.blocks.map(async (block) => {

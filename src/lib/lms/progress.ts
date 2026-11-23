@@ -208,3 +208,28 @@ export async function getModuleProgress(userId: string, moduleIds: string[]) {
   }
   return result;
 }
+
+/**
+ * Note that a learner opened a lesson, so "started" and "currently on" are
+ * known even for parts that only report at the end (text, documents). Creates
+ * an IN_PROGRESS row the first time; never touches an existing one.
+ */
+export async function markLessonOpened(userId: string, lessonId: string) {
+  await prisma.lessonProgress.createMany({ data: [{ userId, lessonId }], skipDuplicates: true });
+}
+
+/** Longest a single time heartbeat may add, so a stalled tab can't claim hours at once. */
+export const MAX_TIME_BEAT_SEC = 120;
+
+/**
+ * Add active time to a lesson the learner has opened (see markLessonOpened,
+ * which runs after the access check). Does nothing for a lesson they never opened.
+ */
+export async function addLessonTime(userId: string, lessonId: string, seconds: number) {
+  const add = Math.min(MAX_TIME_BEAT_SEC, Math.max(0, Math.floor(seconds)));
+  if (!add) return;
+  await prisma.lessonProgress.updateMany({
+    where: { userId, lessonId },
+    data: { timeSpentSec: { increment: add } },
+  });
+}

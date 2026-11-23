@@ -92,3 +92,15 @@ export function readingTime(text: string): number {
 export function safeNextPath(raw: unknown): string | null {
   return typeof raw === "string" && /^\/(?![/\\])/.test(raw) && raw.length <= 500 ? raw : null;
 }
+
+/** A length of time for reports, e.g. "45 s", "12 min", "2 h 5 min", "3 d 4 h". */
+export function formatDuration(seconds: number): string {
+  const s = Math.max(0, Math.round(seconds));
+  if (s < 60) return `${s} s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return m % 60 ? `${h} h ${m % 60} min` : `${h} h`;
+  const d = Math.floor(h / 24);
+  return h % 24 ? `${d} d ${h % 24} h` : `${d} d`;
+}

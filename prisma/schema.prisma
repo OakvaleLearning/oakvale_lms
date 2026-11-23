@@ -530,17 +530,21 @@ model Question {
 }
 
 model QuizAttempt {
-  id        String   @id @default(cuid())
-  quiz      Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  quizId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  answers   Json // { [questionId]: optionId[] }
-  score     Int // percent
-  passed    Boolean
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quizId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  answers     Json // { [questionId]: optionId[] }
+  score       Int // percent
+  passed      Boolean
+  // Seconds from opening (or, when timed, starting) the quiz to submitting,
+  // as reported by the web player. null for older attempts and the mobile app.
+  durationSec Int?
+  createdAt   DateTime @default(now())
 
   @@index([quizId, userId])
+  @@index([userId, createdAt])
 }
 
 /**
@@ -622,18 +626,24 @@ enum ProgressStatus {
 }
 
 model LessonProgress {
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId      String
-  lesson      Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  lessonId    String
-  status      ProgressStatus @default(IN_PROGRESS)
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String
+  lesson       Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId     String
+  status       ProgressStatus @default(IN_PROGRESS)
   // Resume point for video/audio, in seconds.
-  positionSec Int?
+  positionSec  Int?
   // Best quiz / SCORM score, percent.
-  score       Int?
-  completedAt DateTime?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  score        Int?
+  completedAt  DateTime?
+  // Time the lesson page was open and in use (visible, not idle), from the
+  // web lesson page's heartbeat (/api/lms/progress/time). Counting started
+  // in November 2026; the mobile app doesn't report it.
+  timeSpentSec Int            @default(0)
+  // First opened (the row is created when the lesson page loads; before
+  // November 2026, on the first progress report instead).
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
   @@id([userId, lessonId])
   @@index([lessonId])

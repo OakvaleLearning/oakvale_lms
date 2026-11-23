@@ -134,7 +134,8 @@ export type SubmitQuizResult =
 export async function submitQuiz(
   userId: string,
   lessonId: string,
-  answers: Record<string, string[]>
+  answers: Record<string, string[]>,
+  durationSec?: number
 ): Promise<SubmitQuizResult> {
   const quiz = await prisma.quiz.findUnique({
     where: { lessonId },
@@ -151,7 +152,15 @@ export async function submitQuiz(
   const passed = score >= quiz.passMark;
 
   await prisma.quizAttempt.create({
-    data: { quizId: quiz.id, userId, answers, score, passed },
+    data: {
+      quizId: quiz.id,
+      userId,
+      answers,
+      score,
+      passed,
+      // Client-measured; capped at a day so a tab left open for weeks doesn't skew reports.
+      durationSec: durationSec === undefined ? null : Math.min(86_400, Math.round(durationSec)),
+    },
   });
   const part = await prisma.lessonBlock.findFirst({ where: { lessonId, type: "QUIZ" }, select: { id: true } });
   await recordProgress(userId, lessonId, { score, completed: passed, blockId: part?.id });

@@ -6,6 +6,8 @@ import { submitQuiz } from "@/lib/lms/quiz";
 
 const schema = z.object({
   answers: z.record(z.string().max(40), z.array(z.string().max(200)).max(20)),
+  /** Seconds the learner took, as measured by the player (optional; older clients don't send it). */
+  durationSec: z.number().min(0).optional(),
 });
 
 /** Submit a quiz attempt; graded on the server. */
@@ -22,7 +24,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/lms/quiz/[lesso
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid answers" }, { status: 400 });
 
-  const result = await submitQuiz(session.userId, lessonId, parsed.data.answers);
+  const result = await submitQuiz(session.userId, lessonId, parsed.data.answers, parsed.data.durationSec);
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 409 });
   return NextResponse.json(result);
 }
