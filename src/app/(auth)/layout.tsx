@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { Logo } from "@/components/layout/Logo";
 import { SITE } from "@/content/site";
 import { PageTransition, Reveal, Stagger, StaggerItem } from "@/components/motion";
-import { AndroidAppPrompt } from "@/components/dashboard/AndroidAppPrompt";
+import { AppDownload } from "@/components/app/AppDownload";
 
 const FEATURES = [
   { title: "Certified, job-ready training", text: "Practical modules built around real care settings." },
@@ -23,7 +23,6 @@ export default async function AuthLayout({
 
   return (
     <div className="grid min-h-screen bg-canvas lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-      <AndroidAppPrompt />
       {/* Brand panel */}
       <div className="relative hidden overflow-hidden bg-primary-950 lg:block">
         <div
@@ -82,7 +81,10 @@ export default async function AuthLayout({
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-center px-6 pb-16 pt-6 sm:px-10">
-          <PageTransition className="w-full max-w-[400px]">{children}</PageTransition>
+          <div className="w-full max-w-[400px] space-y-8">
+            <PageTransition>{children}</PageTransition>
+            <AppDownload variant="auth" />
+          </div>
         </div>
       </div>
     </div>

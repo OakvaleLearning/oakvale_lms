@@ -9,6 +9,7 @@ import { ProgressBar } from "@/components/learn/ProgressBar";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { cn } from "@/lib/utils";
 import { CommunityCard } from "@/components/community/CommunityCard";
+import { AppDownload } from "@/components/app/AppDownload";
 
 export const metadata: Metadata = { title: "My learning" };
 
@@ -49,6 +50,7 @@ export default async function LearnHome() {
         >
           Once you enrol in a programme, your modules will appear here.
         </EmptyState>
+        <AppDownload variant="overview" />
       </div>
     );
   }
@@ -129,6 +131,10 @@ export default async function LearnHome() {
 
       <Reveal delay={0.1}>
         <CommunityCard session={session} />
+      </Reveal>
+
+      <Reveal delay={0.12}>
+        <AppDownload variant="overview" />
       </Reveal>
 
       {programs.map((program) => (

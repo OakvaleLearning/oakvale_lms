@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 import { Logo } from "@/components/layout/Logo";
 import { SITE } from "@/content/site";
 import { EASE, PageTransition } from "@/components/motion";
-import { AndroidAppPrompt } from "@/components/dashboard/AndroidAppPrompt";
 import { SUPPORT_READ_EVENT } from "@/components/support/SupportChat";
 import { COMMUNITY_READ_EVENT } from "@/components/community/NotificationsRead";
 import { Avatar } from "@/components/community/Avatar";
@@ -139,8 +138,6 @@ export function DashboardShell({
 
   return (
     <div className="min-h-screen bg-canvas">
-      {/* Offered on the learner overview only (and the sign-in pages), not every page. */}
-      {variant === "learner" && pathname === "/learn" && <AndroidAppPrompt />}
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-line bg-sidebar lg:block">
         {sidebar("rail")}
