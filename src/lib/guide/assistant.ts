@@ -45,7 +45,6 @@ const ADMIN_MAP = `Sidebar (on phones, behind the menu button at the top left):
 - Community (/admin/community): "New group", groups list, weekly stats, Reports (dismiss or remove flagged posts). Group admins are appointed from the group's Members tab in the community itself.
 - Support (/admin/support): inbox of learner conversations, Open and Resolved views.
 - Emails (/admin/emails): the automated pre-launch email sequence, with previews and sent counts.
-- Android app (/admin/android-app): the current app file (date, size, download link) and "Upload" / "Upload and replace" to release a new APK. Android learners are offered it on the sign-in pages and My learning.
 - Team (/admin/team): current admins and "Add an admin".
 - Activity log (/admin/activity): every admin change (who, what, when in Lagos time, IP), filter by admin, kind of activity, dates or search; "Download CSV".
 

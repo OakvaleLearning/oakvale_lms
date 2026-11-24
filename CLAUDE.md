@@ -86,13 +86,14 @@
 
 ## Android app download
 
-- The APK sits at one fixed key in the private bucket (`ANDROID_APK_KEY` in `src/lib/android-app.ts`). Admins upload new builds at `/admin/android-app` (presigned PUT, replaces the object; logged as `app.upload`). Learners download from the stable link `/download/android`, which redirects to a signed URL, or returns 404 if nothing is uploaded yet.
-- `AndroidAppPrompt` is shown on the `(auth)` pages and the learner overview (`/learn`) only (iPhone/iPad visitors get a "coming to the App Store soon" note instead), and only when `NEXT_PUBLIC_ANDROID_APK_URL` is set (point it at `https://app.oakvaleltd.com/download/android`; it's inlined at build time, so redeploy after changing it).
-- The app (`../oakvale-mobile`) is signed with the release key in `../android-signing/` (not in git). Every update must be signed with that same key and have a higher `versionCode`, or phones refuse to install it over the old one.
+- The APK is a static file, `public/downloads/oakvale-learning.apk`, and its details (version, `versionCode`, `minVersionCode`, notes) are in `src/content/android-release.json`. Both are written by `npm run build:apk` in `../oakvale-mobile`; committing and deploying is the release. There is no admin page or env var. `versionCode: 0` means no app yet, and hides the prompt. `next.config.ts` sets the APK's download headers.
+- `AndroidAppPrompt` shows on the `(auth)` pages and the learner overview (`/learn`) only. iPhone/iPad visitors get a "coming to the App Store soon" note instead.
+- The app is signed with the release key in `../android-signing/` (not in git). Every update must be signed with that same key and have a higher `versionCode`, or phones refuse to install it over the old one.
+- GitHub rejects files over 100 MB, so keep the APK phone-only (`buildArchs` in the app's `app.config.ts`). Each release adds the APK to git history.
 
 ## Push notifications and app updates
 
 - Phones register an Expo push token at `POST /api/v1/push` after sign-in (`DELETE` on sign-out) into `PushDevice`. `queuePush(userIds | where, { title, body, url })` in `src/lib/push.ts` sends through Expo's push service after the response and deletes tokens Expo reports as `DeviceNotRegistered`. `url` is a website path the app opens in its browser, or `"update"` for the APK download.
 - Pushes go out for: comments and replies (`notifyComment`), announcements and new events (`notifyGroup`), event reminders (cron, `community/emails.ts`) and support replies (`sendSupportReply`). A new kind of in-app notification should push too.
 - Android delivery needs the app built with Firebase (`google-services.json`) and the EAS project id, plus Firebase's FCM V1 key uploaded to the Expo project. `EXPO_ACCESS_TOKEN` is only needed if Expo "enhanced push security" is on.
-- Update check: releasing at `/admin/android-app` saves `app/android/latest.json` (version, `versionCode`, notes, `minVersionCode`) beside the APK; `GET /api/v1/app/android` serves it. The app offers newer builds and blocks below `minVersionCode` ("Required update"). The version code must go up each release; `npm run build:apk` puts it in the file name and the form reads it from there.
+- Update check: `GET /api/v1/app/android` serves `src/content/android-release.json`. The app offers newer builds (once per version) and blocks below `minVersionCode` (`REQUIRED_UPDATE=1 npm run build:apk`; `RELEASE_NOTES="…"` adds notes).

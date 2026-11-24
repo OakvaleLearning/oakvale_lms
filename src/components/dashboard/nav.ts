@@ -15,7 +15,6 @@ import {
   UserRound,
   ShieldCheck,
   History,
-  Smartphone,
 } from "lucide-react";
 
 export interface NavItem {
@@ -53,7 +52,6 @@ export const NAV: Record<"learner" | "admin", { section: string; items: NavItem[
       { label: "Community", href: "/admin/community", icon: UsersRound, keywords: "groups posts moderation" },
       { label: "Support", href: "/admin/support", icon: MessagesSquare, badge: "support", keywords: "help chat tickets" },
       { label: "Emails", href: "/admin/emails", icon: Mail, keywords: "email campaigns send templates" },
-      { label: "Android app", href: "/admin/android-app", icon: Smartphone, keywords: "apk mobile phone download app update release" },
       { label: "Team", href: "/admin/team", icon: ShieldCheck, keywords: "admins staff roles" },
       { label: "Activity log", href: "/admin/activity", icon: History, keywords: "audit history changes who did what records" },
     ],

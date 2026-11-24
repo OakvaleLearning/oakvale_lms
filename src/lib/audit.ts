@@ -29,7 +29,6 @@ export const AUDIT_CATEGORIES = {
   team: { label: "Team", prefixes: ["admin"] },
   emails: { label: "Emails", prefixes: ["email"] },
   signIn: { label: "Sign-ins", prefixes: ["auth"] },
-  app: { label: "Android app", prefixes: ["app"] },
 } as const;
 
 export type AuditCategory = keyof typeof AUDIT_CATEGORIES;

@@ -6,8 +6,8 @@ import { Download, X } from "lucide-react";
 
 type Platform = "android" | "ios";
 import { buttonClass } from "@/components/ui/Button";
+import { ANDROID_APK_PATH, hasAndroidApp } from "@/lib/android-app";
 
-const APK_URL = process.env.NEXT_PUBLIC_ANDROID_APK_URL;
 const KEY = "oakvale:android-prompt";
 const SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -33,7 +33,7 @@ function remember(value: "never" | number) {
  * Bottom-sheet prompt asking Android visitors to download the app (an APK);
  * iPhone and iPad visitors are told it's coming to the App Store soon.
  * Shown on the sign-in pages and the learner overview (/learn). Does nothing
- * unless NEXT_PUBLIC_ANDROID_APK_URL is set (the launch switch for both). Not
+ * until an APK has been built into public/downloads (see src/lib/android-app.ts). Not
  * shown on other devices, inside the installed app or a web view, or after
  * someone said no.
  */
@@ -43,7 +43,7 @@ export function AndroidAppPrompt() {
   const primaryButton = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!APK_URL) return;
+    if (!hasAndroidApp) return;
     // A short delay so it doesn't land on top of the page while it loads.
     const timer = setTimeout(() => {
       const ua = navigator.userAgent;
@@ -78,7 +78,7 @@ export function AndroidAppPrompt() {
     setOpen(null);
   }
 
-  if (!open || !APK_URL) return null;
+  if (!open || !hasAndroidApp) return null;
   return (
     <div className="fixed inset-0 z-[90] flex items-end justify-center bg-ink-950/40 p-3 sm:items-center" onClick={later}>
       <div
@@ -105,7 +105,7 @@ export function AndroidAppPrompt() {
             <p className="mt-4 text-sm leading-relaxed text-ink-700">
               Open your modules straight from your home screen and keep learning on your phone.
             </p>
-            <a ref={primary} href={APK_URL} onClick={() => remember(Date.now() + SNOOZE_MS)} className={buttonClass({ variant: "primary", size: "md" }) + " mt-4 w-full justify-center"}>
+            <a ref={primary} href={ANDROID_APK_PATH} download onClick={() => remember(Date.now() + SNOOZE_MS)} className={buttonClass({ variant: "primary", size: "md" }) + " mt-4 w-full justify-center"}>
               <Download className="size-4" /> Download for Android
             </a>
             <p className="mt-3 text-xs leading-relaxed text-ink-500">
