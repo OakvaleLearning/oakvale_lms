@@ -139,7 +139,8 @@ export function DashboardShell({
 
   return (
     <div className="min-h-screen bg-canvas">
-      {variant === "learner" && <AndroidAppPrompt />}
+      {/* Offered on the learner overview only (and the sign-in pages), not every page. */}
+      {variant === "learner" && pathname === "/learn" && <AndroidAppPrompt />}
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-line bg-sidebar lg:block">
         {sidebar("rail")}

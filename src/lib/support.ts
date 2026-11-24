@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
+import { pushSnippet, queuePush } from "@/lib/push";
 
 /**
  * Support chat between a learner and the Oakvale team. Each learner has one
@@ -95,7 +96,7 @@ export async function sendLearnerMessage(userId: string, body: string): Promise<
 
 export async function sendSupportReply(conversationId: string, adminId: string, body: string): Promise<SupportMessageView> {
   const now = new Date();
-  const [message] = await prisma.$transaction([
+  const [message, conversation] = await prisma.$transaction([
     prisma.supportMessage.create({
       data: { conversationId, senderId: adminId, fromSupport: true, body },
       select: messageSelect,
@@ -103,8 +104,10 @@ export async function sendSupportReply(conversationId: string, adminId: string, 
     prisma.supportConversation.update({
       where: { id: conversationId },
       data: { lastMessageAt: now, lastFromSupport: true, supportLastReadAt: now },
+      select: { userId: true },
     }),
   ]);
+  queuePush([conversation.userId], { title: "Oakvale Support replied", body: pushSnippet(body, 180), url: "/support" });
   return toView(message);
 }
 

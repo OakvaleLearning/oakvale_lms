@@ -2,6 +2,7 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { queuePush } from "@/lib/push";
 import { EMAIL_BATCH_SIZE, sendEmail, sendEmailBatch } from "@/lib/email";
 import { TEAM, appUrl, button, escape, layout, p } from "@/lib/email-templates";
 import { groupLearnerWhere } from "./access";
@@ -99,6 +100,10 @@ async function sendEventReminders(now: Date) {
     await prisma.notification.createMany({
       data: event.rsvps.map((r) => ({ userId: r.userId, kind: "EVENT_REMINDER" as const, eventId: event.id })),
     });
+    queuePush(
+      event.rsvps.map((r) => r.userId),
+      { title: `Coming up: ${event.title}`, body: `${formatEventTime(event.startsAt)} · ${event.group.name}`, url: `/community/events/${event.id}` }
+    );
 
     const link = `${appUrl()}/community/events/${event.id}`;
     const when = formatEventTime(event.startsAt);

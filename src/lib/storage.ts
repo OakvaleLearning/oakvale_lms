@@ -2,6 +2,7 @@ import "server-only";
 import {
   S3Client,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   ListObjectsV2Command,
   DeleteObjectsCommand,
@@ -162,6 +163,18 @@ export async function getObject(key: string) {
     };
   } catch (err) {
     if ((err as { name?: string }).name === "NoSuchKey") return null;
+    throw err;
+  }
+}
+
+/** Size and date of an object, or null when it doesn't exist. */
+export async function headObject(key: string) {
+  try {
+    const res = await s3().send(new HeadObjectCommand({ Bucket: bucket(), Key: key }));
+    return { size: res.ContentLength ?? 0, updatedAt: res.LastModified ?? null, contentType: res.ContentType ?? null };
+  } catch (err) {
+    const e = err as { name?: string; $metadata?: { httpStatusCode?: number } };
+    if (e.name === "NotFound" || e.name === "NoSuchKey" || e.$metadata?.httpStatusCode === 404) return null;
     throw err;
   }
 }

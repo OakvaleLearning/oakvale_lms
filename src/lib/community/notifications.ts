@@ -6,6 +6,7 @@ import { HOUR, rateLimit } from "@/lib/rate-limit";
 import { groupMemberWhere } from "./access";
 import { AUTHOR_SELECT, toAuthor } from "./feed";
 import { sendCommentEmail } from "./emails";
+import { queuePush } from "@/lib/push";
 import type { AuthorView } from "./shared";
 
 /**
@@ -52,6 +53,15 @@ export async function notifyComment(input: {
 
   await prisma.notification.createMany({ data: rows.map((r) => ({ ...r, actorId, postId: post.id })) });
 
+  const link = `/community/${post.group.slug}/posts/${post.id}`;
+  for (const r of rows) {
+    queuePush([r.userId], {
+      title: r.kind === "REPLY" ? `${input.actorName} replied to your comment` : `${input.actorName} commented on your post`,
+      body: snippet(comment.body, 180),
+      url: link,
+    });
+  }
+
   // Email in the background, at most once an hour per person per post.
   after(async () => {
     const recipients = await prisma.user.findMany({
@@ -88,7 +98,33 @@ export async function notifyGroup(
       data: members.slice(i, i + 1000).map((m) => ({ userId: m.id, kind, ...data })),
     });
   }
+  await pushToGroup(group.id, kind, data, members.map((m) => m.id));
   return members.length;
+}
+
+/** The phone notification for a group-wide announcement or new event. */
+async function pushToGroup(groupId: string, kind: NotificationKind, data: { actorId: string; postId?: string; eventId?: string }, userIds: string[]) {
+  if (userIds.length === 0) return;
+  const [group, actor, post, event] = await Promise.all([
+    prisma.communityGroup.findUnique({ where: { id: groupId }, select: { name: true, slug: true } }),
+    prisma.user.findUnique({ where: { id: data.actorId }, select: { name: true } }),
+    data.postId ? prisma.post.findUnique({ where: { id: data.postId }, select: { body: true } }) : null,
+    data.eventId ? prisma.communityEvent.findUnique({ where: { id: data.eventId }, select: { title: true } }) : null,
+  ]);
+  if (!group) return;
+  if (kind === "ANNOUNCEMENT" && post) {
+    queuePush(userIds, {
+      title: `Announcement in ${group.name}`,
+      body: snippet(post.body, 180),
+      url: `/community/${group.slug}/posts/${data.postId}`,
+    });
+  } else if (kind === "EVENT_NEW" && event) {
+    queuePush(userIds, {
+      title: `New event in ${group.name}`,
+      body: `${actor?.name ?? "Oakvale"} added “${event.title}”`,
+      url: `/community/events/${data.eventId}`,
+    });
+  }
 }
 
 export async function unreadNotificationCount(userId: string): Promise<number> {
